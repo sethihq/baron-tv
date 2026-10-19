@@ -3,9 +3,11 @@
 # (437 MB usable), 1366x768 panel, UI 1280x720 at 160 dpi. No Google Play, no Chromecast.
 # Fingerprint: MediaTek/m7332_eu/m7332_eu:9/PPR2.180905.006.A1/builder06101951:userdebug/dev-keys
 #
-# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/baron-cloudtv-32/debloat.txt
+# Apply:   REMOVE=1 TV_HOST=<tv ip> tools/disable.sh examples/baron-cloudtv-32/debloat.txt
 # Undo:    TV_HOST=<tv ip> tools/restore.sh examples/baron-cloudtv-32/debloat.txt tv.cloudwalker.launcher.com
-# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+# This firmware re-enables every disabled package at boot, so REMOVE=1 removes them for user 0
+# instead (pm uninstall -k --user 0): the APKs stay in the system image with their data, and the
+# undo line brings them back. Comment out any line you want to keep.
 #
 # Getting ADB: Cloud TV's settings have no Build entry. Open the CVTE factory menu with Menu, then
 # 1 1 4 7 (the remote has no number keys, so send them through CloudWalker's phone-remote server:
@@ -45,7 +47,8 @@ tv.cloudwalker.cloudwalkeruniverse      # Movie Box
 com.android.browser                     # Browser
 com.mediatek.androidbox                 # Kindlink screen mirroring (WFD sink)
 
-# Only once the new launcher is installed and owns Home (the stock launcher may rely on these)
-#tv.cloudwalker.apiservice              # CloudWalker ad-ID and deeplink service, starts at boot
-#tv.cloudwalker.skin                    # Cloud TV launcher skin (About, Terms)
-#tv.cloudwalker.apps                    # Cloud TV All Apps screen
+# Only once the new launcher is installed and owns Home (the stock launcher may rely on these).
+# Comment these three out if you apply this list before installing the launcher.
+tv.cloudwalker.apiservice               # CloudWalker ad-ID and deeplink service, starts at boot
+tv.cloudwalker.skin                     # Cloud TV launcher skin (About, Terms)
+tv.cloudwalker.apps                     # Cloud TV All Apps screen

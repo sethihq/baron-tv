@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Re-enable every package listed in a debloat file, restore the stock launcher as home and reset
-# animation scales. Pass the same list you used with tools/disable.sh.
+# animation scales. Pass the same list you used with tools/disable.sh. Packages it removed for user 0
+# (REMOVE=1) are put back first with install-existing, a no-op for packages that are still there.
 #
 # Usage: TV_HOST=192.168.1.50 tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt [stock.launcher.package]
 set -euo pipefail
@@ -11,7 +12,7 @@ PY=tools/venv/bin/python
 [ -x "$PY" ] || PY=tools/venv/Scripts/python.exe
 export MSYS_NO_PATHCONV=1
 {
-  grep -vE '^\s*(#|$)' "$LIST" | sed -E 's/\s+#.*$//' | awk '{print "pm enable " $1}'
+  grep -vE '^\s*(#|$)' "$LIST" | sed -E 's/\s+#.*$//' | awk '{print "cmd package install-existing " $1; print "pm enable " $1}'
   echo "pm enable $STOCK"
   # resolve the stock HOME component on the TV (Android 9 needs pkg/activity, not just pkg)
   echo "cmd package set-home-activity --user 0 \$(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME $STOCK | tail -n 1)"
