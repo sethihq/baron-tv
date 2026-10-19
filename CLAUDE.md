@@ -66,7 +66,14 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
 - Debloat list: `examples/baron-cloudtv-32/debloat.txt`, with reasons per package and what to leave alone.
   The three stage-B lines at the bottom stay commented until the new launcher owns Home.
 - User's answers: doesn't use Movie Box, Browser or Kindlink (all go); both updaters off; keep the
-  Cloud TV App Store (only way to install apps), remove Stark Store. **Dock order not confirmed yet.**
+  Cloud TV App Store (only way to install apps), remove Stark Store. Dock order confirmed: YouTube,
+  Prime Video, Spotify, Cloud TV App Store (as in `config.xml`). Netflix isn't installed, though the
+  remote has a Netflix key.
+- Work moved to a second Mac (192.168.1.9) the same day. It is set up as in "Setup on a new Mac"
+  (SDK in `/opt/homebrew/share/android-commandlinetools`) and ADB answers from it. Checked from there:
+  nothing disabled, Home is still the stock launcher.
+- Upstream (renamed cleanyourtv, v2.1.0 at `042fd69`) is being merged on branch `merge-upstream`,
+  keeping the Baron changes below. Not on `main` yet.
 - Launcher adapted and built (242 KB) but **not installed**. Changes from upstream:
   - `config.xml`: dock YouTube, Prime Video, Spotify, Cloud TV App Store; CloudWalker helper apps
     hidden; no Live TV (no tuner, inputs are AV and HDMI 1-2).
@@ -89,7 +96,7 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
    ```
    HW4 is HDMI 1, HW5 is HDMI 2, `com.mediatek.tvinput/.composite.CompositeInputService/HW3` is AV.
    If it doesn't switch, try the URI as an extra; failing that, make the Inputs pill fire SHOW_INPUT.
-3. Ask the user for the dock order, then
+3. Dock order is confirmed. Build and install:
    `STOCK_LAUNCHER=tv.cloudwalker.launcher.com TV_HOST=192.168.1.20 launcher/build-and-install.sh`.
    Check it with screenshots: `tools/tv.py 'screencap -p /sdcard/s.png'`, then `tools/tv.py --pull /sdcard/s.png s.png`.
 4. Uncomment the stage-B lines (apiservice, skin, apps) and run
@@ -108,4 +115,5 @@ Undo everything: `TV_HOST=192.168.1.20 tools/restore.sh examples/baron-cloudtv-3
   while they might be recording.
 - One `pm` command per shell call (`tools/tv.py --batch` does this).
 - The user wants short replies, no em dashes anywhere (code and comments included), an explicit yes
-  before every push, and no AI attribution lines in commits.
+  before every push, and no AI attribution lines in commits. Standing yes for this file: keep it
+  updated and pushed to GitHub as work progresses, so either Mac can pick up where the other left off.
