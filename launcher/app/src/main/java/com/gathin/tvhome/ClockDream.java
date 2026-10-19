@@ -2,6 +2,8 @@ package com.gathin.tvhome;
 
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
+import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
@@ -36,6 +38,12 @@ public class ClockDream extends DreamService {
             handler.postDelayed(this, MOVE_MS);
         }
     };
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        Configuration c = MainActivity.densityOverride(base);   // same size as the home screen
+        super.attachBaseContext(c == null ? base : base.createConfigurationContext(c));
+    }
 
     @Override
     public void onAttachedToWindow() {

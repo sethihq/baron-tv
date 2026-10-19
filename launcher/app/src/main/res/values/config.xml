@@ -7,20 +7,37 @@
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
-        <item>com.netflix.ninja</item>
-        <item>com.amazon.amazonvideo.livingroom</item>
         <item>com.google.android.youtube.tv</item>
-        <item>in.startv.hotstar</item>
+        <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.spotify.tv.android</item>
+        <item>tv.cloudwalker.market</item>
     </string-array>
 
-    <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
+    <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers).
+         Baron Cloud TV: the stock launcher and CloudWalker's helper screens. -->
     <string-array name="hidden_apps">
-        <item>com.mediatek.wwtv.tvcenter</item>
-        <item>com.mitv.gallery</item>
+        <item>tv.cloudwalker.launcher.com</item>
+        <item>tv.cloudwalker.inputserver</item>
+        <item>tv.cloudwalker.apiservice</item>
+        <item>tv.cloudwalker.apps</item>
+        <item>tv.cloudwalker.updater</item>
+        <item>tv.cloudwalker.search</item>
     </string-array>
 
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
-    <string name="live_tv_package" translatable="false">com.mediatek.wwtv.tvcenter</string>
+    <string name="live_tv_package" translatable="false"></string>
+
+    <!-- For TVs whose TV app ignores Android's standard intent for opening an HDMI or AV input: a
+         broadcast that switches inputs instead, sent to its receivers by name with the input's
+         passthrough channel URI as data. Empty: only the standard intent. CVTE boards (Cloud TV):
+         com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL with the category below. -->
+    <string name="input_tune_action" translatable="false">com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL</string>
+    <string name="input_tune_category" translatable="false">com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL</string>
+
+    <!-- Density the launcher lays itself out at, in dpi; 0 keeps the TV's own. The design assumes
+         Android TV's 960x540 dp screen, which TVs reporting 1280x720 at 160 dpi draw a quarter too
+         small: 213 restores it there. -->
+    <integer name="ui_density_dpi">213</integer>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->

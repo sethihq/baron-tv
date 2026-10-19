@@ -5,6 +5,9 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
@@ -16,6 +19,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
+import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -60,6 +64,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static int COLUMNS = 4;
     private static final long MINUTE_MS = 60_000L;
     private String liveTvPkg;
+    private String tuneAction, tuneCategory;
 
     private AppAdapter adapter;
     private RecyclerView grid;
@@ -136,12 +141,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     };
 
     @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        Configuration c = densityOverride(base);
+        if (c != null) applyOverrideConfiguration(c);
+    }
+
+    /** config.xml ui_density_dpi as a configuration override, or null to keep the TV's own density. */
+    static Configuration densityOverride(Context base) {
+        int dpi = base.getResources().getInteger(R.integer.ui_density_dpi);
+        if (dpi <= 0 || dpi == base.getResources().getConfiguration().densityDpi) return null;
+        Configuration c = new Configuration();
+        c.densityDpi = dpi;
+        return c;
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
         COLUMNS = Math.max(1, getResources().getInteger(R.integer.columns));
         liveTvPkg = getString(R.string.live_tv_package).trim();
+        tuneAction = getString(R.string.input_tune_action).trim();
+        tuneCategory = getString(R.string.input_tune_category).trim();
 
         root = findViewById(R.id.root);
         glass = findViewById(R.id.glass);
@@ -556,6 +579,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * Opens a passthrough input with Android's standard intent or, where no TV app answers it, with the
+     * tune broadcast from config.xml. That one goes to each receiver by name: their filters take no data,
+     * and Android 8+ keeps implicit broadcasts away from receivers declared in a manifest.
+     */
+    private void openInput(Uri channel) {
+        Intent view = new Intent(Intent.ACTION_VIEW).setDataAndType(channel, "vnd.android.cursor.item/channel");
+        if (tuneAction.isEmpty()
+                || getPackageManager().resolveActivity(view, PackageManager.MATCH_DEFAULT_ONLY) != null) {
+            open(view);
+            return;
+        }
+        Intent tune = new Intent(tuneAction);
+        if (!tuneCategory.isEmpty()) tune.addCategory(tuneCategory);
+        List<ResolveInfo> receivers = getPackageManager().queryBroadcastReceivers(tune, 0);
+        if (receivers.isEmpty()) {
+            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        tune.setData(channel);
+        for (ResolveInfo ri : receivers) {
+            sendBroadcast(new Intent(tune).setClassName(ri.activityInfo.packageName, ri.activityInfo.name));
+        }
+    }
+
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
         View anchor = findViewById(R.id.btnInputs);
@@ -606,8 +654,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
                 if (!hdmi) sawNonHdmi = true;
                 addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state,
-                        () -> open(new Intent(Intent.ACTION_VIEW).setDataAndType(
-                                TvContract.buildChannelUriForPassthroughInput(id), "vnd.android.cursor.item/channel")));
+                        () -> openInput(TvContract.buildChannelUriForPassthroughInput(id)));
             }
         }
         Intent liveTv = liveTvPkg.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
