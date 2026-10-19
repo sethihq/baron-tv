@@ -18,7 +18,7 @@ then `git fetch upstream && git merge upstream/main`.
 | Board | CVTE TP.SK518T.PB816, MediaTek (`mt5862_512m`), Mali-G31 MP2, firmware 20240913_213710 |
 | RAM | 512 MB, 437 MB usable. Android reports memory as "critical" even after the debloat |
 | Screen | UI 1280x720 at 160 dpi |
-| Network | Wi-Fi, DHCP. The MAC changes on every boot (`88:00:33:77:xx:xx`), so the IP does too (.20 to .24 on 2026-10-19) |
+| Network | Wi-Fi, DHCP. The MAC changes on every boot (`88:00:33:77:xx:xx`), so the IP does too (.20, .24, then .25 on 2026-10-19) |
 | Remote | No number keys: Power, Mute, D-pad, Home, Back, Menu (three lines), Vol -/+, Input, Play/Pause, cursor, Netflix, Prime Video, YouTube |
 
 Find the TV at the start of every session:
@@ -29,6 +29,11 @@ arp -an | grep 88:0:33:77       # after a ping sweep of the subnet
 ```
 
 or read the IP row in the factory menu.
+
+After a reboot the phone-remote server comes back in Android's stopped state (`stopped=true`), so port
+5511 and the `Android.local` name stay silent until it's opened once. Use the ARP sweep, then over ADB:
+`am start -n tv.cloudwalker.inputserver/.MainActivity` and `input keyevent KEYCODE_HOME` (checked
+2026-10-19: port 5511 opens at once). The remote's own factory-menu sequence below doesn't need it.
 
 The firmware's default system lock PIN (`ro.CVT_DEF_SYS_LOCK_PASSWORD`) is `1234`, in case a PIN prompt appears.
 
