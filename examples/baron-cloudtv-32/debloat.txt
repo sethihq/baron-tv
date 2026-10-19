@@ -1,0 +1,51 @@
+# Baron 32" HD LED "Cloud TV" (80 cm), CloudWalker Cloud TV OS on a CVTE TP.SK518T.PB816 board,
+# MediaTek (device mt5862_512m), Android 9 (API 28), firmware 20240913_213710, 512 MB RAM
+# (437 MB usable), 1366x768 panel, UI 1280x720 at 160 dpi. No Google Play, no Chromecast.
+# Fingerprint: MediaTek/m7332_eu/m7332_eu:9/PPR2.180905.006.A1/builder06101951:userdebug/dev-keys
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/baron-cloudtv-32/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/baron-cloudtv-32/debloat.txt tv.cloudwalker.launcher.com
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Getting ADB: Cloud TV's settings have no Build entry. Open the CVTE factory menu with Menu, then
+# 1 1 4 7 (the remote has no number keys, so send them through CloudWalker's phone-remote server:
+# curl "http://<tv ip>:5511/input/?keycode=82", then keycodes 8 8 11 14), go to DEBUG and set
+# ADB ENABLE to ON. Port 5555 opens at once and accepts any computer (ro.adb.secure=0), so set it
+# back to OFF when you're done.
+#
+# Notes from this TV:
+# - Stock launcher is tv.cloudwalker.launcher.com, fallback Home is com.example.user.myapplication.
+# - Inputs are AV and HDMI 1-2 (com.mediatek.tvinput), no tuner. CVTE's TV app ignores the standard
+#   passthrough channel URIs; its own source menu opens with the action com.cvte.intent.SHOW_INPUT.
+# - Leave alone: com.cvte.fac.menu, com.cvte.factory.*, com.cvte.tv.burn, com.cvte.macbar,
+#   com.cvte.license.at (factory tools), com.cvte.tv.setting, com.cvte.tv.globalui,
+#   com.cvte.tv.api.impl, com.mediatek.tvinput* (inputs, picture, source menu), com.cvte.settings,
+#   com.cvte.tv.media (USB media player), tv.cloudwalker.inputserver (phone remote, port 5511, the
+#   only way to type 1147), com.mediatek.bootvideo, com.google.android.boot.appsplashscreen.
+# - Unclear, left on: com.cvte.tv.ucservice (persistent, authorises the TV with CVTE's cloud and
+#   has a "block" service) and com.cvte.tvservice.
+
+# CVTE and CloudWalker ads and tracking
+com.cvte.ad.spider                      # CVTE ad module: queryAd/report to tvweb.cvtapi.com, starts at boot
+tv.cloudwalker.search                   # Cloud TV Search Box, carries an advertising ID
+
+# Background updaters (could re-enable or reinstall what this list turns off)
+tv.cloudwalker.updater                  # CloudWalker app updater, starts at boot; re-enable to update Cloud TV apps
+com.cvte.tv.systemupgrade               # CVTE firmware updater; re-enable for OTA updates
+
+# Second app store (Cloud TV App Store, tv.cloudwalker.market, stays: it's the only way to install apps)
+com.stark.store                         # CVTE Stark Store, can install and remove apps by itself
+
+# Preloaded apps nobody here uses
+fusion.android.tv.demo                  # retail demo mode
+com.android.soundrecorder
+com.cvte.tv.steward                     # "TV Assistant" cleaner
+com.google.android.leanbacklauncher.partnercustomizer  # customizer for a launcher this TV doesn't have
+tv.cloudwalker.cloudwalkeruniverse      # Movie Box
+com.android.browser                     # Browser
+com.mediatek.androidbox                 # Kindlink screen mirroring (WFD sink)
+
+# Only once the new launcher is installed and owns Home (the stock launcher may rely on these)
+#tv.cloudwalker.apiservice              # CloudWalker ad-ID and deeplink service, starts at boot
+#tv.cloudwalker.skin                    # Cloud TV launcher skin (About, Terms)
+#tv.cloudwalker.apps                    # Cloud TV All Apps screen
