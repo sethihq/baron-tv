@@ -31,6 +31,7 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `input_action_category` | string | Category added to `input_action` (CVTE: `com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL`) |
 | `input_action_extra` | string | Int extra carrying the input's hardware number (the digits after `/HW` in its ID) when `input_action` goes to receivers (CVTE: `sourceId`) |
 | `input_action_repeat` | 1 to 3 | How many times that broadcast is sent (CVTE: 2, its player only switches on the second) |
+| `input_key_action` | string | What the remote's Input button opens with `INPUT_KEY_SERVICE=1`; set, it also takes `KEYCODE_TV_INPUT` (CVTE: `com.cvte.intent.SHOW_INPUT`) |
 | `columns` | 1 to 8 | Tiles per row; tiles shrink to fit from 5 up |
 | `rows_below_dock` | 0 to 3 | Grid rows left visible under the dock |
 | `ui_density_dpi` | 0 to 640 | Density the launcher lays itself out at; 0 keeps the TV's own (213 for TVs that report 1280x720 at 160 dpi) |

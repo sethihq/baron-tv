@@ -55,6 +55,11 @@
     <string name="input_action_extra" translatable="false">sourceId</string>
     <integer name="input_action_repeat">2</integer>
 
+    <!-- The remote's Input button, when installed with INPUT_KEY_SERVICE=1: the activity action it opens, from
+         any app. Empty: Android TV's input picker, for KEYCODE_TV only. Set: this action, for KEYCODE_TV and
+         also KEYCODE_TV_INPUT, which CVTE remotes send (Baron: com.cvte.intent.SHOW_INPUT, CVTE's Source panel). -->
+    <string name="input_key_action" translatable="false">com.cvte.intent.SHOW_INPUT</string>
+
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->
     <bool name="shamsi_date">false</bool>

@@ -11,7 +11,10 @@ android {
         minSdk 26
         targetSdk 34
         versionCode 2
-        versionName '2.0'
+        // CloudWalker's App Store reads the Home app's versionName as <version>-<build>-<commit>-<type> and
+        // crashes at start on anything shorter (CwHeaders splits it on "-" and takes the fourth part). The
+        // type matches the stock CloudWalker launcher's, 1.4.0-101-gdb625e6-lite-com.
+        versionName '2.0-0-tvhome-lite-com'
     }
 
     buildTypes {

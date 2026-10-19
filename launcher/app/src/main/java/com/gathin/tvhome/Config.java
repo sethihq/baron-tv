@@ -44,6 +44,8 @@ final class Config {
     final String inputActionExtra;
     /** How many times that broadcast is sent (CVTE's player switches only on the second intent). */
     final int inputActionRepeat;
+    /** What the remote's Input button opens through InputKeyService; empty for Android TV's input picker. */
+    final String inputKeyAction;
     final int columns;
     final int rowsBelowDock;
     final boolean shamsiDate;
@@ -61,7 +63,7 @@ final class Config {
     private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage, String liveTvAction,
                    String sourcePanelService, String sourcePanelAction, String inputAction,
                    String inputActionCategory, String inputActionExtra, int inputActionRepeat,
-                   int columns, int rowsBelowDock,
+                   String inputKeyAction, int columns, int rowsBelowDock,
                    boolean shamsiDate, String vpnApp, boolean showHomeSettingsShortcut, int uiDensityDpi,
                    int backgroundColor, File wallpaper, boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
@@ -74,6 +76,7 @@ final class Config {
         this.inputActionCategory = inputActionCategory;
         this.inputActionExtra = inputActionExtra;
         this.inputActionRepeat = inputActionRepeat;
+        this.inputKeyAction = inputKeyAction;
         this.columns = columns;
         this.rowsBelowDock = rowsBelowDock;
         this.shamsiDate = shamsiDate;
@@ -102,6 +105,7 @@ final class Config {
         String inputCategory = res.getString(R.string.input_action_category).trim();
         String inputExtra = res.getString(R.string.input_action_extra).trim();
         int inputRepeat = res.getInteger(R.integer.input_action_repeat);
+        String inputKey = res.getString(R.string.input_key_action).trim();
         int columns = res.getInteger(R.integer.columns);
         int rowsBelow = res.getInteger(R.integer.rows_below_dock);
         boolean shamsi = res.getBoolean(R.bool.shamsi_date);
@@ -126,6 +130,7 @@ final class Config {
             inputCategory = string(json, "input_action_category", inputCategory);
             inputExtra = string(json, "input_action_extra", inputExtra);
             inputRepeat = integer(json, "input_action_repeat", inputRepeat, 1, 3);
+            inputKey = string(json, "input_key_action", inputKey);
             columns = integer(json, "columns", columns, 1, 8);
             rowsBelow = integer(json, "rows_below_dock", rowsBelow, 0, 3);
             shamsi = bool(json, "shamsi_date", shamsi);
@@ -140,7 +145,7 @@ final class Config {
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
 
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
-                inputCategory, inputExtra, Math.max(1, inputRepeat), Math.max(1, columns), Math.max(0, rowsBelow),
+                inputCategory, inputExtra, Math.max(1, inputRepeat), inputKey, Math.max(1, columns), Math.max(0, rowsBelow),
                 shamsi, vpn, homeSettings,
                 Math.max(0, densityDpi), background, wallpaper, applied);
     }
