@@ -1,5 +1,7 @@
 # RCA AI PONT SA (Changhong, device redwood, product ISDB92RC)
 # Android 14, firmware UKNV.260504.001, security patch 2026-05-01
+# Also sold as the realme 100 cm (40-inch) Full HD Smart Android TV: same redwood board, firmware UKNV.260514.001
+# (pranabsarma18, PR #38).
 # 1 GB RAM (MemTotal about 935 MB). Stock launcher: com.google.android.tvlauncher
 # Live TV / tuner: com.mediatek.wwtv.tvcenter (leave it; the Inputs menu uses it)
 #
@@ -52,6 +54,7 @@ com.google.android.partnersetup
 # Setup wizards, assistant and accessibility. Re-enable the ones you use.
 com.google.android.tungsten.setupwraith  # first-run wizard; on this tvlauncher firmware Home works without touching it
 com.google.android.katniss              # re-enable for the microphone button
+com.homwee.alexacontrol                 # Alexa integration; re-enable if you use Alexa (#38)
 com.google.android.tts
 com.google.android.marvin.talkback      # re-enable for TalkBack
 com.google.android.backdrop             # ambient screensaver

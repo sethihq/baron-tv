@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Launcher configuration. Edit this file, then run launcher/build-and-install.sh.
+  Or leave it and push a theme instead: tools/theme.sh themes/<name> puts a config.json (same keys, see
+  themes/README.md) and an optional wallpaper on the TV, and the launcher overlays it at start.
   Package names: on the TV run `pm list packages` (tools/tv.py 'pm list packages').
 -->
 <resources>
@@ -27,29 +29,44 @@
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
     <string name="live_tv_package" translatable="false"></string>
 
-    <!-- For TVs whose TV app ignores Android's standard intent for opening an HDMI or AV input: a
-         broadcast that switches inputs instead, sent to its receivers by name with the input's
-         passthrough channel URI as data. Empty: only the standard intent. CVTE boards (Cloud TV):
-         com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL with the category below. -->
-    <string name="input_tune_action" translatable="false">com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL</string>
-    <string name="input_tune_category" translatable="false">com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL</string>
+    <!-- Some TVs give their Live TV app no leanback entry point at all, so `live_tv_package` above
+         resolves to nothing (TCL Android TV 9 on China-market sets is one). This action is then sent
+         to that package instead, and the app starts normally. Leave empty to omit. -->
+    <string name="live_tv_action" translatable="false"></string>
 
-    <!-- Density the launcher lays itself out at, in dpi; 0 keeps the TV's own. The design assumes
-         Android TV's 960x540 dp screen, which TVs reporting 1280x720 at 160 dpi draw a quarter too
-         small: 213 restores it there. -->
-    <integer name="ui_density_dpi">213</integer>
+    <!-- TVs with no TvInputManager have no HDMI list to read, but their own source-selection panel
+         still switches inputs (TCL Android TV 9 again). When nothing could be listed, the Inputs menu
+         offers one row that starts this service: component first, then action. Leave empty to omit. -->
+    <string name="source_panel_service" translatable="false"></string>
+    <string name="source_panel_action" translatable="false"></string>
+
+    <!-- Inputs menu: HDMI and AV rows normally open with ACTION_VIEW on the input's channel URI, which the
+         Live TV app handles. Where nothing answers that, this action (with the category below, if set) is
+         sent with the same URI instead: to an activity that answers it (XGIMI projectors:
+         com.xgimi.action.hdmiPlayer) or, where none does, by name to each receiver of it (CVTE boards such
+         as the Baron Cloud TV: com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL with category
+         com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL). Leave empty to omit. -->
+    <string name="input_action" translatable="false">com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL</string>
+    <string name="input_action_category" translatable="false">com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL</string>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->
     <bool name="shamsi_date">false</bool>
     <!-- Optional VPN app the network pill opens (hold the pill for Wi-Fi settings), e.g. the package of the
-         VPN you use. Empty: the pill opens Wi-Fi settings. The VPN badge shows for any VPN either way. -->
+         VPN you use. Empty: the pill opens Wi-Fi settings. The green VPN badge shows for any VPN either way;
+         with an app set here, a red "VPN off" badge also shows while no VPN is up. -->
     <string name="vpn_app" translatable="false"></string>
     <!-- Grid rows left visible under the dock on the home screen. 0 = dock sits at the very bottom. -->
     <integer name="rows_below_dock">0</integer>
 
-    <!-- Tiles per row in the grid; the dock always has this many slots. -->
+    <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
+         shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
     <integer name="columns">4</integer>
+
+    <!-- Density the launcher lays itself out at, in dpi; 0 keeps the TV's own. The design assumes
+         Android TV's 960x540 dp screen, which TVs reporting 1280x720 at 160 dpi draw a quarter too
+         small: 213 restores it there. -->
+    <integer name="ui_density_dpi">213</integer>
 
     <!-- "Default home" tile that opens Android's home-screen picker, for TVs whose settings have one
          (most Android TVs don't; the tile only appears when the page exists). Off by default. -->

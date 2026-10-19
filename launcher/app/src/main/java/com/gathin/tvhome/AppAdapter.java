@@ -65,22 +65,47 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final float FOCUS_SCALE = 1.10f;
+    /** Design size of a tile (dp); tiles shrink from here when the columns don't fit, see tileWidthPx. */
+    static final float DESIGN_W_DP = 180f, DESIGN_H_DP = 101f;
+
+    /**
+     * Tile width for a grid of this inner width: the cell minus room for the focus zoom and the glass
+     * highlight, capped at the design size so 4 columns on a 1080p TV look exactly as before.
+     */
+    static int tileWidthPx(int innerWidthPx, int columns, float density) {
+        int design = Math.round(DESIGN_W_DP * density);
+        if (innerWidthPx <= 0 || columns <= 0) return design;
+        int cell = innerWidthPx / columns;
+        int fit = (int) ((cell - 12 * density) / FOCUS_SCALE);
+        return Math.max(Math.round(80 * density), Math.min(design, fit));
+    }
+
+    static int tileHeightPx(int tileWidthPx) {
+        return Math.round(tileWidthPx * DESIGN_H_DP / DESIGN_W_DP);
+    }
+
+    /** Height of one grid item: the tile, the name label under it and the item's own padding. */
+    static int itemHeightPx(int tileHeightPx, float density) {
+        return tileHeightPx + Math.round(45 * density);
+    }
 
     private final Context ctx;
     private final TileListener listener;
     private final int dockSize;
-    /** Dock order (res/values/config.xml, dock_apps). */
+    /** Dock order (config.xml dock_apps, or a theme's config.json). */
     private final List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
+    private final boolean showHomeSettings;
     private final List<Entry> items = new ArrayList<>();
 
-    AppAdapter(Context ctx, TileListener listener, int dockSize) {
+    AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
-        this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
-        this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
+        this.favourites = cfg.dockApps;
+        this.hidden = new HashSet<>(cfg.hiddenApps);
+        this.showHomeSettings = cfg.showHomeSettingsShortcut;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -111,7 +136,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             return a.label.compareToIgnoreCase(b.label);
         });
         // Optional "Default home" tile (config.xml), only when this TV actually has a home-screen picker.
-        if (ctx.getResources().getBoolean(R.bool.show_home_settings_shortcut)
+        if (showHomeSettings
                 && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
             fresh.add(new Entry(ctx.getString(R.string.home_settings),
                     new ComponentName(ctx, HomeSettingsActivity.class), null,
@@ -126,6 +151,20 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     @Override
     public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_app, parent, false);
+        float density = parent.getResources().getDisplayMetrics().density;
+        int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
+        int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
+        int w = tileWidthPx(inner, dockSize, density), h = tileHeightPx(w);
+        View card = v.findViewById(R.id.card);
+        ViewGroup.LayoutParams cardLp = card.getLayoutParams();
+        cardLp.width = w;
+        cardLp.height = h;
+        card.setLayoutParams(cardLp);
+        View name = v.findViewById(R.id.name);
+        ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) name.getLayoutParams();
+        nameLp.width = w;
+        nameLp.topMargin = h + Math.round(7 * density);
+        name.setLayoutParams(nameLp);
         return new Holder(v, listener);
     }
 
@@ -258,6 +297,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return Color.HSVToColor(hsv);
     }
 
+    /** Corner radius for a tile of this width: 16dp at the design width, proportionally less when smaller. */
+    static float cornerRadius(int tileWidthPx, float density) {
+        return 16f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
+    }
+
     static final class Holder extends RecyclerView.ViewHolder {
         final View card;
         final ImageView banner;
@@ -274,11 +318,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             name = v.findViewById(R.id.name);
 
             final float density = v.getResources().getDisplayMetrics().density;
-            final float radius = density * 16f;
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
+                    // 16dp at the design width, scaled down with the tile so small tiles keep the same shape.
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius(view.getWidth(), density));
                 }
             });
             card.setClipToOutline(true);
