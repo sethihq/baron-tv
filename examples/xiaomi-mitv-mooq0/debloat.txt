@@ -22,6 +22,13 @@
 #
 # Tested on this firmware: HDMI 1-3, composite AV, the tuner, the Bluetooth remote, Gboard,
 # Play Store, Chromecast, Miracast and USB video playback all still work.
+#
+# Notes from a second set on the same firmware (mirhnaz, PR #81):
+# - Live TV (com.mediatek.wwtv.tvcenter) can't be disabled even if you never use the tuner: its
+#   TurnkeyUiMainActivity is also the HDMI/AV window. Hide it in the launcher instead (hidden_apps).
+# - Before disabling com.mitv.dream, point the screensaver elsewhere:
+#   settings put secure screensaver_components com.gathin.tvhome/.ClockDream
+# - After power-on the TV returns to the last source, not the launcher.
 
 # ---- Xiaomi telemetry and analytics ----
 com.miui.tv.analytics
@@ -67,3 +74,16 @@ com.duokan.factorytest
 com.google.android.tvrecommendations
 com.google.android.leanbacklauncher
 com.google.android.leanbacklauncher.recommendations
+
+# ---- Optional, by choice (reported fine on the same firmware, #81); uncomment what you don't use ----
+# com.mitv.tvhome.mitvplus                      # Mi TV+ FAST channels
+# com.xiaomi.mitv.updateservice                 # firmware updates
+# com.google.android.katniss                    # voice assistant (the mic button stops working)
+# com.google.android.apps.mediashell            # Chromecast built-in
+# com.mitv.milinkservice                        # Mi Cast
+# com.xiaomi.mitv.smartshare
+# com.xiaomi.wfdsinkhelperservice               # Miracast sink
+# com.google.android.videos                     # Play Movies & TV
+# com.google.android.youtube.tvmusic
+# com.xiaomi.mitv.mediaexplorer                 # USB media player
+# com.mitv.videoplayer                          # Mi video player

@@ -1,4 +1,5 @@
-# Xiaomi MiTV-AXSO0 (codename dangal), Android TV 9 (SDK 28), firmware PI.6036, Amlogic/droidlogic.
+# Xiaomi MiTV-AXSO0 (codename dangal; sold as Mi TV 4C Pro 2019 and Mi TV 4A Pro), Android TV 9 (SDK 28),
+# firmware PI.6036, Amlogic/droidlogic.
 # Live TV app: com.android.tv (set it as live_tv_package and hide it in launcher config.xml).
 # Stock launcher: com.google.android.tvlauncher (the default, disabled by build-and-install.sh).
 #
@@ -10,6 +11,7 @@
 # - Default IME is already Gboard, so the Mi TV 4A missing-keyboard quirk doesn't apply.
 # - `svc power reboot` gets killed; reboot through adb's own reboot service instead.
 # - com.google.android.leanbacklauncher is re-enabled by the firmware at every boot, so it's not listed.
+# - Glance (com.glance.tv) puts news and ads on the lock/standby screen; with it off the screensaver is clean.
 # - Netflix, Prime Video and YouTube are preinstalled system apps, so they always get BOOT_COMPLETED.
 #   Other apps stay out of the boot-time rush after `am force-stop`, until someone opens them again.
 
@@ -26,11 +28,15 @@ com.xiaomi.floatingframe
 com.google.android.tvrecommendations
 com.google.android.leanbacklauncher.recommendations
 android.autoinstalls.config.xioami.dangal   # Play auto-install of partner apps (sic, "xioami")
+com.glance.tv                               # Glance lock-screen news and ads
+com.mitv.tvhome.mitvplus                    # Mi TV+ sponsored live channels
+co.sensara.tv.mitv                          # Sensara partner TV guide (sponsored show recommendations)
 
 # Xiaomi background services
 com.xiaomi.mitv.tvmanager                   # "TV Manager" cleaner
 com.xiaomi.mitv.handbook
 com.xiaomi.mitv.updateservice               # firmware updates: re-enable to check for one
+com.xiaomo.tv.milegal                       # static legal / privacy text screens
 
 # Personal choice: voice assistant (the mic button stops working)
 com.google.android.katniss

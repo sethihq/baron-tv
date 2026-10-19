@@ -24,6 +24,8 @@ Connect
   as the ADB client instead. If its file push hangs on larger files, transfer files as base64 chunks
   through the shell and verify the md5.
 - Tell me when the "Allow USB debugging?" prompt will appear on the TV so I can accept it.
+- If `adb install` hangs on Android 14 it is waiting for an on-screen confirmation; push the APK and run
+  `pm install -r` over the shell instead.
 
 Back up first
 - Save the full package list, disabled-package list, getprop output and all settings to a backup folder
@@ -44,12 +46,21 @@ Debloat
 - Before touching streaming apps, voice assistant, Chromecast, Miracast or the update service, ask me
   which ones I use with a checklist question and disable only what I don't tick.
 - Run `pm` commands one per shell call, chained commands may silently stop after the first.
+- Disable in small batches and screenshot between them: a batch can take something load-bearing with
+  it and you cannot tell which.
 
 Launcher
 - Don't install a third-party launcher that charges for basics like wallpapers. Build a small native
   Android TV launcher instead (Java, AndroidX RecyclerView, minSdk matching the TV, debug build is fine),
   install it over ADB, set it as the default home and disable the stock launcher. If several apps claim
-  the HOME intent, set the default with `cmd package set-home-activity`.
+  the HOME intent, list them with `cmd package query-activities -a android.intent.action.MAIN -c
+  android.intent.category.HOME` and set the default with `cmd package set-home-activity`.
+- Before disabling the stock launcher, check which other apps claim HOME: on Google TV the setup wizard
+  (`com.google.android.tungsten.setupwraith`) takes over even after the stock launcher is disabled, and
+  the matching `examples/` header says what to do.
+- On Android 11 and newer the launcher must declare `<queries>` for `android.intent.category.LEANBACK_LAUNCHER`,
+  or package visibility silently hides every app and the grid comes up empty; target a recent SDK, some
+  Google TV 14 sets refuse older targets at install.
 - Design, Apple TV 4K style: pitch black background; a dock row at the bottom of the screen inside a
   slightly lighter rounded band holding the four apps I pick (ask me which, and the order); the rest of
   the apps in a 4-column grid below that scrolls up when I press Down; one translucent "glass" highlight
