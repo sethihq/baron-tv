@@ -5,8 +5,9 @@ TV: a Baron 32" "Cloud TV". Goal: strip the CloudWalker and CVTE ads and bloat, 
 with the tv-vibehack launcher, then post a before/after video.
 
 Upstream's `README.md` and `PROMPT.md` describe the general method. This file is the state of this TV
-and what's left to do. Based on upstream commit `31eb392`; upstream has moved on since (`042fd69` on
-2026-10-19). To pull it in later: `git remote add upstream https://github.com/Gathin23/tv-vibehack.git`.
+and what's left to do. Upstream is now called cleanyourtv; v2.1.0 (`042fd69`) was merged in on
+2026-10-19. To pull newer upstream work: `git remote add upstream https://github.com/Gathin23/tv-vibehack.git`,
+then `git fetch upstream && git merge upstream/main`.
 
 ## The TV
 
@@ -72,19 +73,30 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
 - Work moved to a second Mac (192.168.1.9) the same day. It is set up as in "Setup on a new Mac"
   (SDK in `/opt/homebrew/share/android-commandlinetools`) and ADB answers from it. Checked from there:
   nothing disabled, Home is still the stock launcher.
-- Upstream (renamed cleanyourtv, v2.1.0 at `042fd69`) is being merged on branch `merge-upstream`,
-  keeping the Baron changes below. Not on `main` yet.
-- Launcher adapted and built (242 KB) but **not installed**. Changes from upstream:
+- Upstream v2.1.0 is merged into `main` with the Baron changes below kept. The launcher builds
+  (249 KB) but is **not installed**. Changes from upstream:
   - `config.xml`: dock YouTube, Prime Video, Spotify, Cloud TV App Store; CloudWalker helper apps
     hidden; no Live TV (no tuner, inputs are AV and HDMI 1-2).
   - `ui_density_dpi` = 213 (new). At 1280x720 and 160 dpi the launcher would draw a quarter too small;
     213 puts it on Android TV's 960x540 dp canvas. Applied in `MainActivity.attachBaseContext` and `ClockDream`.
-  - `input_tune_action` and `input_tune_category` (new). CVTE's TV app ignores Android's standard
-    passthrough VIEW intent, so the Inputs menu sends `com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL`
-    (category `com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL`) by name to
-    `com.cvte.tv.api.impl/com.cvte.tv.api.tif.TifReceiver`, with the passthrough channel URI as data.
-    **Unverified on the TV.** Fallback: `com.cvte.intent.SHOW_INPUT` opens CVTE's own source menu
+  - `input_action` (upstream's key, extended) and `input_action_category` (new). CVTE's TV app ignores
+    Android's standard passthrough VIEW intent, so the Inputs menu sends
+    `com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL` (category `com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL`)
+    by name to each receiver of it, here `com.cvte.tv.api.impl/com.cvte.tv.api.tif.TifReceiver`, with the
+    passthrough channel URI as data. Upstream's form (an activity that answers the action, XGIMI) is tried
+    first. **Unverified on the TV.** Fallback: `com.cvte.intent.SHOW_INPUT` opens CVTE's own source menu
     (`com.cvte.tv.setting/.extra.TvExtraActivity`).
+  - Both keys can also come from a theme's `config.json`. Don't push `themes/default`: it replaces the
+    Baron dock and hidden apps. `aurora` and `six-columns` are safe.
+- Memory (read-only audit, 2026-10-19): 437 MB, about 100 MB free with 226 MB in ZRAM, "critical" for
+  2h20m of the 7h since boot. `/system/etc/cvte_white_black_list.ini` sets what may start at boot
+  (`[startup]`), what the low-memory killer never stops (`[keeplive]`: App Store, updater, apiservice,
+  inputserver, YouTube) and a `[launchername]`; the prop `cw.lpackage` names the stock launcher. Biggest
+  users: stock launcher 38 MB average (78 peak), the All Apps screen 84 MB, App Store 39 MB (stays loaded
+  once opened: `am force-stop tv.cloudwalker.market` after installing apps). No strong candidates beyond
+  the list. Spotify's boot starter never runs (Spotify isn't in `[startup]`), so step 6 needs nothing.
+  Must stay on, besides the list's leave-alone set: `com.cvte.tv.api.impl` (its HotkeyService handles
+  the remote's app keys), the TV and downloads providers, the keyboard, FallbackHome.
 
 ## Next steps
 
@@ -103,7 +115,7 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
    `TV_HOST=192.168.1.20 tools/disable.sh examples/baron-cloudtv-32/debloat.txt`.
 5. Test Home, Back, the remote's Input key, the Settings and Wi-Fi pills, each app, and a reboot (Home
    must come back to the new launcher). Compare `dumpsys meminfo` with the backup.
-6. Optional: the Clock screensaver (see README); stop Spotify's boot starter if RAM is still tight.
+6. Optional: the Clock screensaver (see README).
 7. Set ADB ENABLE back to OFF in the factory menu.
 
 Undo everything: `TV_HOST=192.168.1.20 tools/restore.sh examples/baron-cloudtv-32/debloat.txt tv.cloudwalker.launcher.com`.

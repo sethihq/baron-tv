@@ -8,3 +8,5 @@ launcher/local.properties
 # Your own TV's dumps (serial, android_id, device names) stay local in public copies. This fork is
 # private, so backup/ is committed as the restore baseline for working from another machine.
 .DS_Store
+# Claude Code agent worktrees
+.claude/worktrees/
