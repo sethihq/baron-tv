@@ -88,6 +88,19 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
   broadcasts were verified by hand).
 - Memory 2 minutes after boot, against the stock backup: free 154 MB (was 138), used PSS 267 MB (300),
   in ZRAM swap 150 MB (188). The launcher uses 13.5 MB; the stock one averaged 38 MB.
+- Tuning, later that night (all reversible, nothing removed):
+  - System animations at 0.5x (`window_animation_scale`, `transition_animation_scale`,
+    `animator_duration_scale`). `tools/restore.sh` sets them back to 1.0.
+  - Cloud TV App Store compiled with `cmd package compile -m speed -f tv.cloudwalker.market`: it was the
+    only app still interpreted (30 MB on /data). Undo: `cmd package compile --reset tv.cloudwalker.market`.
+    The other apps were already `speed-profile` from install, the launcher `speed`.
+  - Private DNS through AdGuard: `settings put global private_dns_specifier dns.adguard-dns.com`, then
+    `settings put global private_dns_mode hostname`. Checked: Wi-Fi still validated, YouTube resolves,
+    `doubleclick.net` is blocked, the Cloud TV Store and JioHotstar's login screen load. Undo:
+    `settings put global private_dns_mode off`, the first thing to try if an app stops loading or playing.
+  - Measured first: 215 MB free, 216 MB used PSS, idle CPU near 0, 542 MB free on /data. Background Wi-Fi
+    scanning was already off. JioHotstar idles as a 13 MB cached process (a Firebase sessions service)
+    that Android reclaims on demand, so restricting background apps wasn't worth it.
 - User's answers: doesn't use Movie Box, Browser or Kindlink (all go); both updaters off; keep the
   Cloud TV App Store (only way to install apps), remove Stark Store. Dock: YouTube, Prime Video,
   Spotify, Cloud TV App Store. Asked for Netflix and JioHotstar: JioHotstar is in, Netflix can't be
@@ -175,8 +188,8 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
     and hidden apps.
   - Limits: 512 MB rules out video backgrounds, heavy blur and 3D, so keep it light. Rows of content from
     inside other apps ("continue watching" from YouTube or Prime) aren't available on this TV.
-  - Workflow offered: she designs in Figma or sends references, we build it and install it in minutes.
-    Open question to her: what to change first.
+  - Workflow: the user designs in Figma or sends references, we build it and install it in minutes. On
+    2026-10-19 the user said a design for a light UI refresh is coming: build from that when it arrives.
 - **Not possible:** Google's Android TV or any other Android build. There's none for this board, a wrong
   file can brick it, and Google's services need more memory than the TV has.
 
@@ -184,6 +197,7 @@ Reinstall the launcher after a change: `INPUT_KEY_SERVICE=1 TV_HOST=<ip> launche
 (Home already belongs to it, so nothing else is disabled).
 
 Undo everything: `TV_HOST=<ip> tools/restore.sh examples/baron-cloudtv-32/debloat.txt tv.cloudwalker.launcher.com`.
+It doesn't touch Private DNS or the App Store compile: undo those as shown under State.
 
 ## Working rules
 
