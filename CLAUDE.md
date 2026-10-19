@@ -86,9 +86,8 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
 - User's answers: doesn't use Movie Box, Browser or Kindlink (all go); both updaters off; keep the
   Cloud TV App Store (only way to install apps), remove Stark Store. Dock: YouTube, Prime Video,
   Spotify, Cloud TV App Store. Asked for Netflix and JioHotstar: JioHotstar is in, Netflix can't be
-  (see below). Asked whether to switch it to Google's Android TV: advised against, since there's no
-  official build for this board, a wrong file can brick it, and Google's services need more memory
-  than the TV has.
+  (see below). Asked about installing Google's Android TV and about more launcher customisation: see
+  "Suggestions" under Next steps.
 - Backup of the stock state: `backup/20261019-151014/` (package lists, getprop, settings, Home and
   keyboard, meminfo) and `backup/dumpsys/` (per-package dumps). Committed on purpose, since this repo is
   private. `tools/backup.sh` takes a fresh one.
@@ -146,12 +145,35 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
 
 ## Next steps
 
+### To finish this round
+
 1. The user accepts JioHotstar's terms and signs in, and signs in to the other apps if needed.
-2. Netflix: if wanted, a streaming stick on HDMI (Fire TV Stick or Chromecast with Google TV).
-3. Optional: JioHotstar in the dock instead of the App Store (`dock_apps` in `config.xml`, then reinstall).
-4. Optional: the Clock screensaver (see README).
-5. Record the "after" video.
-6. When done: ADB ENABLE back to OFF in the factory menu. After that, any change needs "Getting ADB" again.
+2. Record the "after" video.
+3. When done: ADB ENABLE back to OFF in the factory menu (same path as "Getting ADB"). Until then it
+   stays on through reboots and anyone on the Wi-Fi can get a shell. After that, any change needs
+   "Getting ADB" again.
+
+### Suggestions, waiting on the user
+
+- **Netflix:** a streaming stick on HDMI (Fire TV Stick or Chromecast with Google TV), reached with the
+  Inputs menu or the Input key. Nothing on this TV itself can run Netflix (see above).
+- **Dock:** JioHotstar in place of the App Store (`dock_apps` in `config.xml`, then reinstall). Offered,
+  no answer yet.
+- **Clock screensaver** (see README).
+- **A more custom launcher.** The user is a visual designer and wants more customisation. The home screen
+  is already our own app, so almost anything can change:
+  - Look: layout, colours, wallpaper, fonts, tile shapes, custom icons and banners, the clock and greeting.
+  - Structure: which apps sit where, extra rows or pages (a Kids page, say), hidden apps.
+  - Extras: weather, a custom screensaver, light animations, branding.
+  - Quick changes without a rebuild: colours, wallpaper and app order through a theme's `config.json`
+    (`tools/theme.sh`, see `themes/README.md`). Don't push `themes/default`: it replaces the Baron dock
+    and hidden apps.
+  - Limits: 512 MB rules out video backgrounds, heavy blur and 3D, so keep it light. Rows of content from
+    inside other apps ("continue watching" from YouTube or Prime) aren't available on this TV.
+  - Workflow offered: she designs in Figma or sends references, we build it and install it in minutes.
+    Open question to her: what to change first.
+- **Not possible:** Google's Android TV or any other Android build. There's none for this board, a wrong
+  file can brick it, and Google's services need more memory than the TV has.
 
 Reinstall the launcher after a change: `INPUT_KEY_SERVICE=1 TV_HOST=<ip> launcher/build-and-install.sh`
 (Home already belongs to it, so nothing else is disabled).
