@@ -1,5 +1,8 @@
 # tv-vibehack
 
+> **This copy** is a private working fork for a Baron 32" Cloud TV (CloudWalker OS on a CVTE board).
+> Its state and next steps are in [CLAUDE.md](CLAUDE.md); the rest of this README is upstream's.
+
 **Your TV, minus the ads.**
 
 Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the ad-filled home
