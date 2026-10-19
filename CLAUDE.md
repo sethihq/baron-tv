@@ -79,15 +79,24 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
     hidden; no Live TV (no tuner, inputs are AV and HDMI 1-2).
   - `ui_density_dpi` = 213 (new). At 1280x720 and 160 dpi the launcher would draw a quarter too small;
     213 puts it on Android TV's 960x540 dp canvas. Applied in `MainActivity.attachBaseContext` and `ClockDream`.
-  - `input_action` (upstream's key, extended) and `input_action_category` (new). CVTE's TV app ignores
-    Android's standard passthrough VIEW intent, so the Inputs menu sends
-    `com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL` (category `com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL`)
-    by name to each receiver of it, here `com.cvte.tv.api.impl/com.cvte.tv.api.tif.TifReceiver`, with the
-    passthrough channel URI as data. Upstream's form (an activity that answers the action, XGIMI) is tried
-    first. **Unverified on the TV.** Fallback: `com.cvte.intent.SHOW_INPUT` opens CVTE's own source menu
-    (`com.cvte.tv.setting/.extra.TvExtraActivity`).
-  - Both keys can also come from a theme's `config.json`. Don't push `themes/default`: it replaces the
+  - `input_action` (upstream's key, extended), `input_action_category`, `input_action_extra` and
+    `input_action_repeat` (new). Nothing on the TV answers Android's standard passthrough VIEW intent, so
+    the Inputs menu sends `com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL` (category
+    `com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL`) by name to each receiver of it, here
+    `com.cvte.tv.api.impl/com.cvte.tv.api.tif.TifReceiver`. Read from its bytecode: it ignores the URI and
+    reads an int extra `sourceId`, the number after "HW" in the input ID (3 AV, 4 HDMI 1, 5 HDMI 2). It
+    opens the single-instance `TvSupportActivity`, which only switches in `onNewIntent`, so from Home
+    (a cold start) the broadcast must arrive twice: `input_action_extra` = `sourceId`,
+    `input_action_repeat` = 2. Verified by hand with `am broadcast` for all three inputs (HAL log
+    `startMainVideo(main, source_id = N)`); not yet through the launcher. Pressing Home closes the player.
+  - All of these can also come from a theme's `config.json`. Don't push `themes/default`: it replaces the
     Baron dock and hidden apps. `aurora` and `six-columns` are safe.
+- The remote's Input key (scan code 79, `KEYCODE_TV_INPUT` 178) does nothing even on stock: CVTE's TV API
+  turns it into a `tv.cloudwalker.ir.REMOTE` broadcast for the stock launcher, which Android 9 blocks
+  ("Background execution not allowed"). `am start -a com.cvte.intent.SHOW_INPUT` opens CVTE's Source panel
+  (`com.cvte.tv.setting/.extra.TvExtraActivity`: AV, HDMI 1, HDMI 2) over any screen, a good target for it.
+- Watch the first boot after debloating: `persist.sys.bootvideo.path` points into `com.cvte.ad.spider`'s
+  files (the boot video), and `tv.cloudwalker.apiservice` lives in `/vendor/app/cw_source/`.
 - Memory (read-only audit, 2026-10-19): 437 MB, about 100 MB free with 226 MB in ZRAM, "critical" for
   2h20m of the 7h since boot. `/system/etc/cvte_white_black_list.ini` sets what may start at boot
   (`[startup]`), what the low-memory killer never stops (`[keeplive]`: App Store, updater, apiservice,
@@ -101,13 +110,11 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
 ## Next steps
 
 1. Check ADB: `tools/venv/bin/python -I tools/tv.py --probe`. If refused, redo "Getting ADB".
-2. Test the input switch before installing (the TV will change input):
+2. Done: the input switch works by hand (the TV changes input; 4 is HDMI 1, 5 HDMI 2, 3 AV):
    ```bash
-   tools/venv/bin/python -I tools/tv.py "am broadcast -n com.cvte.tv.api.impl/com.cvte.tv.api.tif.TifReceiver -a com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL -c com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL -d content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW4"
-   tools/venv/bin/python -I tools/tv.py "logcat -d | grep -iE 'TifReceiver|changeSourceOrChannel' | tail"
+   tools/venv/bin/python -I tools/tv.py "B='am broadcast -n com.cvte.tv.api.impl/com.cvte.tv.api.tif.TifReceiver -a com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL -c com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL --ei sourceId 4'; \$B; \$B"
    ```
-   HW4 is HDMI 1, HW5 is HDMI 2, `com.mediatek.tvinput/.composite.CompositeInputService/HW3` is AV.
-   If it doesn't switch, try the URI as an extra; failing that, make the Inputs pill fire SHOW_INPUT.
+   Still to check through the launcher's Inputs menu once it's installed.
 3. Dock order is confirmed. Build and install:
    `STOCK_LAUNCHER=tv.cloudwalker.launcher.com TV_HOST=192.168.1.20 launcher/build-and-install.sh`.
    Check it with screenshots: `tools/tv.py 'screencap -p /sdcard/s.png'`, then `tools/tv.py --pull /sdcard/s.png s.png`.

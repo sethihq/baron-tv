@@ -60,6 +60,8 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * tvOS style home: black, a pinned dock row, an app grid, and one glass highlight that springs between tiles.
@@ -71,7 +73,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static final long MINUTE_MS = 60_000L;
     private String liveTvPkg;
     private String liveTvAction;
-    private String inputAction, inputActionCategory;
+    private String inputAction, inputActionCategory, inputActionExtra;
+    private int inputActionRepeat;
+    /** The hardware number at the end of a hardware input's ID, e.g. ".../HDMIInputService/HW4". */
+    private static final Pattern HW_NUMBER = Pattern.compile("/HW(\\d+)$");
     private String sourcePanelService;
     private String sourcePanelAction;
 
@@ -188,6 +193,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         liveTvAction = cfg.liveTvAction;
         inputAction = cfg.inputAction;
         inputActionCategory = cfg.inputActionCategory;
+        inputActionExtra = cfg.inputActionExtra;
+        inputActionRepeat = cfg.inputActionRepeat;
         sourcePanelService = cfg.sourcePanelService;
         sourcePanelAction = cfg.sourcePanelAction;
 
@@ -701,7 +708,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      *  `input_action_category`, if set) is sent with the same URI instead. An activity that answers it gets
      *  it (XGIMI's HDMI player only answers com.xgimi.action.hdmiPlayer); where none does, it goes as a
      *  broadcast to each of its receivers by name (CVTE boards switch inputs in a receiver whose filter
-     *  takes no data, and Android 8+ keeps implicit broadcasts away from receivers declared in a manifest). */
+     *  takes no data, and Android 8+ keeps implicit broadcasts away from receivers declared in a manifest),
+     *  with the input's hardware number in `input_action_extra` and `input_action_repeat` times. */
     private void openInput(String inputId) {
         Uri uri = TvContract.buildChannelUriForPassthroughInput(inputId);
         Intent view = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, "vnd.android.cursor.item/channel")
@@ -729,9 +737,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
             return;
         }
-        action.setData(uri);
-        for (ResolveInfo ri : receivers) {
-            sendBroadcast(new Intent(action).setClassName(ri.activityInfo.packageName, ri.activityInfo.name));
+        action.setData(uri).addFlags(Intent.FLAG_RECEIVER_FOREGROUND);   // someone is waiting on the switch
+        Matcher hw = HW_NUMBER.matcher(inputId);
+        if (!inputActionExtra.isEmpty() && hw.find()) action.putExtra(inputActionExtra, Integer.parseInt(hw.group(1)));
+        for (int n = 0; n < inputActionRepeat; n++) {
+            for (ResolveInfo ri : receivers) {
+                sendBroadcast(new Intent(action).setClassName(ri.activityInfo.packageName, ri.activityInfo.name));
+            }
         }
     }
 

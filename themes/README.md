@@ -29,6 +29,8 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `source_panel_service`, `source_panel_action` | string | The TV's own source panel, for sets with no TvInputManager |
 | `input_action` | string | Action sent with an HDMI/AV row's channel URI when nothing handles the standard `VIEW`: to the activity that answers it (XGIMI: `com.xgimi.action.hdmiPlayer`), else by name to each receiver of it (CVTE: `com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL`) |
 | `input_action_category` | string | Category added to `input_action` (CVTE: `com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL`) |
+| `input_action_extra` | string | Int extra carrying the input's hardware number (the digits after `/HW` in its ID) when `input_action` goes to receivers (CVTE: `sourceId`) |
+| `input_action_repeat` | 1 to 3 | How many times that broadcast is sent (CVTE: 2, its player only switches on the second) |
 | `columns` | 1 to 8 | Tiles per row; tiles shrink to fit from 5 up |
 | `rows_below_dock` | 0 to 3 | Grid rows left visible under the dock |
 | `ui_density_dpi` | 0 to 640 | Density the launcher lays itself out at; 0 keeps the TV's own (213 for TVs that report 1280x720 at 160 dpi) |

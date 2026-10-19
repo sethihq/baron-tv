@@ -48,6 +48,12 @@
          com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL). Leave empty to omit. -->
     <string name="input_action" translatable="false">com.cvte.intent.ACTION_TUNE_SOURCE_OR_CHANNEL</string>
     <string name="input_action_category" translatable="false">com.cvte.intent.CATEGORY_TUNE_SOURCE_OR_CHANNEL</string>
+    <!-- When input_action goes to receivers: an int extra carrying the input's hardware number (the digits
+         after "/HW" in its input ID), and how many times the broadcast is sent. CVTE's receiver ignores the
+         URI and reads sourceId (Baron: 3 AV, 4 HDMI 1, 5 HDMI 2), and the player it starts only switches on
+         the intent after the one that opened it, so it needs 2. Empty and 1: no extra, sent once. -->
+    <string name="input_action_extra" translatable="false">sourceId</string>
+    <integer name="input_action_repeat">2</integer>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->
