@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="dark">
+  <title>TV app covers</title>
+  <style>
+    /* Preview of the dock covers: the row at the prototype's size, on black as the TV draws it, then
+       the same covers large, then the APK banners they replace. */
+    @font-face {
+      font-family: "Open Runde";
+      src: url("../../fonts/open-runde/OpenRunde-Medium.woff2") format("woff2");
+      font-weight: 500;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 48px 56px;
+      background: oklch(11% 0 none);
+      color: oklch(88% 0 none);
+      font: 500 13px/1.4 "Open Runde", system-ui, sans-serif;
+    }
+
+    h2 {
+      margin: 32px 0 12px;
+      color: oklch(64% 0 none);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    h2:first-child {
+      margin-block-start: 0;
+    }
+
+    /* The TV canvas around the dock: black, with a glow behind like the home screen. */
+    .tv {
+      inline-size: 960px;
+      padding: 40px 56px;
+      border-radius: 20px;
+      background:
+        radial-gradient(115% 74% at 50% 112%, oklch(40% 0.12 260 / 0.55), transparent 80%),
+        oklch(0% 0 none);
+    }
+
+    .dock {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 14px;
+      padding: 12px;
+      border-radius: 26px;
+      background: oklch(100% 0 none / 0.075);
+    }
+
+    .cover {
+      display: block;
+      inline-size: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 14px;
+      /* A hairline keeps black covers from melting into the dock. */
+      box-shadow: inset 0 0 0 1px oklch(100% 0 none / 0.1);
+      overflow: clip;
+    }
+
+    .cover img {
+      inline-size: 100%;
+      block-size: 100%;
+      display: block;
+    }
+
+    .focus .cover {
+      scale: 1.08;
+      box-shadow:
+        inset 0 0 0 1px oklch(100% 0 none / 0.1),
+        0 10px 22px oklch(0% 0 none / 0.55);
+    }
+
+    .large {
+      display: grid;
+      grid-template-columns: repeat(4, 320px);
+      gap: 20px;
+    }
+
+    .large .cover {
+      border-radius: 28px;
+    }
+
+    .old {
+      display: grid;
+      grid-template-columns: repeat(7, 104px);
+      gap: 14px;
+    }
+
+    .old img {
+      inline-size: 104px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Dock, at the prototype's size, YouTube focused</h2>
+  <div class="tv">
+    <div class="dock">
+      <span class="cover"><img src="primevideo.svg" alt="Prime Video"></span>
+      <span class="cover"><img src="netflix.svg" alt="Netflix"></span>
+      <span class="focus"><span class="cover"><img src="youtube.svg" alt="YouTube"></span></span>
+      <span class="cover"><img src="jiohotstar.svg" alt="JioHotstar"></span>
+      <span class="cover"><img src="spotify.svg" alt="Spotify"></span>
+      <span class="cover"><img src="appstore.svg" alt="Cloud TV App Store"></span>
+      <span class="cover"><img src="media.svg" alt="Media Center"></span>
+    </div>
+  </div>
+
+  <h2>Large</h2>
+  <div class="large">
+    <span class="cover"><img src="primevideo.svg" alt="Prime Video"></span>
+    <span class="cover"><img src="netflix.svg" alt="Netflix"></span>
+    <span class="cover"><img src="youtube.svg" alt="YouTube"></span>
+    <span class="cover"><img src="jiohotstar.svg" alt="JioHotstar"></span>
+    <span class="cover"><img src="spotify.svg" alt="Spotify"></span>
+    <span class="cover"><img src="appstore.svg" alt="Cloud TV App Store"></span>
+    <span class="cover"><img src="media.svg" alt="Media Center"></span>
+  </div>
+
+  <h2>Before: the banners from each app on the TV</h2>
+  <div class="old">
+    <img src="../primevideo-banner.png" alt="">
+    <img src="../netflix-banner.svg" alt="">
+    <img src="../youtube-banner.png" alt="">
+    <img src="../jiohotstar-banner.png" alt="">
+    <img src="../spotify-banner.png" alt="">
+    <img src="../appstore-banner.png" alt="">
+    <img src="../media-banner.png" alt="">
+  </div>
+</body>
+</html>

@@ -3,16 +3,17 @@
 // Enter or a click is OK, Esc or Backspace is Back. Nothing here talks to the TV; the weather comes
 // from Open-Meteo and the shelf from TMDB, as the launcher would fetch them.
 
-// Dock order as the user set it, then the TV's own apps. Each tile shows the app's TV banner from its
-// APK; Netflix isn't on this TV, so its tile is drawn from the Netflix mark.
+// Dock order as the user set it, then the TV's own apps. Tiles: Covers (the default) is one matching
+// set drawn from each brand's official mark on its TV banner colour, every mark at the same optical
+// size; Banners is what each APK on the TV ships. Netflix isn't on this TV, so its tile is drawn.
 const APPS = [
-  { name: "Prime Video", banner: "assets/apps/primevideo-banner.png" },
-  { name: "Netflix", banner: "assets/apps/netflix-banner.svg" },
-  { name: "YouTube", banner: "assets/apps/youtube-banner.png" },
-  { name: "JioHotstar", banner: "assets/apps/jiohotstar-banner.png" },
-  { name: "Spotify", banner: "assets/apps/spotify-banner.png" },
-  { name: "App Store", banner: "assets/apps/appstore-banner.png" },
-  { name: "Media Center", banner: "assets/apps/media-banner.png" },
+  { name: "Prime Video", cover: "primevideo", banner: "assets/apps/primevideo-banner.png" },
+  { name: "Netflix", cover: "netflix", banner: "assets/apps/netflix-banner.svg" },
+  { name: "YouTube", cover: "youtube", banner: "assets/apps/youtube-banner.png" },
+  { name: "JioHotstar", cover: "jiohotstar", banner: "assets/apps/jiohotstar-banner.png" },
+  { name: "Spotify", cover: "spotify", banner: "assets/apps/spotify-banner.png" },
+  { name: "App Store", cover: "appstore", banner: "assets/apps/appstore-banner.png" },
+  { name: "Media Center", cover: "media", banner: "assets/apps/media-banner.png" },
 ];
 const INPUTS = [
   { name: "HDMI 1", icon: "plugs-connected", live: true },
@@ -32,7 +33,7 @@ const PLACEHOLDERS = [
 ];
 
 // Focus moves through these rows top to bottom; Up and Down go to the nearest item in the next row.
-const ORDER = ["buttons", "posters", "dock", "chips"];
+const ORDER = ["buttons", "posters", "dock", "inputs", "shortcuts"];
 // Page 2 scrolls the dock up to this distance from the top edge.
 const PAGE2_DOCK_TOP = 34;
 
@@ -68,24 +69,26 @@ const state = {
   zone: "grid",
   page: 0,
   input: 0,
-  index: { buttons: 0, posters: 0, dock: 0, chips: 0 },
+  index: { buttons: 0, posters: 0, dock: 0, inputs: 0, shortcuts: 0 },
 };
 let posterItems = PLACEHOLDERS;
 let reading = null;
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(n, hi));
 const settings = () => Object.fromEntries(new FormData(controls));
-// The now-playing island, while it shows, leads the top row, left of the round buttons.
+// The now-playing island, while it shows, joins the top row in screen order: right of the round
+// buttons with the clock widget (the buttons lead, top left), left of them with the classic clock.
+const topRow = () => (island.hidden ? rounds : screen.dataset.clock === "classic" ? [island, ...rounds] : [...rounds, island]);
 const rowItems = (row) =>
   row === "buttons"
-    ? island.hidden
-      ? rounds
-      : [island, ...rounds]
+    ? topRow()
     : row === "posters"
       ? [...postersEl.children]
       : row === "dock"
         ? [...dockEl.children]
-        : [...document.querySelectorAll(".chip")];
+        : row === "inputs"
+          ? [...inputChips.children]
+          : [...shortcutChips.children];
 
 function glyph(icon) {
   const span = document.createElement("span");
@@ -119,7 +122,7 @@ function renderDock() {
       const img = new Image();
       img.alt = "";
       img.decoding = "async";
-      img.src = app.banner;
+      img.src = settings().tiles === "banners" ? app.banner : `assets/apps/covers/${app.cover}.svg`;
       card.append(img);
       tile.append(card);
       tile.addEventListener("click", () => {
@@ -171,7 +174,7 @@ function renderPosters(items) {
   if (state.row === "posters" && state.zone === "grid") focusItem("posters", state.index.posters);
 }
 
-function chipFor(label, icon, onPress, idle) {
+function chipFor(row, label, icon, onPress, idle) {
   const chip = document.createElement("button");
   chip.type = "button";
   chip.className = "chip";
@@ -180,7 +183,7 @@ function chipFor(label, icon, onPress, idle) {
   name.textContent = label;
   chip.append(glyph(icon), name);
   chip.addEventListener("click", () => {
-    focusItem("chips", rowItems("chips").indexOf(chip));
+    focusItem(row, rowItems(row).indexOf(chip));
     onPress();
   });
   return chip;
@@ -189,10 +192,10 @@ function chipFor(label, icon, onPress, idle) {
 function renderChips() {
   inputChips.replaceChildren(
     ...INPUTS.map((input) =>
-      chipFor(input.name, input.icon, () => toast(input.live ? `Switching to ${input.name}` : `Nothing is plugged into ${input.name}`), !input.live),
+      chipFor("inputs", input.name, input.icon, () => toast(input.live ? `Switching to ${input.name}` : `Nothing is plugged into ${input.name}`), !input.live),
     ),
   );
-  shortcutChips.replaceChildren(...SHORTCUTS.map((s) => chipFor(s.name, s.icon, () => toast(s.says))));
+  shortcutChips.replaceChildren(...SHORTCUTS.map((s) => chipFor("shortcuts", s.name, s.icon, () => toast(s.says))));
 }
 
 // ---- Geometry ------------------------------------------------------------------------------------
@@ -375,10 +378,11 @@ function hideGlow() {
 
 // ---- Focus -----------------------------------------------------------------------------------------
 
-function focusItem(row, i) {
+// ctl: which island control takes focus if the island is the target (0 previous, 1 play, 2 next).
+function focusItem(row, i, ctl = 1) {
   const wasIsland = state.zone === "island";
   if (row === "buttons" || row === "posters") state.page = 0;
-  if (row === "chips") state.page = 1;
+  if (row === "inputs" || row === "shortcuts") state.page = 1;
   // The island only shows on page 1, so settle it before reading the top row.
   syncIsland();
   const items = rowItems(row);
@@ -390,7 +394,7 @@ function focusItem(row, i) {
   content.style.setProperty("--page-scroll", `${state.page ? -(dockEl.offsetTop - PAGE2_DOCK_TOP) : 0}px`);
   const el = items[index];
   if (el === island) {
-    enterIsland(1);
+    enterIsland(ctl);
     glowFor(island);
     return;
   }
@@ -422,12 +426,17 @@ function move(key) {
     if (key === "ArrowDown") focusInputRow(state.input + 1);
     return;
   }
-  // Inside the open island: Left and Right walk previous, play and next; past next is Inputs.
+  // Inside the open island: Left and Right walk previous, play and next, then on to its neighbours.
   if (state.zone === "island") {
-    if (key === "ArrowLeft") focusCtl(np.ctl - 1);
+    const top = rowItems("buttons");
+    const at = top.indexOf(island);
+    if (key === "ArrowLeft") {
+      if (np.ctl > 0) focusCtl(np.ctl - 1);
+      else if (at > 0) focusItem("buttons", at - 1);
+    }
     if (key === "ArrowRight") {
       if (np.ctl < islCtls.length - 1) focusCtl(np.ctl + 1);
-      else focusItem("buttons", rowItems("buttons").indexOf(rounds[0]));
+      else if (at < top.length - 1) focusItem("buttons", at + 1);
     }
     if (key === "ArrowDown") focusItem("posters", nearestIn("posters", island));
     return;
@@ -436,11 +445,11 @@ function move(key) {
   const items = rowItems(row);
   const i = state.index[row];
   if (key === "ArrowLeft") {
-    if (i > 0) focusItem(row, i - 1);
+    if (i > 0) focusItem(row, i - 1, islCtls.length - 1);
     return;
   }
   if (key === "ArrowRight") {
-    if (i < items.length - 1) focusItem(row, i + 1);
+    if (i < items.length - 1) focusItem(row, i + 1, 0);
     return;
   }
   const next = ORDER[ORDER.indexOf(row) + (key === "ArrowDown" ? 1 : -1)];
@@ -682,6 +691,14 @@ function renderWeather() {
   document.getElementById("wxText").textContent = `${reading.text} in Bengaluru`;
   document.getElementById("weather").hidden = false;
 
+  const gauge = document.getElementById("cxTemp");
+  const span = reading.high - reading.low;
+  gauge.style.setProperty("--t", span > 0 ? clamp((reading.temp - reading.low) / span, 0, 1).toFixed(3) : "0.5");
+  document.getElementById("cxDeg").textContent = `${reading.temp}°`;
+  document.getElementById("cxGlyph").replaceChildren(weatherIcon(reading));
+  gauge.setAttribute("aria-label", `${reading.temp} degrees, ${reading.text}, high ${reading.high}, low ${reading.low}`);
+  gauge.hidden = false;
+
   document.getElementById("wxBigIcon").replaceChildren(weatherIcon(reading));
   document.getElementById("wxBigTemp").textContent = `${reading.temp}°`;
   document.getElementById("wxCond").textContent = reading.text;
@@ -737,6 +754,11 @@ function tick() {
     day: "numeric",
     month: "long",
   }).format(now);
+  document.getElementById("watchGreet").textContent = greeting;
+  document.getElementById("watchTime").textContent = `${h % 12 || 12}:${String(m).padStart(2, "0")}`;
+  document.getElementById("watchAmpm").textContent = h < 12 ? "am" : "pm";
+  document.getElementById("cxDay").textContent = new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(now).toUpperCase();
+  document.getElementById("cxNum").textContent = String(now.getDate());
 }
 
 // ---- Idle screensaver: the DVD logo -----------------------------------------------------------------
@@ -991,6 +1013,7 @@ function syncIsland() {
   icon.style.setProperty("--src", `url("assets/icons/phosphor/fill/${icon.dataset.icon}.svg")`);
   islToggle.setAttribute("aria-label", v.spotify === "playing" ? "Pause" : "Play");
   sizeIsland();
+  syncEdge();
   if (before) state.index.buttons = Math.max(0, rowItems("buttons").indexOf(before));
   if (!show && state.zone === "island") {
     state.zone = "grid";
@@ -1044,7 +1067,7 @@ function setPlaying(on) {
 islCtls.forEach((ctl, i) => {
   ctl.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (state.zone !== "island") focusItem("buttons", 0);
+    if (state.zone !== "island") focusItem("buttons", rowItems("buttons").indexOf(island), i);
     focusCtl(i);
     if (ctl.dataset.act === "toggle") setPlaying(!isPlaying());
     else if (ctl.dataset.act === "next") changeSong(1);
@@ -1057,7 +1080,7 @@ islCtls.forEach((ctl, i) => {
 });
 
 island.addEventListener("click", () => {
-  if (state.zone !== "island") focusItem("buttons", 0);
+  if (state.zone !== "island") focusItem("buttons", rowItems("buttons").indexOf(island));
 });
 
 function tickSong() {
@@ -1071,6 +1094,93 @@ document.getElementById("songNext").addEventListener("click", () => {
   if (settings().spotify === "off") setPlaying(true);
   changeSong(1);
 });
+
+// ---- Edge glow while music plays ----------------------------------------------------------------------
+
+// After the Mac rim-light apps (Lumn, Open Glow, Rimshot): two colours from the cover flow round the
+// edges and swell on the beat. Music only: on the TV the launcher would check the playing stream's
+// AudioAttributes content type (MUSIC, not MOVIE), so trailers and intros stay dark. The prototype has
+// no audio, so each demo song gets its felt tempo, with the first and third beats swelling more.
+const edge = document.getElementById("edge");
+const EDGE_BPM = [86, 94, 104, 103, 90];
+const edgeBeat = { raf: 0, pulse: 0, next: 0, count: 0, last: 0 };
+const paletteCache = new Map();
+
+// The cover's two colours: its most vivid one, then the most vivid one at least 40 degrees round the
+// wheel from it (or the first one turned 50 degrees, for a one-colour cover). The rim uses the first.
+function coverColors(img) {
+  if (paletteCache.has(img.src)) return paletteCache.get(img.src);
+  let pair = [FALLBACK_GLOW, FALLBACK_GLOW];
+  try {
+    const n = 16;
+    const canvas = document.createElement("canvas");
+    canvas.width = n;
+    canvas.height = n;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, n, n);
+    const px = ctx.getImageData(0, 0, n, n).data;
+    const seen = [];
+    for (let i = 0; i < px.length; i += 4) {
+      const rgb = [px[i], px[i + 1], px[i + 2]];
+      const [h, s, v] = rgbToHsv(...rgb);
+      seen.push({ rgb, h, score: s * Math.min(1, v * 1.4) });
+    }
+    seen.sort((a, b) => b.score - a.score);
+    const first = seen[0];
+    const apart = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+    const second = seen.find((c) => c.score > 0.2 && apart(c.h, first.h) >= 40);
+    pair = [first.rgb, second ? second.rgb : hsvToRgb((first.h + 50) % 360, 0.8, 0.9)];
+  } catch {
+    // A cover the canvas may not read: grey.
+  }
+  paletteCache.set(img.src, pair);
+  return pair;
+}
+
+// Three neighbouring shades of the cover's main colour, so the rim never clashes: the colour itself,
+// one a little round the wheel each way, the far one lighter. A grey cover gives a soft white.
+function setEdgeColors() {
+  if (!islArt.complete || !islArt.naturalWidth) return;
+  const [, c, h0] = toOklch(coverColors(islArt)[0]);
+  const h = h0 > 75 && h0 < 120 ? 68 : h0;
+  const chroma = c < 0.03 ? 0 : Math.min(Math.max(c * 1.2, 0.12), 0.18);
+  const tone = (l, k, dh) => `oklch(${l}% ${(chroma * k).toFixed(3)} ${((h + dh + 360) % 360).toFixed(1)})`;
+  edge.style.setProperty("--e1", tone(80, 1, 0));
+  edge.style.setProperty("--e2", tone(74, 1.05, -28));
+  edge.style.setProperty("--e3", tone(86, 0.75, 32));
+}
+
+function stepBeat(now) {
+  const period = 60000 / EDGE_BPM[np.i % EDGE_BPM.length];
+  if (now >= edgeBeat.next) {
+    edgeBeat.pulse = edgeBeat.count % 2 === 0 ? 1 : 0.55;
+    edgeBeat.count = (edgeBeat.count + 1) % 4;
+    edgeBeat.next = now + period;
+  }
+  edgeBeat.pulse *= Math.exp(-(now - edgeBeat.last) / 190);
+  edgeBeat.last = now;
+  edge.style.setProperty("--edge-pulse", edgeBeat.pulse.toFixed(3));
+  edgeBeat.raf = requestAnimationFrame(stepBeat);
+}
+
+function syncEdge() {
+  const v = settings();
+  const on = v.edge !== "off" && v.spotify === "playing" && v.audio !== "video" && state.view === "new";
+  edge.toggleAttribute("data-on", on);
+  edge.dataset.mode = v.edge || "beat";
+  edge.classList.toggle("over-saver", saver.on);
+  const beating = on && v.edge === "beat" && !reduceMotion.matches;
+  if (beating && !edgeBeat.raf) {
+    edgeBeat.last = edgeBeat.next = performance.now();
+    edgeBeat.raf = requestAnimationFrame(stepBeat);
+  } else if (!beating && edgeBeat.raf) {
+    cancelAnimationFrame(edgeBeat.raf);
+    edgeBeat.raf = 0;
+    edge.style.setProperty("--edge-pulse", "0");
+  }
+}
+
+islArt.addEventListener("load", setEdgeColors);
 
 // ---- Prototype controls ----------------------------------------------------------------------------
 
@@ -1098,6 +1208,11 @@ function apply() {
   screen.hidden = v.view !== "new";
   nowShot.hidden = v.view !== "now";
   screen.dataset.font = v.font;
+  screen.dataset.clock = v.clock || "widget";
+  if (dockEl.dataset.tiles !== v.tiles) {
+    dockEl.dataset.tiles = v.tiles;
+    renderDock();
+  }
   ambient.dataset.glow = v.glow || "refined";
   if (v.glow === "off") hideGlow();
   paintGlyphs();
@@ -1119,11 +1234,13 @@ controls.addEventListener("change", () => {
   if (state.view === "new") focusItem(state.row, state.index[state.row]);
 });
 
-// Fit the 960x540 canvas to the window.
+// Fit the 960x540 canvas to the space beside the controls panel, or above it on a narrow window.
+const stacked = matchMedia("(max-width: 1040px)");
 function fit() {
-  const chrome = document.querySelector(".bar").offsetHeight + document.querySelector(".hint").offsetHeight;
-  const scale = Math.min((innerWidth - 48) / 960, (innerHeight - chrome - 24) / 540);
-  frame.style.setProperty("--fit", Math.max(0.4, scale).toFixed(3));
+  const stage = document.querySelector(".stage");
+  const width = stage.clientWidth - 48;
+  const height = (stacked.matches ? innerHeight * 0.75 : innerHeight) - 48;
+  frame.style.setProperty("--fit", Math.max(0.4, Math.min(width / 960, height / 540)).toFixed(3));
 }
 
 addEventListener("resize", fit);

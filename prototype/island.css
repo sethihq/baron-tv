@@ -38,7 +38,7 @@
 
 /* Open, it's a layer over the clock and the weather: a shadow sets it above them. */
 .island[data-size="expanded"] {
-  inline-size: 420px;
+  inline-size: 400px;
   block-size: 104px;
   border-radius: 32px;
   box-shadow: 0 18px 40px oklch(0% 0 none / 0.7);
@@ -119,8 +119,8 @@
   inset-inline-start: 50%;
   display: flex;
   align-items: center;
-  gap: var(--s-4);
-  inline-size: 420px;
+  gap: var(--s-3);
+  inline-size: 400px;
   block-size: 104px;
   padding-inline: var(--s-4) var(--s-3);
   translate: -50% 0;

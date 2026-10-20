@@ -1,0 +1,173 @@
+/* Clock: Widget. The greeting, time, date and weather leave the big clock block for one small widget
+   in the top-right corner, drawn like Apple Watch complications: a calendar badge (the weekday in red,
+   the day in white), a temperature gauge (an arc from today's low to its high with a dot at the
+   current temperature, the number inside, the sky's glyph in the gap) and the time with the greeting
+   over it. The round buttons move to the top left, so the top band is one line: controls, now
+   playing, time and weather. The height it frees goes to the shelf. */
+
+.watch {
+  display: none;
+}
+
+.screen[data-clock="widget"] .watch {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.screen[data-clock="widget"] :is(.clock, .weather) {
+  display: none;
+}
+
+.screen[data-clock="widget"] .top {
+  align-items: center;
+}
+
+/* The Inputs menu hangs from the left edge now that its button leads the row. */
+.screen[data-clock="widget"] .inputs {
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+}
+
+/* The height the clock block gave back goes to the art. */
+.screen[data-clock="widget"] .art {
+  block-size: var(--art-widget, 222px);
+}
+
+/* ---- Complications ------------------------------------------------------------------------------ */
+
+.cx {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: 50%;
+  background: var(--fill-2);
+}
+
+.cx[hidden] {
+  display: none;
+}
+
+/* Calendar: the weekday in Apple's calendar red, the day under it. */
+.cx-day {
+  color: oklch(68% 0.2 25);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+
+.cx-num {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Temperature: a 270 degree arc, open at the bottom, cool to warm. */
+.cx-ring {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 225deg,
+    oklch(72% 0.12 235) 0deg,
+    oklch(84% 0.14 95) 135deg,
+    oklch(72% 0.18 40) 270deg,
+    oklch(0% 0 none / 0) 270deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px));
+}
+
+/* Where today's temperature sits between the low and the high: app.js sets --t from 0 to 1. */
+.cx-dot {
+  position: absolute;
+  inset: 4px;
+  rotate: calc(225deg + var(--t, 0.5) * 270deg);
+}
+
+.cx-dot::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -1.5px;
+  inset-inline-start: 50%;
+  inline-size: 6.5px;
+  block-size: 6.5px;
+  margin-inline-start: -3.25px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 0 1.5px oklch(0% 0 none);
+}
+
+.cx-deg {
+  margin-block-start: -2px;
+  padding-inline-start: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-glyph {
+  position: absolute;
+  inset-block-end: 2px;
+  inset-inline-start: 50%;
+  display: grid;
+  place-items: center;
+  inline-size: 14px;
+  block-size: 14px;
+  translate: -50% 0;
+  color: var(--text-2);
+}
+
+.cx-glyph .glyph {
+  inline-size: 12px;
+  block-size: 12px;
+}
+
+.cx-glyph img {
+  inline-size: 22px;
+  block-size: 22px;
+  max-width: none;
+}
+
+/* ---- Time --------------------------------------------------------------------------------------- */
+
+.watch-time {
+  display: grid;
+  justify-items: end;
+  margin-inline-start: var(--s-1);
+}
+
+.watch-greet {
+  color: var(--text-2);
+  font-size: var(--t-caption);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: var(--tr-caption);
+}
+
+.watch-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.watch-hm {
+  font-size: 30px;
+  font-weight: var(--w-light);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+.watch-ampm {
+  color: var(--text-2);
+  font-size: var(--t-label);
+  font-weight: 500;
+}

@@ -67,11 +67,12 @@
   --chrome-text-2: oklch(64% 0 none);
 }
 
+/* The TV on the left, its controls in a panel down the right. */
 body {
   margin: 0;
   min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
   background: var(--page);
   color: var(--chrome-text);
   font-family: "Open Runde", system-ui, sans-serif;
@@ -110,43 +111,67 @@ svg {
 
 /* ---- Prototype chrome ------------------------------------------------------------------------ */
 
-.bar {
+.side {
+  position: sticky;
+  inset-block-start: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 24px;
-  padding-block: 14px;
-  padding-inline: 24px;
+  flex-direction: column;
+  gap: 28px;
+  block-size: 100svh;
+  overflow-y: auto;
+  padding-block: 22px 24px;
+  padding-inline: 20px;
+  border-inline-start: 1px solid oklch(100% 0 none / 0.07);
+  background: oklch(13.5% 0 none);
+  scrollbar-width: thin;
 }
 
-.bar-title {
+.side-title {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.bar-title span {
+.side-title span {
   color: var(--chrome-text-2);
   font-weight: 400;
 }
 
 .controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: end;
-  gap: 8px 16px;
+  display: grid;
+  gap: 24px;
+}
+
+.ctl-group {
+  display: grid;
+  gap: 12px;
+}
+
+.group-title {
+  color: var(--chrome-text);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .ctl {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  gap: 6px;
 }
 
 .ctl-label {
   color: var(--chrome-text-2);
   font-size: 12px;
   font-weight: 500;
+}
+
+/* A choice with its action beside it: Spotify and Next song, the delay and Show now. */
+.ctl-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ctl-row .seg {
+  flex: 1;
 }
 
 .seg {
@@ -160,9 +185,12 @@ svg {
 
 .seg label {
   position: relative;
+  flex: 1 1 auto;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   block-size: 28px;
+  white-space: nowrap;
   padding-inline: 11px;
   border-radius: 9px;
   corner-shape: squircle;
@@ -203,10 +231,10 @@ svg {
 }
 
 .stage {
-  flex: 1;
   display: grid;
   place-items: center;
-  padding-inline: 24px;
+  min-block-size: 100svh;
+  padding: 24px;
 }
 
 .frame {
@@ -225,11 +253,52 @@ svg {
   display: none;
 }
 
-.hint {
-  padding-block: 12px 18px;
+/* The keys, at the foot of the panel. */
+.keys {
+  display: grid;
+  gap: 10px;
+  margin-block-start: auto;
+}
+
+.keys dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.keys dt {
+  color: var(--chrome-text);
+  font-weight: 500;
+}
+
+.keys dd {
+  margin: 0;
   color: var(--chrome-text-2);
-  font-size: 13px;
-  text-align: center;
+}
+
+.keys-note {
+  color: var(--chrome-text-2);
+  font-size: 12px;
+}
+
+/* A narrow window stacks the panel under the TV. */
+@media (max-width: 1040px) {
+  body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stage {
+    min-block-size: auto;
+  }
+
+  .side {
+    position: static;
+    block-size: auto;
+    border-inline-start: 0;
+    border-block-start: 1px solid oklch(100% 0 none / 0.07);
+  }
 }
 
 /* ---- The TV screen --------------------------------------------------------------------------- */
@@ -678,6 +747,20 @@ svg {
   object-fit: cover;
 }
 
+/* A hairline round every tile, so black ones (Netflix, Spotify) keep their edge on the dark dock. */
+.card {
+  position: relative;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px oklch(100% 0 none / 0.1);
+  pointer-events: none;
+}
+
 .tile:focus .card {
   scale: 1.08;
   box-shadow: 0 10px 22px oklch(0% 0 none / 0.55);
@@ -903,6 +986,99 @@ svg {
 .wx-sun .glyph {
   inline-size: 18px;
   block-size: 18px;
+}
+
+/* ---- Page 2 layout: inputs and shortcuts down the left, the weather panel on the right ----------- */
+
+.page2 {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-8);
+  margin-block-start: var(--s-8);
+}
+
+.page2 .extras {
+  flex-direction: column;
+  justify-content: start;
+  gap: var(--s-6);
+  margin-block-start: 0;
+}
+
+.page2 .chip {
+  block-size: 88px;
+}
+
+/* The card's place name sits outside it, level with Inputs, so the card's top meets the first row
+   of tiles and its bottom the last. */
+.page2 .cards {
+  position: relative;
+  display: grid;
+  margin-block-start: 0;
+  padding-block-start: calc(var(--t-label) * var(--lh-text) + var(--s-3));
+}
+
+.page2 .wx-card .panel-head {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  color: var(--text-2);
+  font-size: var(--t-label);
+  font-weight: 600;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-label);
+}
+
+.page2 .wx-card {
+  padding-block: var(--s-5);
+}
+
+.page2 .wx-card {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+  min-block-size: 0;
+}
+
+/* Now: the big temperature with its words beside it. */
+.page2 .wx-now {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--s-5);
+  align-items: center;
+}
+
+.page2 .wx-now .panel-head {
+  grid-column: 1 / -1;
+}
+
+.page2 .wx-big {
+  grid-row: 2 / span 2;
+  margin-block-start: 0;
+}
+
+.page2 .wx-cond {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
+  margin-block-start: 0;
+}
+
+.page2 .wx-range {
+  grid-column: 2;
+  grid-row: 3;
+  align-self: start;
+}
+
+/* Six hours fit the column; the sunrise and sunset line closes the card. */
+.page2 .wx-later {
+  gap: var(--s-3);
+}
+
+.page2 .wx-hours {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.page2 .wx-hours li:nth-child(n + 7) {
+  display: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {

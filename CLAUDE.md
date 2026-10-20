@@ -264,6 +264,40 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   small LAN server to the launcher for apps, now playing, inputs, volume and the theme file, behind a
   pairing code shown on the TV.
 
+- **Prototype chrome** ("move all these to the right side panel"): the controls live in a panel down
+  the right (Screen, Look, Now playing, Screensaver, Keys) and the TV fills the rest; under 1040 px wide
+  the panel drops below the TV.
+- **Clock widget** ("good morning, time and date, weather on the right in an Apple Watch style cute
+  widget, space saving"), `watch.css`, the default (Look > Clock: Widget, or Classic to compare): a
+  calendar badge (weekday in Apple's calendar red), a temperature gauge (a 270 degree arc from today's
+  low to its high, a dot at now, the temperature inside, the sky's glyph in the gap) and the time with
+  the greeting over it, top right. The round buttons move to the top left, so the top band reads
+  controls, now playing, time and weather; the open island no longer overlaps anything (400 wide). The
+  height saved goes to the posters (222 tall, from 190), so the dock doesn't move.
+- **Page 2** ("the whole panel on the right, HDMI and other things on the left"): inputs and shortcuts
+  stack down the left, the weather panel takes the right column, its place name level with "Inputs",
+  its top and bottom flush with the tiles; six hours of forecast. Inputs and shortcuts are two focus rows.
+- **Edge glow while music plays** ("a Mac app glows the screen edges when music plays, not for a movie
+  intro"), `edge.css`. Researched: Lumn (paid, $9.99, two cover colours 60/40, beat or steady idle glow,
+  brightness and thickness), Open Glow (MIT: two k-means cover colours flowing round, FFT beat swells),
+  Rimshot (open source: neon cover palette, kick detection, drawn only in four edge strips), MacGlow,
+  EdgeBeat. The first version (thick strips, two clashing cover colours, a wash over the screen) got "the
+  edge glow sucks, not aesthetic"; now it's a thin luminous line at the edge with a halo and a faint
+  bloom (one ring blurred three ways, the screen clipping the outer half), in three neighbouring shades
+  of the cover's main colour, turning slowly and breathing brighter on the beat. Panel: Sound is Music /
+  Video (dark for video), Edge glow Beat / Steady / Off. On the TV: light only when the playing stream's
+  `AudioAttributes` content type is MUSIC (`AudioManager.getActivePlaybackConfigurations`), never MOVIE;
+  beats from `android.media.audiofx.Visualizer` on the output mix (needs RECORD_AUDIO, `pm grant`) or the
+  steady mode; draw a pre-blurred ring texture tinted per song rather than live blur (512 MB); over other
+  apps it needs an overlay window (SYSTEM_ALERT_WINDOW through `appops`).
+- **App tiles** ("tiles not united, logos not well designed, I want the covers real TVs use"), the default
+  Look > Tiles: Covers, `assets/apps/covers/*.svg` (Banners shows the APK banners to compare): each
+  brand's TV banner colour full-bleed, every mark centred at one optical size (at most 62% wide and 40%
+  tall, with small per-mark corrections), a shared 6% top sheen, a white 10% hairline round every tile so
+  black ones keep their edge. Netflix shows its red wordmark. Logos: Prime Video 2024, Netflix, YouTube
+  and Spotify are official SVGs from Wikimedia Commons; JioHotstar traced from Wikipedia's 2025 PNG;
+  Cloud TV App Store and Media Center traced from their APK banners.
+
 Porting the island: a `NotificationListenerService` (say `MediaListener`) gives the launcher
 `MediaSessionManager.getActiveSessions`; follow Spotify's `MediaController` (metadata title, artist,
 `METADATA_KEY_ALBUM_ART`, and `PlaybackState` position extrapolated from its update time and speed),
@@ -280,6 +314,9 @@ Open questions for the user:
 3. Glow: Refined, Original, or Off? (Asked as "keep, fixed colour or remove" before the refined one existed.)
 4. The Netflix tile on the real TV: drop it, or point it at an HDMI stick once there is one?
 5. Island: Black or Grey? Keep it over the screensaver?
+6. Edge glow (second version): keep it? Beat or Steady?
+7. Clock: the widget, or back to the classic big clock?
+8. Tiles: the new covers, or the APK banners?
 
 Porting it to the TV once approved (`launcher/`, Java):
 

@@ -8,75 +8,10 @@
   <link rel="stylesheet" href="app.css">
   <link rel="stylesheet" href="glow.css">
   <link rel="stylesheet" href="island.css">
+  <link rel="stylesheet" href="watch.css">
+  <link rel="stylesheet" href="edge.css">
 </head>
 <body>
-  <header class="bar">
-    <p class="bar-title">Baron TV home <span>prototype</span></p>
-    <form class="controls" id="controls">
-      <div class="ctl">
-        <span class="ctl-label" id="l-view">View</span>
-        <div class="seg" role="radiogroup" aria-labelledby="l-view">
-          <label><input type="radio" name="view" value="new" checked>New</label>
-          <label><input type="radio" name="view" value="now">Now</label>
-        </div>
-      </div>
-      <div class="ctl">
-        <span class="ctl-label" id="l-font">Font</span>
-        <div class="seg" role="radiogroup" aria-labelledby="l-font">
-          <label><input type="radio" name="font" value="open-runde" checked>Open Runde</label>
-          <label><input type="radio" name="font" value="outfit">Outfit</label>
-          <label><input type="radio" name="font" value="timeless">Timeless</label>
-        </div>
-      </div>
-      <div class="ctl">
-        <span class="ctl-label" id="l-ui">Icons</span>
-        <div class="seg" role="radiogroup" aria-labelledby="l-ui">
-          <label><input type="radio" name="ui" value="regular" checked>Line</label>
-          <label><input type="radio" name="ui" value="duotone">Duotone</label>
-          <label><input type="radio" name="ui" value="fill">Fill</label>
-        </div>
-      </div>
-      <div class="ctl">
-        <span class="ctl-label" id="l-weather">Weather</span>
-        <div class="seg" role="radiogroup" aria-labelledby="l-weather">
-          <label><input type="radio" name="weather" value="phosphor" checked>Phosphor</label>
-          <label><input type="radio" name="weather" value="meteocons">Meteocons</label>
-        </div>
-      </div>
-      <div class="ctl">
-        <span class="ctl-label" id="l-saver">Screensaver after</span>
-        <div class="seg" role="radiogroup" aria-labelledby="l-saver">
-          <label><input type="radio" name="saver" value="600" checked>10 min</label>
-          <label><input type="radio" name="saver" value="10">10 sec</label>
-        </div>
-        <button class="ctl-btn" type="button" id="saverNow">Show now</button>
-      </div>
-      <div class="ctl">
-        <span class="ctl-label" id="l-spotify">Spotify</span>
-        <div class="seg" role="radiogroup" aria-labelledby="l-spotify">
-          <label><input type="radio" name="spotify" value="playing" checked>Playing</label>
-          <label><input type="radio" name="spotify" value="paused">Paused</label>
-          <label><input type="radio" name="spotify" value="off">Off</label>
-        </div>
-        <button class="ctl-btn" type="button" id="songNext">Next song</button>
-      </div>
-      <div class="ctl">
-        <span class="ctl-label" id="l-island">Island</span>
-        <div class="seg" role="radiogroup" aria-labelledby="l-island">
-          <label><input type="radio" name="island" value="black" checked>Black</label>
-          <label><input type="radio" name="island" value="grey">Grey</label>
-        </div>
-      </div>
-      <div class="ctl">
-        <span class="ctl-label" id="l-glow">Glow</span>
-        <div class="seg" role="radiogroup" aria-labelledby="l-glow">
-          <label><input type="radio" name="glow" value="refined" checked>Refined</label>
-          <label><input type="radio" name="glow" value="original">Original</label>
-          <label><input type="radio" name="glow" value="off">Off</label>
-        </div>
-      </div>
-    </form>
-  </header>
 
   <main class="stage">
     <div class="frame" id="frame">
@@ -113,6 +48,21 @@
                 <span class="wx-text" id="wxText"></span>
               </p>
             </div>
+            <!-- Clock: Widget. Time, date and weather in one small watch-style widget: a calendar badge,
+                 a temperature gauge and the time, with the greeting over it. -->
+            <div class="watch" role="group" aria-label="Time, date and weather">
+              <p class="cx cx-date"><span class="cx-day" id="cxDay">TUE</span><span class="cx-num" id="cxNum">20</span></p>
+              <p class="cx cx-temp" id="cxTemp" hidden>
+                <span class="cx-ring" aria-hidden="true"></span>
+                <span class="cx-dot" aria-hidden="true"></span>
+                <span class="cx-deg" id="cxDeg"></span>
+                <span class="cx-glyph" id="cxGlyph" aria-hidden="true"></span>
+              </p>
+              <div class="watch-time">
+                <p class="watch-greet" id="watchGreet">Good morning</p>
+                <p class="watch-clock"><span class="watch-hm" id="watchTime">10:00</span><span class="watch-ampm" id="watchAmpm">am</span></p>
+              </div>
+            </div>
           </div>
 
           <section class="shelf" aria-labelledby="shelfTitle">
@@ -125,7 +75,8 @@
 
           <div class="dock" id="dock"></div>
 
-          <!-- Page 2, under the dock: inputs, shortcuts and the weather card. -->
+          <!-- Page 2, under the dock: inputs and shortcuts down the left, the weather panel on the right. -->
+          <div class="page2">
           <div class="extras">
             <section class="group" aria-labelledby="inputsTitle">
               <p class="group-head" id="inputsTitle">Inputs</p>
@@ -150,6 +101,7 @@
                 <p class="wx-sun" id="wxSun"></p>
               </div>
             </section>
+          </div>
           </div>
 
         </div>
@@ -178,6 +130,10 @@
           </div>
         </div>
 
+        <!-- Edge glow while music plays: the cover's two colours flowing round the edges, swelling on
+             the beat. Never for video. -->
+        <div class="edge" id="edge" aria-hidden="true"><i class="edge-bloom"></i><i class="edge-rim"></i></div>
+
         <p class="toast" id="toast" role="status"></p>
 
         <!-- Idle screensaver: the old DVD logo bouncing off the edges, a new colour at every bounce. -->
@@ -193,7 +149,130 @@
     </div>
   </main>
 
-  <p class="hint">Arrow keys move, Enter opens, Esc goes back. Down from the dock opens page 2. Up from the shelf reaches the now-playing island. The weather is live. Any key wakes the screensaver.</p>
+  <aside class="side" aria-label="Prototype controls">
+    <p class="side-title">Baron TV home <span>prototype</span></p>
+    <form class="controls" id="controls">
+      <div class="ctl-group" role="group" aria-labelledby="g-screen">
+        <p class="group-title" id="g-screen">Screen</p>
+        <div class="ctl">
+          <span class="ctl-label" id="l-view">View</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-view">
+            <label><input type="radio" name="view" value="new" checked>New</label>
+            <label><input type="radio" name="view" value="now">Now</label>
+          </div>
+        </div>
+      </div>
+      <div class="ctl-group" role="group" aria-labelledby="g-look">
+        <p class="group-title" id="g-look">Look</p>
+        <div class="ctl">
+          <span class="ctl-label" id="l-clock">Clock</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-clock">
+            <label><input type="radio" name="clock" value="widget" checked>Widget</label>
+            <label><input type="radio" name="clock" value="classic">Classic</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-tiles">Tiles</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-tiles">
+            <label><input type="radio" name="tiles" value="covers" checked>Covers</label>
+            <label><input type="radio" name="tiles" value="banners">Banners</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-font">Font</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-font">
+            <label><input type="radio" name="font" value="open-runde" checked>Open Runde</label>
+            <label><input type="radio" name="font" value="outfit">Outfit</label>
+            <label><input type="radio" name="font" value="timeless">Timeless</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-ui">Icons</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-ui">
+            <label><input type="radio" name="ui" value="regular" checked>Line</label>
+            <label><input type="radio" name="ui" value="duotone">Duotone</label>
+            <label><input type="radio" name="ui" value="fill">Fill</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-weather">Weather icons</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-weather">
+            <label><input type="radio" name="weather" value="phosphor" checked>Phosphor</label>
+            <label><input type="radio" name="weather" value="meteocons">Meteocons</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-glow">Glow</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-glow">
+            <label><input type="radio" name="glow" value="refined" checked>Refined</label>
+            <label><input type="radio" name="glow" value="original">Original</label>
+            <label><input type="radio" name="glow" value="off">Off</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-island">Island</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-island">
+            <label><input type="radio" name="island" value="black" checked>Black</label>
+            <label><input type="radio" name="island" value="grey">Grey</label>
+          </div>
+        </div>
+      </div>
+      <div class="ctl-group" role="group" aria-labelledby="g-playing">
+        <p class="group-title" id="g-playing">Now playing</p>
+        <div class="ctl">
+          <span class="ctl-label" id="l-spotify">Spotify</span>
+          <div class="ctl-row">
+            <div class="seg" role="radiogroup" aria-labelledby="l-spotify">
+              <label><input type="radio" name="spotify" value="playing" checked>Playing</label>
+              <label><input type="radio" name="spotify" value="paused">Paused</label>
+              <label><input type="radio" name="spotify" value="off">Off</label>
+            </div>
+            <button class="ctl-btn" type="button" id="songNext">Next song</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-audio">Sound is</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-audio">
+            <label><input type="radio" name="audio" value="music" checked>Music</label>
+            <label><input type="radio" name="audio" value="video">Video</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-edge">Edge glow</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-edge">
+            <label><input type="radio" name="edge" value="beat" checked>Beat</label>
+            <label><input type="radio" name="edge" value="steady">Steady</label>
+            <label><input type="radio" name="edge" value="off">Off</label>
+          </div>
+        </div>
+      </div>
+      <div class="ctl-group" role="group" aria-labelledby="g-saver">
+        <p class="group-title" id="g-saver">Screensaver</p>
+        <div class="ctl">
+          <span class="ctl-label" id="l-saver">Starts after</span>
+          <div class="ctl-row">
+            <div class="seg" role="radiogroup" aria-labelledby="l-saver">
+              <label><input type="radio" name="saver" value="600" checked>10 min</label>
+              <label><input type="radio" name="saver" value="10">10 sec</label>
+            </div>
+            <button class="ctl-btn" type="button" id="saverNow">Show now</button>
+          </div>
+        </div>
+      </div>
+    </form>
+    <div class="keys" role="group" aria-labelledby="g-keys">
+      <p class="group-title" id="g-keys">Keys</p>
+      <dl>
+        <dt>Arrows</dt><dd>Move, as the remote's D-pad</dd>
+        <dt>Enter</dt><dd>Open</dd>
+        <dt>Esc</dt><dd>Back</dd>
+        <dt>Down</dt><dd>From the dock, page 2</dd>
+        <dt>Up</dt><dd>From the shelf, the island</dd>
+        <dt>Any key</dt><dd>Wakes the screensaver</dd>
+      </dl>
+      <p class="keys-note">The weather is live.</p>
+    </div>
+  </aside>
 
   <script src="app.js"></script>
 </body>
