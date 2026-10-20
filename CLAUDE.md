@@ -248,10 +248,21 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
 - **Shelf alignment** ("these things also are not aligned"): the small posters sat 10 dp low because a
   `<button>` centres its content and the grid stretched them to the wide card's height; now
   `align-items: start`. Focused posters lift to 1.05 with a deeper shadow so focus can't read as misalignment.
-- **Phone partner app** ("make a partner app for it for android, the ui should look good"): a prototype
-  is being built in `prototype/phone/` (http://localhost:4321/phone/): Remote, Apps, Now playing, TV.
-  Keys would go through CloudWalker's port 5511; apps, now playing, inputs and home settings through a
-  small LAN server the launcher would add.
+- **Phone partner app** ("make a partner app for it for android, the ui should look good"): a clickable
+  prototype in `prototype/phone/` (http://localhost:4321/phone/), in a 412x892 Android frame, same design
+  language as the TV (Open Runde, Phosphor, one accent, 4/8 spacing, 44 px touch targets; touch presses
+  shrink slightly instead of lifting). A "Living room TV, Connected" header and four tabs:
+  - Remote: a touch pad (every 56 px of swipe is one D-pad step, a flick counts once, a tap is OK),
+    Back, Home, Input, Menu, a volume pill that repeats while held, Mute, Play/Pause.
+  - Apps: the dock's seven apps in order; Netflix marked "Not on this TV".
+  - Playing: cover, song, artist, progress, previous / play / next, a TV volume slider; the cover's
+    colour glows behind the screen.
+  - TV: inputs and shortcuts, then Customise home: dock order by dragging, Glow and Island pickers.
+  Everything is simulated; each action says what the TV would do. A native build would be Kotlin with
+  Jetpack Compose on the same tokens; find the TV despite its per-boot IP (subnet scan, or the launcher
+  announcing itself over NSD); send keys to CloudWalker's port 5511 (`/input/?keycode=N`); and add a
+  small LAN server to the launcher for apps, now playing, inputs, volume and the theme file, behind a
+  pairing code shown on the TV.
 
 Porting the island: a `NotificationListenerService` (say `MediaListener`) gives the launcher
 `MediaSessionManager.getActiveSessions`; follow Spotify's `MediaController` (metadata title, artist,

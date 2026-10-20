@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Baron TV Remote</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="phone.css">
+</head>
+<body>
+  <header class="bar">
+    <p class="bar-title">Baron TV remote <span>phone prototype</span></p>
+    <div class="ctl">
+      <span class="ctl-label" id="l-screen">Screen</span>
+      <div class="seg" role="radiogroup" aria-labelledby="l-screen" id="screenSeg">
+        <label><input type="radio" name="screen" value="remote" checked>Remote</label>
+        <label><input type="radio" name="screen" value="apps">Apps</label>
+        <label><input type="radio" name="screen" value="playing">Now playing</label>
+        <label><input type="radio" name="screen" value="tv">TV</label>
+      </div>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="device" id="device">
+      <div class="phone" id="phone">
+        <!-- Behind everything on Now playing: the cover's colour, as on the TV. -->
+        <div class="np-glow" id="npGlow" aria-hidden="true"></div>
+
+        <!-- Android status bar, for scale. -->
+        <div class="sys" aria-hidden="true">
+          <span class="sys-time" id="sysTime">12:00</span>
+          <span class="sys-cam"></span>
+          <span class="sys-icons">
+            <span class="glyph" data-icon="cell-signal-full"></span>
+            <span class="glyph" data-icon="wifi-high"></span>
+            <span class="glyph" data-icon="battery-full"></span>
+          </span>
+        </div>
+
+        <header class="app-head">
+          <button class="tv-pick" type="button" id="tvPick" aria-label="Living room TV, connected. Choose a TV">
+            <span class="tv-name">Living room TV<span class="glyph" data-icon="caret-down" aria-hidden="true"></span></span>
+            <span class="tv-state" aria-hidden="true"><i></i>Connected</span>
+          </button>
+        </header>
+
+        <div class="views" id="views">
+          <!-- Remote: a touch pad for the D-pad and OK, then the keys the TV's own remote has. -->
+          <section class="view view-remote" data-view="remote" role="tabpanel" aria-label="Remote">
+            <div class="pad" id="pad" tabindex="0" role="application" aria-label="Touch pad. Swipe to move, tap to select. Arrow keys and Enter work too.">
+              <span class="cue cue-up" aria-hidden="true"><span class="glyph" data-icon="caret-up"></span></span>
+              <span class="cue cue-down" aria-hidden="true"><span class="glyph" data-icon="caret-down"></span></span>
+              <span class="cue cue-left" aria-hidden="true"><span class="glyph" data-icon="caret-left"></span></span>
+              <span class="cue cue-right" aria-hidden="true"><span class="glyph" data-icon="caret-right"></span></span>
+              <span class="pad-hint" id="padHint" aria-hidden="true">Swipe to move<br>Tap to select</span>
+              <span class="touch" id="touch" aria-hidden="true"></span>
+            </div>
+
+            <div class="keys">
+              <button class="key" type="button" data-key="back"><span class="key-face"><span class="glyph" data-icon="arrow-u-up-left" aria-hidden="true"></span></span><span class="key-label">Back</span></button>
+              <button class="key" type="button" data-key="home"><span class="key-face"><span class="glyph" data-icon="house" aria-hidden="true"></span></span><span class="key-label">Home</span></button>
+              <button class="key" type="button" data-key="input"><span class="key-face"><span class="glyph" data-icon="arrow-square-in" aria-hidden="true"></span></span><span class="key-label">Input</span></button>
+              <button class="key" type="button" data-key="menu"><span class="key-face"><span class="glyph" data-icon="list" aria-hidden="true"></span></span><span class="key-label">Menu</span></button>
+
+              <div class="rocker" role="group" aria-labelledby="volLabel">
+                <span class="rocker-face">
+                  <button class="rocker-btn" type="button" data-key="voldown" data-repeat aria-label="Volume down"><span class="glyph" data-icon="minus" aria-hidden="true"></span></button>
+                  <button class="rocker-btn" type="button" data-key="volup" data-repeat aria-label="Volume up"><span class="glyph" data-icon="plus" aria-hidden="true"></span></button>
+                </span>
+                <span class="key-label" id="volLabel">Volume</span>
+              </div>
+              <button class="key" type="button" data-key="mute"><span class="key-face"><span class="glyph" data-icon="speaker-simple-x" aria-hidden="true"></span></span><span class="key-label">Mute</span></button>
+              <button class="key" type="button" data-key="playpause"><span class="key-face"><span class="glyph" data-icon="play-pause" aria-hidden="true"></span></span><span class="key-label">Play/Pause</span></button>
+            </div>
+          </section>
+
+          <!-- Apps: the TV's apps in its dock order; a tap opens one on the TV. -->
+          <section class="view" data-view="apps" role="tabpanel" aria-labelledby="appsTitle" hidden>
+            <h1 class="large-title" id="appsTitle">Apps</h1>
+            <p class="lede">Tap an app to open it on the TV.</p>
+            <div class="app-grid" id="appGrid"></div>
+          </section>
+
+          <!-- Now playing: Spotify on the TV, the same song the TV's island shows. -->
+          <section class="view view-playing" data-view="playing" role="tabpanel" aria-label="Now playing" hidden>
+            <div class="np-cover" id="npCover"><img alt="" crossorigin="anonymous" id="npArt"></div>
+            <div class="np-meta">
+              <p class="np-title" id="npTitle"></p>
+              <p class="np-artist" id="npArtist"></p>
+            </div>
+            <div class="np-progress" aria-hidden="true">
+              <span class="np-track"><span class="np-fill" id="npFill"></span></span>
+              <p class="np-times"><span id="npAt">0:00</span><span id="npLeft">-0:00</span></p>
+            </div>
+            <div class="np-ctls">
+              <button class="np-btn" type="button" data-act="prev" aria-label="Previous song"><span class="glyph" data-icon="skip-back" data-weight="fill" aria-hidden="true"></span></button>
+              <button class="np-btn np-play" type="button" data-act="toggle" aria-label="Pause" id="npToggle"><span class="glyph" data-icon="pause" data-weight="fill" aria-hidden="true"></span></button>
+              <button class="np-btn" type="button" data-act="next" aria-label="Next song"><span class="glyph" data-icon="skip-forward" data-weight="fill" aria-hidden="true"></span></button>
+            </div>
+            <div class="np-volume" id="npVolume" role="slider" tabindex="0" aria-label="TV volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40">
+              <span class="glyph" data-icon="speaker-simple-low" aria-hidden="true"></span>
+              <span class="vol-track" aria-hidden="true"><span class="vol-fill" id="volFill"></span></span>
+              <span class="glyph" data-icon="speaker-simple-high" aria-hidden="true"></span>
+            </div>
+            <p class="np-source"><span class="glyph" data-icon="spotify-logo" data-weight="fill" aria-hidden="true"></span>Spotify on Living room TV</p>
+          </section>
+
+          <!-- TV: inputs, shortcuts into the TV's menus, and how the home screen looks. -->
+          <section class="view view-tv" data-view="tv" role="tabpanel" aria-labelledby="tvTitle" hidden>
+            <h1 class="large-title" id="tvTitle">TV</h1>
+
+            <section class="group" aria-labelledby="inputsTitle">
+              <h2 class="group-title" id="inputsTitle">Inputs</h2>
+              <div class="tiles" id="inputTiles"></div>
+            </section>
+
+            <section class="group" aria-labelledby="shortcutsTitle">
+              <h2 class="group-title" id="shortcutsTitle">Shortcuts</h2>
+              <div class="tiles" id="shortcutTiles"></div>
+            </section>
+
+            <section class="group" aria-labelledby="homeTitle">
+              <h2 class="group-title" id="homeTitle">Customise home</h2>
+              <div class="card">
+                <p class="card-head">Dock order</p>
+                <p class="card-sub">Drag to change the order on the TV.</p>
+                <ol class="dock-list" id="dockList"></ol>
+              </div>
+              <div class="card">
+                <p class="card-head" id="glowLabel">Background glow</p>
+                <div class="pick" role="radiogroup" aria-labelledby="glowLabel" id="glowPick">
+                  <label><input type="radio" name="glow" value="refined" checked>Refined</label>
+                  <label><input type="radio" name="glow" value="original">Original</label>
+                  <label><input type="radio" name="glow" value="off">Off</label>
+                </div>
+                <p class="card-head card-head-next" id="islandLabel">Now playing island</p>
+                <div class="pick" role="radiogroup" aria-labelledby="islandLabel" id="islandPick">
+                  <label><input type="radio" name="island" value="black" checked>Black</label>
+                  <label><input type="radio" name="island" value="grey">Grey</label>
+                </div>
+              </div>
+              <p class="foot">Changes show on the TV straight away.</p>
+            </section>
+          </section>
+        </div>
+
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+
+        <nav class="tabs" role="tablist" aria-label="Sections">
+          <button class="tab" type="button" role="tab" data-tab="remote" aria-selected="true"><span class="tab-icon"><span class="glyph" data-icon="arrows-out-cardinal" aria-hidden="true"></span></span><span class="tab-label">Remote</span></button>
+          <button class="tab" type="button" role="tab" data-tab="apps" aria-selected="false" tabindex="-1"><span class="tab-icon"><span class="glyph" data-icon="squares-four" aria-hidden="true"></span></span><span class="tab-label">Apps</span></button>
+          <button class="tab" type="button" role="tab" data-tab="playing" aria-selected="false" tabindex="-1"><span class="tab-icon"><span class="glyph" data-icon="music-notes" aria-hidden="true"></span></span><span class="tab-label">Playing</span></button>
+          <button class="tab" type="button" role="tab" data-tab="tv" aria-selected="false" tabindex="-1"><span class="tab-icon"><span class="glyph" data-icon="television" aria-hidden="true"></span></span><span class="tab-label">TV</span></button>
+        </nav>
+        <span class="handle" aria-hidden="true"></span>
+      </div>
+    </div>
+  </main>
+
+  <p class="hint">Drag on the touch pad to swipe, click it to select. Nothing reaches the TV: the line above the tabs says what the TV would do.</p>
+
+  <script src="phone.js"></script>
+</body>
+</html>
