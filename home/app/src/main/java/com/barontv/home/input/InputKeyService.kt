@@ -22,23 +22,28 @@ import com.barontv.home.music.OverlayMusic
  */
 class InputKeyService : AccessibilityService() {
     private var music: OverlayMusic? = null
+    private var bridge: RemoteBridge? = null
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         music = OverlayMusic(this)
+        // The phone app's keys arrive injected, which this service never sees: the phone calls the bridge too.
+        bridge = RemoteBridge(onWake = { music?.onRemoteActivity() }, onInput = { openSourcePanel() }).also { it.start() }
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (music?.onKey(event) == true) return true
         val code = event.keyCode
         if (code != KeyEvent.KEYCODE_TV_INPUT && code != KeyEvent.KEYCODE_TV) return false
-        if (event.action == KeyEvent.ACTION_UP) {
-            try {
-                startActivity(Intent(SHOW_INPUT).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            } catch (ignored: ActivityNotFoundException) {
-            }
-        }
+        if (event.action == KeyEvent.ACTION_UP) openSourcePanel()
         return true
+    }
+
+    private fun openSourcePanel() {
+        try {
+            startActivity(Intent(SHOW_INPUT).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (ignored: ActivityNotFoundException) {
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -53,6 +58,8 @@ class InputKeyService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        bridge?.stop()
+        bridge = null
         music?.release()
         music = null
         SessionTokens.release()

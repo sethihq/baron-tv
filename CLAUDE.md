@@ -462,14 +462,29 @@ slots, `core/Tokens.kt` colours converted from OKLCH).
   - Wi-Fi scans and the network's name need location on: the install script sets
     `location_providers_allowed` (gps, network); the TV has no GPS, nothing is ever located.
   - The TV reports every input as standby, so HDMI 1 shows no green dot.
+  - The firmware force-stops the app you leave whenever Home comes up (logcat: `black_white_list_manager
+    forceStopPackage`). Only apps on the keep-alive lists survive: `[keeplive]` in
+    `/system/etc/cvte_white_black_list.ini` has YouTube but not Spotify, and the framework also reads
+    `/vendor/menu_config_xml/bg_process_keeped_white_list.ini` (absent). Both partitions are read-only;
+    writing them needs root and a remount, which can stop the TV booting, so it wasn't done. So music
+    never plays behind the home screen, and music mode runs over the music app instead (`OverlayMusic`,
+    from the accessibility service: while a music app is in front with music audio active and no key for
+    8 s, the same dim, light and bot in a TYPE_ACCESSIBILITY_OVERLAY window; the first key only wakes it).
+    It has no session to read, so the light keeps its own colours, and the island never shows (nothing
+    plays while the home screen is up). Checked working over Spotify on 2026-10-20.
+  - Keys injected through CloudWalker's server (port 5511, the phone app's route) never reach
+    accessibility services (keycode 178 sent there doesn't open the source panel). So the home runs a
+    bridge for the phone, `input/RemoteBridge.kt` on port 5512 inside the accessibility service:
+    `GET /wake` (a phone key was pressed: music mode's idle clock restarts, or it wakes), `GET /input`
+    (opens CVTE's source panel), `GET /` ("Baron Home").
 - **Measured on the TV:** cold start about 0.8 s (0.65 to 1.2 s; 1.4 to 5 s only right after an install
   while the TV compiles), the same as the old launcher. Memory about 58 MB PSS (11 MB of it private).
   Moving focus round the screen: 557 frames, 1.3% janky, p50 6 ms, p90 9 ms. The screensaver runs at 60
   fps with 17 ms frames.
-- **Still to check on the TV:** the island and music mode with a song playing on Spotify (that Spotify's
-  TV app posts a media notification with its session; the Visualizer on session 0; the light's half
-  resolution layer, else `LightView.HALF_RES_LAYER = false`); input switching from the tiles; which
-  Picture candidate opens (`side/PictureSettings.kt`).
+- **Still to check on the TV:** that the Visualizer hears the beat over Spotify (no "Can't hear the TV"
+  warning under logcat tag `BaronMusic` so far) and music mode's frame times; input switching from the
+  tiles; which Picture candidate opens (`side/PictureSettings.kt`). Spotify's TV app posts no media
+  notification while it's in front, so `SessionTokens` has nothing to read from it.
 
 ## Phone app (native, `phone-app/`, 2026-10-20)
 
@@ -513,9 +528,11 @@ launcher (sideloaded, never published).
   each press answers quickly; the timeouts on the real Wi-Fi; every key. Input (178) is likely ignored:
   injected keys skip the accessibility service that turns Input into CVTE's source panel (see "Keys").
   After a TV reboot the server sleeps until opened once, so the app ends in "TV not found" until then.
-- **Next:** a small LAN server in the launcher (it starts at boot, so it can also wake CloudWalker's
-  server), for Input (open `com.cvte.intent.SHOW_INPUT` directly), apps, now playing, inputs, volume and
-  the dock order; then the Apps, Playing and TV tabs. TV changes still need the user's approval first.
+- **The home's bridge** (port 5512, see "New home screen"): every press also nudges `GET /wake` (at most
+  once a second, on its own thread, so a missing bridge never slows a key), and Input asks `GET /input`
+  to open the input list, falling back to keycode 178 when there's no bridge (the old launcher).
+- **Next:** more on the bridge for apps, now playing, inputs, volume and the dock order; then the Apps,
+  Playing and TV tabs.
 
 ## Next steps
 

@@ -68,6 +68,12 @@ class OverlayMusic(private val context: Context) {
         return false
     }
 
+    /** A key was pressed on the phone app (it reaches the TV injected, past [onKey]): as a key here. */
+    fun onRemoteActivity() {
+        lastKey = now()
+        if (engine.on) exit()
+    }
+
     /** The app in front changed. Music mode only waits while a music app is in front. */
     fun onFront(packageName: String) {
         // Our own overlay (and the volume panel's system UI) appearing doesn't change who's in front.
