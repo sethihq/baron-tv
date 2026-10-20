@@ -5,9 +5,11 @@ Working notes for the agent and the people building Baron Home, a fork of
 Baron 32" "Cloud TV". It began as stripping the CloudWalker and CVTE ads and bloat and replacing the home
 screen with the tv-vibehack launcher, and grew into Baron Home and its phone app. The repo is public since
 2026-10-21: keep personal details (addresses, network names, device identifiers) out of it. README.md is the
-public introduction; this file is the working log and handoff.
+public introduction; this file is the working log and handoff. The history was rewritten that day, before
+going public (one commit identity, the TV's dumps and a few identifiers taken out), so a clone from before
+then can't pull: clone it again.
 
-Upstream's `README.md` and `PROMPT.md` describe the general method. This file is the state of this TV
+Upstream's README (now `CLEANYOURTV.md`) and `PROMPT.md` describe the general method. This file is the state of this TV
 and what's left to do. Upstream is now called cleanyourtv; v2.1.0 (`042fd69`) was merged in on
 2026-10-19. To pull newer upstream work: `git remote add upstream https://github.com/Gathin23/tv-vibehack.git`,
 then `git fetch upstream && git merge upstream/main`.
@@ -637,3 +639,6 @@ It doesn't touch Private DNS or the App Store compile: undo those as shown under
 - The user wants short replies, no em dashes anywhere (code and comments included), an explicit yes
   before every push, and no AI attribution lines in commits. Standing yes for this file: keep it
   updated and pushed to GitHub as work progresses, so either Mac can pick up where the other left off.
+- Commit as `sethihq <72229933+sethihq@users.noreply.github.com>`, the only address in the public history.
+  Set it once per clone: `git config user.name sethihq` and
+  `git config user.email 72229933+sethihq@users.noreply.github.com`.
