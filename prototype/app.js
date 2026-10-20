@@ -221,33 +221,32 @@ const OUTPUTS = [
   { name: "JBL Flip 5", icon: "speaker-simple-high", note: "Bluetooth, nearby" },
   { name: "Soundbar", icon: "speaker-high", note: "HDMI ARC" },
 ];
-const side = { view: "home", from: "", volume: 35 };
+const side = { view: "home", from: "", volume: 35, wifi: true, joining: "" };
 
 function sideItems() {
   if (side.view === "home") return [...sideDock.querySelectorAll(":scope > div > .bento-tile")];
   return [...sideDock.querySelectorAll(`.side-view[data-view="${side.view}"] .sv-item`)];
 }
 
-function svRow(cls, icon, label, note, on, onPress) {
+// One row of a view: what leads it (a badge or an icon), the name with a note under it, what trails it.
+function svRow(cls, lead, label, note, trail, on, onPress) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = `sv-item ${cls}`;
   if (on) b.dataset.on = "";
+  const text = document.createElement("span");
+  text.className = "sv-text";
   const name = document.createElement("span");
   name.className = "sv-name";
   name.textContent = label;
-  const small = note ? document.createElement("small") : null;
-  if (small) small.textContent = note;
-  // Devices have long notes ("Bluetooth, nearby"), so theirs sit under the name; networks' sit beside it.
-  if (small && cls === "sv-out") {
-    const text = document.createElement("span");
-    text.className = "sv-text";
-    text.append(name, small);
-    b.append(glyph(icon), text);
-  } else {
-    b.append(glyph(icon), name);
-    if (small) b.append(small);
+  text.append(name);
+  if (note) {
+    const small = document.createElement("small");
+    small.textContent = note;
+    text.append(small);
   }
+  if (lead) b.append(lead);
+  b.append(text, ...trail);
   b.addEventListener("click", () => {
     focusItem("side", sideItems().indexOf(b));
     onPress();
@@ -255,7 +254,7 @@ function svRow(cls, icon, label, note, on, onPress) {
   return b;
 }
 
-function svHead(title, sub) {
+function svHead(title, trail) {
   const head = document.createElement("div");
   head.className = "sv-head";
   const back = document.createElement("button");
@@ -267,34 +266,82 @@ function svHead(title, sub) {
   const t = document.createElement("p");
   t.className = "sv-title";
   t.textContent = title;
-  const s = document.createElement("p");
-  s.className = "sv-sub";
-  s.textContent = sub;
-  head.append(back, t, s);
+  head.append(back, t);
+  if (trail) head.append(trail);
   return head;
 }
 
-function drawWifiView(view) {
-  const list = document.createElement("div");
-  list.className = "sv-list";
-  list.append(
-    ...NETWORKS.map((n) =>
-      svRow("sv-net", n.bars, n.name, n.on ? "Connected" : n.locked ? "" : "Open", n.on, () => {
-        if (n.on) return toast(`Connected to ${n.name}`);
-        NETWORKS.forEach((x) => (x.on = x === n));
-        toast(`Connecting to ${n.name}`);
-        redrawSideView();
-      }),
-    ),
-  );
-  for (const [i, n] of NETWORKS.entries()) if (n.locked && !n.on) list.children[i].append(glyph("lock-simple"));
+function svLabel(text) {
   const label = document.createElement("p");
   label.className = "sv-label";
-  label.textContent = "Networks nearby";
-  view.replaceChildren(svHead("Wi-Fi", "On"), label, list);
+  label.textContent = text;
+  return label;
+}
+
+function svGroup(rows) {
+  const group = document.createElement("div");
+  group.className = "sv-group";
+  group.append(...rows);
+  return group;
+}
+
+// Signal strength as Apple draws it: the whole fan, the arcs it doesn't reach dimmed, so every network's
+// icon is the same size.
+function signal(bars) {
+  const s = document.createElement("span");
+  s.className = "sv-signal";
+  s.append(glyph("wifi-high"), glyph(bars));
+  return s;
+}
+
+function drawWifiView(view) {
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "sv-item sv-switch";
+  toggle.setAttribute("role", "switch");
+  toggle.setAttribute("aria-label", "Wi-Fi");
+  toggle.setAttribute("aria-checked", String(side.wifi));
+  toggle.append(document.createElement("i"));
+  toggle.addEventListener("click", () => {
+    side.wifi = !side.wifi;
+    toast(side.wifi ? "Wi-Fi on" : "Wi-Fi off");
+    redrawSideView(".sv-switch");
+  });
+  const head = svHead("Wi-Fi", toggle);
+  if (!side.wifi) {
+    const off = document.createElement("p");
+    off.className = "sv-empty";
+    off.textContent = "Wi-Fi is off. Apps that need the internet won't load until it's back on.";
+    return view.replaceChildren(head, off);
+  }
+  // The network in use, as Control Centre shows it: a filled badge, its name over its state.
+  const current = NETWORKS.find((n) => n.on);
+  const joining = side.joining === current.name;
+  const badge = document.createElement("span");
+  badge.className = "sv-badge";
+  badge.append(glyph(current.bars));
+  const hero = svRow("sv-hero", badge, current.name, joining ? "Connecting…" : "Connected", [], !joining, () =>
+    toast(joining ? `Connecting to ${current.name}` : `Connected to ${current.name}`),
+  );
+  const others = NETWORKS.filter((n) => !n.on).map((n) =>
+    svRow("sv-net", null, n.name, "", [...(n.locked ? [glyph("lock-simple")] : []), signal(n.bars)], false, () => {
+      NETWORKS.forEach((x) => (x.on = x === n));
+      side.joining = n.name;
+      redrawSideView(".sv-hero");
+      setTimeout(() => {
+        if (side.joining !== n.name) return;
+        side.joining = "";
+        if (side.view === "wifi") redrawSideView();
+        toast(`Connected to ${n.name}`);
+      }, 1400);
+    }),
+  );
+  view.replaceChildren(head, hero, svLabel("Other networks"), svGroup(others));
 }
 
 function drawSoundView(view) {
+  // The volume as Control Centre draws it: the level fills the bar in white. The glyph and number sit
+  // twice, light on the bar and dark on the fill (clipped to the level), so they read on either.
   const vol = document.createElement("div");
   vol.className = "sv-item sv-volume";
   vol.tabIndex = -1;
@@ -302,29 +349,23 @@ function drawSoundView(view) {
   vol.setAttribute("aria-label", "Volume");
   vol.setAttribute("aria-valuemin", "0");
   vol.setAttribute("aria-valuemax", "100");
-  const bar = document.createElement("span");
-  bar.className = "sv-bar";
-  bar.append(document.createElement("i"));
-  const val = document.createElement("span");
-  val.className = "sv-val";
-  vol.append(glyph("speaker-low"), bar, val);
-  const label = document.createElement("p");
-  label.className = "sv-label";
-  label.textContent = "Play sound on";
-  const list = document.createElement("div");
-  list.className = "sv-list";
-  list.append(
-    ...OUTPUTS.map((o) =>
-      svRow("sv-out", o.icon, o.name, o.note, o.on, () => {
-        if (o.on) return;
-        OUTPUTS.forEach((x) => (x.on = x === o));
-        toast(`Sound now plays on ${o.name}`);
-        redrawSideView();
-      }),
-    ),
+  for (const cls of ["sv-vol", "sv-vol sv-vol-fill"]) {
+    const row = document.createElement("span");
+    row.className = cls;
+    const val = document.createElement("span");
+    val.className = "sv-val";
+    row.append(glyph("speaker-simple-low"), val);
+    vol.append(row);
+  }
+  const outputs = OUTPUTS.map((o) =>
+    svRow("sv-out", glyph(o.icon), o.name, o.note, o.on ? [glyph("check")] : [], o.on, () => {
+      if (o.on) return;
+      OUTPUTS.forEach((x) => (x.on = x === o));
+      toast(`Sound now plays on ${o.name}`);
+      redrawSideView();
+    }),
   );
-  for (const [i, o] of OUTPUTS.entries()) if (o.on) list.children[i].append(glyph("check"));
-  view.replaceChildren(svHead("Sound", OUTPUTS.find((o) => o.on).name), vol, label, list);
+  view.replaceChildren(svHead("Sound"), vol, svLabel("Play sound on"), svGroup(outputs));
   setVolume(side.volume);
 }
 
@@ -334,16 +375,22 @@ function setVolume(v) {
   if (!vol) return;
   vol.setAttribute("aria-valuenow", String(side.volume));
   vol.style.setProperty("--v", side.volume);
-  vol.querySelector(".sv-val").textContent = String(side.volume);
+  const icon = side.volume === 0 ? "speaker-simple-x" : side.volume < 50 ? "speaker-simple-low" : "speaker-simple-high";
+  for (const g of vol.querySelectorAll(".glyph")) g.dataset.icon = icon;
+  for (const n of vol.querySelectorAll(".sv-val")) n.textContent = String(side.volume);
+  paintGlyphs();
 }
 
-function redrawSideView() {
+// Redraws the open view; focus stays on the same row, or goes to the one a selector names.
+function redrawSideView(focus) {
   const at = sideItems().indexOf(document.activeElement);
   const view = sideDock.querySelector(`.side-view[data-view="${side.view}"]`);
   if (side.view === "wifi") drawWifiView(view);
   if (side.view === "sound") drawSoundView(view);
   paintGlyphs();
-  if (at >= 0) focusItem("side", at);
+  const items = sideItems();
+  const want = focus && at >= 0 ? items.findIndex((el) => el.matches(focus)) : at;
+  if (want >= 0) focusItem("side", Math.min(want, items.length - 1));
 }
 
 function openSideView(name, fromLabel) {
@@ -351,8 +398,10 @@ function openSideView(name, fromLabel) {
   side.from = fromLabel;
   sideDock.dataset.view = name;
   redrawSideView();
-  // The first row under the header: the connected network, or the volume.
-  focusItem("side", 1);
+  // The first row under the header: the network in use, or the volume; with Wi-Fi off, its switch.
+  const items = sideItems();
+  const first = items.findIndex((el) => !el.closest(".sv-head"));
+  focusItem("side", first >= 0 ? first : items.length - 1);
 }
 
 function closeSideView() {
@@ -1763,11 +1812,24 @@ function hear(now) {
   if (light.swells.length > 10) light.swells.shift();
 }
 
+// Steady light sends no swells, but the bot still dances to the song's felt tempo.
+function botTempo(now) {
+  if (now < light.next) return;
+  light.next = now + 60000 / EDGE_BPM[np.i % EDGE_BPM.length];
+  if (light.count % 2 === 0) botKick(now, 0.9);
+  else botHat();
+  light.count = (light.count + 1) % 4;
+}
+
 // Without sound to hear: each song's felt tempo, the first and third beats from the bottom.
 function tempo(now) {
   if (now >= light.next) {
     light.next = now + 60000 / EDGE_BPM[np.i % EDGE_BPM.length];
-    light.swells.push(light.count % 2 === 0 ? kickSwell(now, 0.9) : { at: 0, born: now, amp: 0.35 });
+    if (light.count % 2 === 0) light.swells.push(kickSwell(now, 0.9));
+    else {
+      botHat();
+      light.swells.push({ at: 0, born: now, amp: 0.35 });
+    }
     light.count = (light.count + 1) % 4;
   }
   light.bass = 0.3 + 0.1 * Math.sin(now / 900);
@@ -1781,9 +1843,10 @@ function stepLight(now) {
   } else {
     light.bass += (0.25 - light.bass) * 0.05;
     light.high *= 0.9;
+    botTempo(now);
   }
   drawLight(now);
-  if (musicMode.on && botCanvas.hasAttribute("data-on")) drawBot(now);
+  if (botShowing()) drawBot(now);
   light.raf = requestAnimationFrame(stepLight);
 }
 
@@ -1825,52 +1888,172 @@ document.getElementById("musicNow").addEventListener("click", () => {
 
 // ---- The beat bot -----------------------------------------------------------------------------------------
 
-// Robot eyes that dance to the song in the middle of music mode ("the ESP32 bot face, cutely dancing on
-// the song"), in the spirit of FluxGarage RoboEyes (GPL-3.0, so none of its code is used: this is drawn
-// from scratch). Two glowing rounded eyes and a small smile. Each kick squashes them and bounces them, and
-// swings the head the other way, so it sways with the beat; big hits make happy squints; the highs make
-// the eyes flicker; between beats it blinks and glances around. Springs carry every move, so it settles
-// softly instead of snapping.
+// Round eyes and a small smile that dance to the song in the middle of music mode, in the spirit of the
+// ESP32 desk-bot faces (FluxGarage RoboEyes is GPL-3.0, so none of its code is used; this is drawn from
+// scratch). The face is the first one, which was the cuter one, in flat white with no glow ("remove the
+// glow"); everything new is life around it ("it should blink and dance, more reactions").
+//
+// It dances on the kicks, a new dance every few seconds: a nod, a sway, hops, side steps, eyes bouncing
+// in turn, looking left and right, eyes circling. Its mood changes every few bars: plain, smiling,
+// chilled (a contented squint, smaller moves) or curious (one eye bigger, head on one side, a sideways
+// smile). In between it does little things on the beat: winks, blinks twice, laughs, glances about, goes
+// heart-eyed. And it hears the song: a drop makes it gasp and then beam, a quiet stretch makes it
+// sleepy, and the beat coming back wakes it with a start. Springs carry every move, so it lands softly.
 const botCanvas = document.getElementById("bot");
 const botCtx = botCanvas.getContext("2d");
+const BOT_W = 360;
+const BOT_H = 240;
+const BOT_MOVES = ["nod", "sway", "hop", "step", "bounce", "look", "circle"];
+const BOT_MOODS = ["plain", "smile", "chill", "curious", "smile"];
+const BOT_GESTURES = ["wink", "blink", "giggle", "glance", "hearts"];
+const BOT_GESTURE_MS = { wink: 750, blink: 500, giggle: 1100, glance: 1300, hearts: 1900 };
 const bot = {
-  gx: 0,
-  gy: 0,
-  tx: 0,
-  ty: 0,
-  nextLook: 0,
-  blink: 0,
-  blinkAt: 0,
-  nextBlink: 0,
-  squash: 0,
-  squashV: 0,
-  hop: 0,
-  hopV: 0,
+  last: 0,
+  beats: 0,
+  move: "nod",
+  moveUntil: 0,
+  mood: "plain",
+  moodUntil: 0,
+  gesture: "",
+  gestureAt: 0,
+  gestureUntil: 0,
+  gestureNext: 0,
+  // The body: springs for position, tilt and squash.
+  x: 0,
+  xv: 0,
+  xGoal: 0,
+  y: 0,
+  yv: 0,
   tilt: 0,
   tiltV: 0,
   tiltGoal: 0,
-  side: 1,
-  happy: 0,
-  happyUntil: 0,
-  happyNext: 0,
-  jitter: 0,
-  last: 0,
+  squash: 0,
+  squashV: 0,
+  // Each eye bounces on its own in the bounce dance.
+  eyeL: 0,
+  eyeLV: 0,
+  eyeR: 0,
+  eyeRV: 0,
+  // Where the eyes look.
+  gx: 0,
+  gy: 0,
+  idleX: 0,
+  idleY: 0,
+  nextLook: 0,
+  lookSide: 1,
+  spin: 0,
+  spinGoal: 0,
+  // Expressions, eased between 0 and 1.
+  smile: 0,
+  joy: 0,
+  chill: 0,
+  curious: 0,
+  wink: 0,
+  giggle: 0,
+  love: 0,
+  sleepy: 0,
+  surprise: 0,
+  joyUntil: 0,
+  joyNext: 0,
+  surpriseUntil: 0,
+  surpriseNext: 0,
+  blinkAt: -1e9,
+  twice: false,
+  nextBlink: 0,
+  lastKick: 0,
+  bassSlow: 0.3,
 };
 
+const botShowing = () => musicMode.on && botCanvas.hasAttribute("data-on");
+
+const pickNew = (list, current) => {
+  const options = list.filter((x) => x !== current);
+  return options[Math.floor(Math.random() * options.length)];
+};
+
+function botBlink(now, twice = false) {
+  bot.blinkAt = now;
+  bot.twice = twice;
+  bot.nextBlink = now + 1600 + Math.random() * 3200;
+}
+
+function botSurprise(now) {
+  bot.surpriseUntil = now + 800;
+  bot.joyUntil = now + 2400;
+  bot.yv -= 260;
+}
+
+function botGesture(now, name) {
+  bot.gesture = name;
+  bot.gestureAt = now;
+  bot.gestureUntil = now + BOT_GESTURE_MS[name];
+  bot.gestureNext = now + 3000 + Math.random() * 3000;
+  if (name === "blink") botBlink(now, true);
+}
+
 function botKick(now, amp) {
-  bot.squashV -= 7 * amp;
-  bot.hopV -= 70 * amp;
-  bot.side = -bot.side;
-  bot.tiltGoal = bot.side * (3 + 5 * amp);
-  // The biggest hits, at most every five seconds, get a happy squint.
-  if (amp > 0.95 && now > bot.happyNext) {
-    bot.happyUntil = now + 1300;
-    bot.happyNext = now + 5000;
+  const woke = now - bot.lastKick > 3500 && bot.sleepy > 0.3;
+  bot.lastKick = now;
+  if (!botShowing()) return;
+  // The beat coming back after a quiet stretch: awake with a start.
+  if (woke) botSurprise(now);
+  bot.beats += 1;
+  // A new dance every few seconds and a new mood every few bars, always on a beat, with a blink.
+  if (now > bot.moveUntil) {
+    bot.move = pickNew(BOT_MOVES, bot.move);
+    bot.moveUntil = now + 4000 + Math.random() * 2500;
+    botBlink(now);
+  }
+  if (now > bot.moodUntil) {
+    bot.mood = pickNew(BOT_MOODS, bot.mood);
+    bot.moodUntil = now + 7000 + Math.random() * 5000;
+  }
+  const side = bot.beats % 2 ? 1 : -1;
+  const a = amp * (bot.mood === "chill" ? 0.6 : 1);
+  bot.xGoal = 0;
+  bot.tiltGoal = 0;
+  if (bot.move === "nod") {
+    // Down on the beat, as a head nods.
+    bot.yv += 240 * a;
+    bot.squashV -= 4 * a;
+  } else if (bot.move === "sway") {
+    bot.tiltGoal = side * (7 + 5 * a);
+    bot.xGoal = side * 8;
+    bot.squashV -= 2 * a;
+  } else if (bot.move === "hop") {
+    bot.yv -= 480 * a;
+    bot.squashV += 4 * a;
+  } else if (bot.move === "step") {
+    bot.xGoal = side * 26;
+    bot.tiltGoal = side * 3;
+    bot.yv += 120 * a;
+    bot.squashV -= 2 * a;
+  } else if (bot.move === "bounce") {
+    if (side > 0) bot.eyeLV -= 380 * a;
+    else bot.eyeRV -= 380 * a;
+    bot.squashV -= 1.5 * a;
+  } else if (bot.move === "look") {
+    bot.lookSide = side;
+    bot.yv += 100 * a;
+  } else if (bot.move === "circle") {
+    bot.spinGoal += Math.PI / 2;
+    bot.yv += 80 * a;
+  }
+  // Something small every few seconds; the biggest hits sometimes bring hearts or a delighted squint.
+  if (now > bot.gestureUntil) {
+    if (amp > 0.95 && now > bot.joyNext) {
+      bot.joyNext = now + 5000;
+      if (Math.random() < 0.5) botGesture(now, "hearts");
+      else bot.joyUntil = now + 1300;
+    } else if (now > bot.gestureNext) botGesture(now, pickNew(BOT_GESTURES, bot.gesture));
   }
 }
 
+// The off-beats: a small tick, and now and then the eyes flick to the side and back.
 function botHat() {
-  bot.jitter = 1;
+  if (!botShowing()) return;
+  bot.squashV -= 1;
+  if (Math.random() < 0.3) bot.gx += (Math.random() < 0.5 ? -1 : 1) * 7;
 }
 
 // A damped spring: returns the new [value, velocity] towards the goal.
@@ -1880,78 +2063,160 @@ function spring(x, v, goal, k, c, dt) {
   return [x + v * dt, v];
 }
 
+const ease = (x, goal, rate, dt) => x + (goal - x) * Math.min(1, dt * rate);
+
+// From 0 to 1 with a little overshoot, for the hearts popping in.
+const popOut = (t) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2;
+
+function drawHeart(cx, cy, s) {
+  const ctx = botCtx;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + 0.42 * s);
+  ctx.bezierCurveTo(cx - 0.62 * s, cy + 0.02 * s, cx - 0.56 * s, cy - 0.56 * s, cx, cy - 0.24 * s);
+  ctx.bezierCurveTo(cx + 0.56 * s, cy - 0.56 * s, cx + 0.62 * s, cy + 0.02 * s, cx, cy + 0.42 * s);
+  ctx.fill();
+}
+
 function drawBot(now) {
   const dt = Math.min(0.05, (now - (bot.last || now)) / 1000);
   bot.last = now;
-  // Glances: a new spot every couple of seconds; blinks: every two to six seconds.
-  if (now > bot.nextLook) {
-    bot.tx = (Math.random() * 2 - 1) * 16;
-    bot.ty = (Math.random() * 2 - 1) * 8;
-    bot.nextLook = now + 1400 + Math.random() * 2600;
-  }
-  if (now > bot.nextBlink) {
-    bot.blinkAt = now;
-    bot.nextBlink = now + 2000 + Math.random() * 4000;
-  }
-  const b = (now - bot.blinkAt) / 1000;
-  bot.blink = b < 0.09 ? b / 0.09 : b < 0.22 ? 1 - (b - 0.09) / 0.13 : 0;
-  bot.gx += (bot.tx - bot.gx) * Math.min(1, dt * 7);
-  bot.gy += (bot.ty - bot.gy) * Math.min(1, dt * 7);
-  [bot.squash, bot.squashV] = spring(bot.squash, bot.squashV, 0, 210, 13, dt);
-  [bot.hop, bot.hopV] = spring(bot.hop, bot.hopV, 0, 170, 12, dt);
-  [bot.tilt, bot.tiltV] = spring(bot.tilt, bot.tiltV, bot.tiltGoal, 60, 9, dt);
-  bot.tiltGoal *= 1 - Math.min(1, dt * 0.6);
-  bot.happy += ((now < bot.happyUntil ? 1 : 0) - bot.happy) * Math.min(1, dt * 9);
-  bot.jitter *= 1 - Math.min(1, dt * 12);
 
-  const [, , hue] = light.now[0];
+  // What the song is doing: a sudden jump in the bass (a drop), or a long quiet.
+  bot.bassSlow += (light.bass - bot.bassSlow) * Math.min(1, dt * 0.8);
+  if (light.bass - bot.bassSlow > 0.32 && now > bot.surpriseNext) {
+    botSurprise(now);
+    bot.surpriseNext = now + 9000;
+  }
+  const quiet = now - bot.lastKick > 3500;
+  const gesture = now < bot.gestureUntil ? bot.gesture : "";
+
+  // Where the eyes look: darting about in a glance, the look dance, circling, or idle glances.
+  let tx;
+  let ty;
+  if (gesture === "glance") {
+    tx = (Math.floor((now - bot.gestureAt) / 320) % 2 ? 1 : -1) * 24;
+    ty = -3;
+  } else if (bot.move === "look" && !quiet) {
+    tx = bot.lookSide * 22;
+    ty = -2;
+  } else if (bot.move === "circle" && !quiet) {
+    bot.spin = ease(bot.spin, bot.spinGoal, 7, dt);
+    tx = Math.cos(bot.spin) * 18;
+    ty = Math.sin(bot.spin) * 9;
+  } else {
+    if (now > bot.nextLook) {
+      bot.idleX = (Math.random() * 2 - 1) * 14;
+      bot.idleY = (Math.random() * 2 - 1) * 6;
+      bot.nextLook = now + 1500 + Math.random() * 2500;
+    }
+    tx = bot.idleX;
+    ty = bot.idleY;
+  }
+  bot.gx = ease(bot.gx, tx, 10, dt);
+  bot.gy = ease(bot.gy, ty, 10, dt);
+
+  // Blinks every couple of seconds, sometimes twice.
+  if (now > bot.nextBlink) botBlink(now, Math.random() < 0.25);
+  const since = (now - bot.blinkAt) / 1000;
+  const blinkShape = (t) => (t < 0 ? 0 : t < 0.07 ? t / 0.07 : t < 0.19 ? 1 - (t - 0.07) / 0.12 : 0);
+  const blink = Math.max(blinkShape(since), bot.twice ? blinkShape(since - 0.24) : 0);
+
+  // Springs.
+  [bot.x, bot.xv] = spring(bot.x, bot.xv, bot.xGoal, 90, 12, dt);
+  [bot.y, bot.yv] = spring(bot.y, bot.yv, 0, 170, 12, dt);
+  [bot.tilt, bot.tiltV] = spring(bot.tilt, bot.tiltV, bot.tiltGoal, 70, 10, dt);
+  [bot.squash, bot.squashV] = spring(bot.squash, bot.squashV, 0, 220, 13, dt);
+  [bot.eyeL, bot.eyeLV] = spring(bot.eyeL, bot.eyeLV, 0, 200, 12, dt);
+  [bot.eyeR, bot.eyeRV] = spring(bot.eyeR, bot.eyeRV, 0, 200, 12, dt);
+
+  // Expressions.
+  const mood = quiet ? "" : bot.mood;
+  bot.surprise = ease(bot.surprise, now < bot.surpriseUntil ? 1 : 0, 12, dt);
+  bot.joy = ease(bot.joy, now < bot.joyUntil && now > bot.surpriseUntil ? 1 : 0, 9, dt);
+  bot.sleepy = ease(bot.sleepy, quiet ? 1 : 0, quiet ? 1.2 : 6, dt);
+  bot.smile = ease(bot.smile, mood === "smile" ? 1 : 0, 4, dt);
+  bot.chill = ease(bot.chill, mood === "chill" ? 1 : 0, 4, dt);
+  bot.curious = ease(bot.curious, mood === "curious" ? 1 : 0, 4, dt);
+  bot.wink = ease(bot.wink, gesture === "wink" ? 1 : 0, 14, dt);
+  bot.giggle = ease(bot.giggle, gesture === "giggle" ? 1 : 0, 10, dt);
+  bot.love = ease(bot.love, gesture === "hearts" ? 1 : 0, 7, dt);
+
   const ctx = botCtx;
   ctx.setTransform(2, 0, 0, 2, 0, 0);
-  ctx.clearRect(0, 0, 320, 180);
-  ctx.translate(160, 92 + bot.hop * 0.12);
-  ctx.rotate((bot.tilt * Math.PI) / 180);
-  ctx.fillStyle = `oklch(95% 0.05 ${hue.toFixed(1)})`;
-  ctx.shadowColor = `oklch(72% 0.19 ${hue.toFixed(1)} / 0.85)`;
-  ctx.shadowBlur = 26;
-  const squash = clamp(bot.squash, -0.6, 0.6);
-  const w = 66 * (1 - squash * 0.14);
-  const fullH = 76 * (1 + squash * 0.24);
-  const h = Math.max(4, fullH * (1 - bot.blink * 0.94));
-  const flick = Math.sin(now / 18) * bot.jitter * 2;
+  ctx.clearRect(0, 0, BOT_W, BOT_H);
+  const shake = Math.sin(now / 38) * 3 * bot.giggle;
+  ctx.translate(BOT_W / 2 + bot.x, BOT_H / 2 - 8 + bot.y + shake + bot.sleepy * 6);
+  ctx.rotate(((bot.tilt + bot.curious * 7 + bot.sleepy * 5) * Math.PI) / 180);
+  ctx.fillStyle = "oklch(96% 0 none)";
+  ctx.strokeStyle = "oklch(96% 0 none)";
+  ctx.lineCap = "round";
+
+  const sq = clamp(bot.squash, -0.4, 0.4);
+  const big = 1 + bot.surprise * 0.22;
+  const joy = Math.max(bot.joy, bot.giggle) * (1 - bot.surprise);
+  // Shorter eyes: a contented squint when chilled, lifted by a smile, half shut and breathing when sleepy.
+  const short = (1 - 0.25 * bot.chill) * (1 - 0.12 * bot.smile) * (1 - bot.sleepy * (0.55 + 0.04 * Math.sin(now / 650)));
+  // Heart eyes: the eyes shrink away, then hearts pop in and throb on the beat.
+  const eyeScale = clamp(1 - bot.love * 2, 0, 1);
+  const heartScale = bot.love > 0.5 ? popOut((bot.love - 0.5) * 2) : 0;
   for (const side of [-1, 1]) {
-    const x = side * 52 + bot.gx + flick;
-    const y = bot.gy * (1 + squash * 0.2);
-    // Open: a rounded rectangle, fading as a happy squint takes over.
-    if (bot.happy < 0.98) {
-      ctx.globalAlpha = 1 - bot.happy;
-      ctx.beginPath();
-      ctx.roundRect(x - w / 2, y - h / 2, w, h, Math.min(24, h / 2));
-      ctx.fill();
+    const left = side < 0;
+    const x = side * 52 + bot.gx;
+    const y = bot.gy + (left ? bot.eyeL : bot.eyeR) - 3 * bot.smile + 5 * bot.sleepy;
+    if (heartScale > 0) {
+      drawHeart(x, y, 64 * big * heartScale * (1 - sq * 0.4));
+      continue;
     }
-    // Happy: an arch like ^, stroked thick with round ends.
-    if (bot.happy > 0.02) {
-      ctx.globalAlpha = bot.happy;
-      ctx.strokeStyle = ctx.fillStyle;
-      ctx.lineWidth = 15;
-      ctx.lineCap = "round";
+    if (eyeScale < 0.03) continue;
+    const size = big * eyeScale * (left ? 1 - 0.1 * bot.curious : 1 + 0.16 * bot.curious);
+    const w = 66 * size * (1 - sq * 0.3);
+    const h = Math.max(4, 76 * size * short * (1 + sq * 0.6) * (1 - blink * 0.95));
+    // Happy: the eye closes to a line, and the line bends up into an arch like ^, thick with round ends
+    // (a wink is one of them). No fading between the two, so it never goes grey on the way.
+    const arch = left ? joy : Math.max(joy, bot.wink);
+    if (arch < 0.5) {
+      const t = arch * 2;
+      const hh = h * (1 - t) + 10 * t;
       ctx.beginPath();
-      ctx.moveTo(x - w * 0.36, y + 10);
-      ctx.quadraticCurveTo(x, y - 30, x + w * 0.36, y + 10);
+      ctx.roundRect(x - w / 2, y - hh / 2, w, hh, Math.min(24 + 10 * bot.surprise, hh / 2, w / 2));
+      ctx.fill();
+    } else {
+      const k = (arch - 0.5) * 2;
+      const reach = w * (0.42 - 0.06 * k);
+      ctx.lineWidth = (10 + 5 * k) * size;
+      ctx.beginPath();
+      ctx.moveTo(x - reach, y + 10 * k);
+      ctx.quadraticCurveTo(x, y - 30 * k, x + reach, y + 10 * k);
       ctx.stroke();
     }
-    ctx.globalAlpha = 1;
   }
-  // The smile, wider on a happy beat.
-  ctx.shadowBlur = 14;
-  ctx.strokeStyle = `oklch(95% 0.05 ${hue.toFixed(1)} / 0.9)`;
+
+  // The smile: wider when happy, open in a laugh, an "o" when it gasps, a short flat line when sleepy,
+  // pulled to one side when curious or winking.
+  const grin = Math.max(bot.smile, joy, bot.love, bot.chill * 0.5);
+  const mx = bot.gx * 0.5 + 6 * bot.wink - 6 * bot.curious;
+  const my = 50 + bot.gy * 0.5;
+  const mw = (11 + 6 * grin) * (1 - 0.4 * bot.sleepy) * (1 - 0.3 * bot.curious);
+  const md = (7 + 6 * grin + 10 * bot.giggle) * (1 - bot.sleepy) * (1 - 0.6 * bot.curious);
   ctx.lineWidth = 3.5;
-  ctx.lineCap = "round";
-  const sw = 11 + bot.happy * 7;
-  const sy = 50 + bot.gy * 0.5;
-  ctx.beginPath();
-  ctx.moveTo(bot.gx * 0.5 - sw, sy);
-  ctx.quadraticCurveTo(bot.gx * 0.5, sy + 7 + bot.happy * 5, bot.gx * 0.5 + sw, sy);
-  ctx.stroke();
+  if (bot.surprise < 0.98) {
+    ctx.beginPath();
+    ctx.moveTo(mx - mw, my);
+    ctx.quadraticCurveTo(mx, my + md, mx + mw, my);
+    if (bot.giggle > 0.02) {
+      ctx.globalAlpha = bot.giggle * (1 - bot.surprise);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1 - bot.surprise;
+    ctx.stroke();
+  }
+  if (bot.surprise > 0.02) {
+    ctx.globalAlpha = bot.surprise;
+    ctx.beginPath();
+    ctx.ellipse(mx, my + 4, 5.5, 7, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function syncEdge() {
@@ -1975,7 +2240,10 @@ function syncEdge() {
     cancelAnimationFrame(light.raf);
     light.raf = 0;
   }
-  if (on && reduceMotion.matches) drawLight(0);
+  if (on && reduceMotion.matches) {
+    drawLight(0);
+    drawBot(performance.now());
+  }
   syncSound();
 }
 

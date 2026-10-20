@@ -324,19 +324,34 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   page 2. A focused dock tile only turns lighter ("selected state big, remove, only colour change is fine").
   **Wi-Fi and Sound views** ("when Wi-Fi is clicked the whole panel should turn into the Wi-Fi devices
   nearby, same for Sound"): the tiles slide out and a view slides in, as a Control Centre module opens.
-  Wi-Fi lists the connected network (green "Connected") and the networks nearby with signal bars and
-  locks; choosing one connects it. Sound has a volume bar (Left and Right in fives), then "Play sound on":
-  TV speakers, Bluetooth devices nearby, a soundbar on HDMI ARC, the one in use ticked green. Back or the
-  chevron returns. Demo data; on the TV, `WifiManager` scan results (location permission is granted by the
+  Redrawn after "this UI also please improve": the header has an iOS-style switch (Wi-Fi on or off; off
+  leaves a quiet line instead of the list); the network in use is its own card (a green badge, the name
+  over "Connected"); the rest sit under "Other networks" in one grouped card split by hairlines, each with
+  its lock and a signal icon that is always the full fan with the arcs it doesn't reach dimmed, so they
+  line up. Choosing one moves it into the card, "Connecting…" with a breathing grey badge, then
+  "Connected". Sound has a Control Centre volume slider (the level fills it white, the glyph and number
+  flip dark over the fill; Left and Right in fives, the speaker glyph mutes at 0), then "Play sound on" in
+  the same grouped card: TV speakers, Bluetooth devices nearby, a soundbar on HDMI ARC, the one in use
+  ticked green. Focus is colour only everywhere, except the switch, whose colour is its state, so it
+  gets a ring. Back or the chevron returns. Demo data; on the TV, `WifiManager` scan results (location permission is granted by the
   install script) and Bluetooth discovery would fill them. Focus moves to the nearest item in the pressed direction (FocusFinder
   style: same band first, then closest), since these aren't simple rows any more.
 - **Beat bot** ("there's this ESP32 bot face, open source; in the centre, cutely dancing on the song"):
   robot eyes in the middle of music mode, a panel switch (Beat bot On / Off). The reference is FluxGarage
-  RoboEyes (GPL-3.0), so none of its code is used: two glowing rounded eyes and a small smile drawn from
-  scratch on a canvas, in a light tint of the edge light's main colour. Each kick squashes and bounces the
-  eyes and swings the head the other way, so it sways with the beat; the biggest hits (at most every 5 s)
-  turn the eyes into happy arches (^ ^) with a wider smile; the highs flicker them; between beats it
-  blinks and glances around. Springs carry every move.
+  RoboEyes (GPL-3.0), so none of its code is used: two rounded eyes and a small smile drawn from scratch on
+  a canvas. After "it should blink and dance, more reactions, remove the glow" it is flat white with no
+  glow or tint; a try with mouthless, carved eye shapes was rejected ("the earlier ones were cuter, do
+  around them only"), so the face is the first one and everything new is life around it. A new dance
+  every 4 to 6.5 s, landing on the kicks: nod, sway, hop, side step, eyes bouncing in turn, looking left
+  and right, eyes circling. A mood every 7 to 12 s: plain, smiling, chilled (a contented squint, smaller
+  moves), curious (one eye bigger, head on one side, a sideways smile). Every 3 to 6 s a gesture on the
+  beat: a wink, a double blink, a laugh (^ ^ with an open mouth and a shake), a quick glance about, or
+  heart eyes (the biggest hits bring hearts or a beaming squint). It hears the song: a drop makes it gasp
+  (big eyes, an "o" mouth) then beam; 3.5 s with no beat makes it sleepy (half-shut eyes breathing, head
+  drooping, a flat mouth), and the beat coming back wakes it with a start. Blinks every 1.6 to 4.8 s, a
+  quarter of them double, and one at each new dance. Happy eyes close to a line that bends into ^, never
+  a fade. With Edge glow Steady it still dances to the song's felt tempo; with reduced motion it shows
+  still eyes. Springs carry every move. Port: a custom View drawing the same shapes on a Canvas.
 - **Shelf in the sidebar** ("size height should be equal"): the posters share one set of rows (art,
   title, details) through CSS subgrid, so all three pieces of art are the same height and the titles share
   a line whether or not a poster has details.

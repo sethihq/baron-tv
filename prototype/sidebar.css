@@ -162,20 +162,10 @@
 }
 
 .sv-title {
-  flex: none;
+  flex: 1;
   font-size: var(--t-body);
   font-weight: 600;
   letter-spacing: var(--tr-body);
-}
-
-.sv-sub {
-  margin-inline-start: auto;
-  overflow: clip;
-  color: var(--text-2);
-  font-size: var(--t-caption);
-  font-weight: 500;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .sv-label {
@@ -187,17 +177,12 @@
   letter-spacing: var(--tr-caption);
 }
 
-.sv-list {
-  display: grid;
-  gap: var(--s-1);
-}
-
 /* Rows, the back button and the volume share one surface and one focus: a lighter colour, no lift. */
 .sv-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-block-size: 40px;
+  min-block-size: 38px;
   padding-inline: var(--s-3);
   border-radius: 12px;
   background: oklch(16% 0 none);
@@ -209,42 +194,35 @@
 
 .sv-item:focus {
   outline: 2px solid transparent;
-  background: oklch(36% 0 none);
+  background: oklch(32% 0 none);
 }
 
 .sv-item .glyph {
+  flex: none;
   inline-size: 18px;
   block-size: 18px;
 }
 
-.sv-name {
+/* A row's name, with its note under it when it has one. */
+.sv-text {
   flex: 1;
-  overflow: clip;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  display: grid;
+  min-inline-size: 0;
   text-align: start;
 }
 
-.sv-item small {
+.sv-name,
+.sv-text small {
+  overflow: clip;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sv-text small {
+  margin-block-start: 1px;
   color: var(--text-2);
   font-size: var(--t-caption);
   font-weight: 500;
-  white-space: nowrap;
-}
-
-/* What's in use: the connected network, the output sound plays on. */
-.sv-item[data-on] small {
-  color: oklch(78% 0.15 150);
-}
-
-.sv-item[data-on] > .glyph:last-child {
-  color: oklch(78% 0.15 150);
-}
-
-.sv-item > .glyph:last-child:not(:first-child) {
-  inline-size: 14px;
-  block-size: 14px;
-  color: var(--text-2);
 }
 
 .sv-back {
@@ -261,34 +239,191 @@
   block-size: 16px;
 }
 
-/* The volume: Left and Right move it in fives. */
-.sv-volume {
-  gap: var(--s-3);
+/* The Wi-Fi switch, as iOS draws one: green when on. Its colour is its state, so focus is a ring. */
+.sv-switch {
+  flex: none;
+  inline-size: 44px;
+  min-block-size: 26px;
+  padding: 3px;
+  border-radius: 13px;
+  background: oklch(34% 0 none);
+}
+
+.sv-switch[aria-checked="true"] {
+  background: oklch(68% 0.17 150);
+}
+
+.sv-switch:focus {
+  outline: 2px solid oklch(100% 0 none / 0.9);
+  outline-offset: 2px;
+  background: oklch(40% 0 none);
+}
+
+.sv-switch[aria-checked="true"]:focus {
+  background: oklch(72% 0.17 150);
+}
+
+.sv-switch i {
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: 50%;
+  background: oklch(98% 0 none);
+}
+
+.sv-switch[aria-checked="true"] i {
+  translate: 18px 0;
+}
+
+/* The network in use: a filled badge, the name over its state. */
+.sv-hero {
+  min-block-size: 52px;
+  padding-inline: 10px var(--s-3);
+}
+
+.sv-hero .sv-name {
+  font-weight: 600;
+}
+
+.sv-hero[data-on] small {
+  color: oklch(78% 0.15 150);
+}
+
+.sv-badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 50%;
+  background: oklch(68% 0.17 150);
+  color: oklch(99% 0 none);
+}
+
+.sv-hero:not([data-on]) .sv-badge {
+  background: oklch(34% 0 none);
+}
+
+/* Other networks and the outputs: one grouped card, rows split by hairlines, as Settings lists them. */
+.sv-group {
+  display: grid;
+  padding: 3px;
+  border-radius: 14px;
+  background: oklch(16% 0 none);
+}
+
+.sv-group > .sv-item {
+  position: relative;
+  min-block-size: 36px;
+  padding-inline: 11px;
+  border-radius: 11px;
+  background: none;
+}
+
+.sv-group > .sv-item + .sv-item::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 11px;
+  block-size: 1px;
+  background: oklch(100% 0 none / 0.07);
+}
+
+.sv-group > .sv-item:focus {
+  background: oklch(32% 0 none);
+}
+
+.sv-group > .sv-item:focus::before,
+.sv-group > .sv-item:focus + .sv-item::before {
+  opacity: 0;
+}
+
+/* A network's trail: the lock if it has a password, then its signal. */
+.sv-net .glyph[data-icon="lock-simple"] {
+  inline-size: 13px;
+  block-size: 13px;
+  color: var(--text-2);
+}
+
+.sv-signal {
+  position: relative;
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.sv-item .sv-signal .glyph {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.sv-signal .glyph:first-child {
+  opacity: 0.26;
+}
+
+/* An output: its icon, the name over where it is, the tick on the one in use. */
+.sv-out {
   min-block-size: 46px;
 }
 
-.sv-bar {
-  flex: 1;
-  block-size: 6px;
-  overflow: clip;
-  border-radius: 3px;
-  background: oklch(100% 0 none / 0.14);
+.sv-out > .glyph:first-child {
+  color: var(--text-2);
 }
 
-.sv-bar i {
-  display: block;
-  inline-size: calc(var(--v, 35) * 1%);
-  block-size: 100%;
-  border-radius: inherit;
-  background: var(--text);
+.sv-out[data-on] > .glyph:first-child {
+  color: var(--text);
+}
+
+.sv-out .glyph[data-icon="check"] {
+  inline-size: 15px;
+  block-size: 15px;
+  color: oklch(78% 0.15 150);
+}
+
+/* The volume: Left and Right move it in fives. */
+.sv-volume {
+  position: relative;
+  flex: none;
+  min-block-size: 44px;
+  padding: 0;
+  overflow: clip;
+  border-radius: 14px;
+  background: oklch(20% 0 none);
+}
+
+.sv-volume:focus {
+  background: oklch(30% 0 none);
+}
+
+.sv-vol {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 14px;
+}
+
+.sv-vol-fill {
+  background: oklch(95% 0 none);
+  color: oklch(16% 0 none);
+  clip-path: inset(0 calc(100% - var(--v, 35) * 1%) 0 0);
 }
 
 .sv-val {
-  min-inline-size: 2ch;
+  opacity: 0.7;
+  font-size: var(--t-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wi-Fi off: a quiet line where the networks were. */
+.sv-empty {
+  padding: var(--s-2) var(--s-2);
   color: var(--text-2);
   font-size: var(--t-caption);
-  font-variant-numeric: tabular-nums;
-  text-align: end;
+  line-height: 1.45;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -312,28 +447,22 @@
     transition: background-color 200ms var(--ease-out);
   }
 
-  .sv-bar i {
-    transition: inline-size 160ms var(--ease-out);
+  .sv-switch i {
+    transition: translate 220ms var(--ease-out);
+  }
+
+  .sv-vol-fill {
+    transition: clip-path 160ms var(--ease-out);
+  }
+
+  /* Joining a network: the badge breathes until it's connected. */
+  .sv-hero:not([data-on]) .sv-badge {
+    animation: sv-joining 1s var(--ease-out) infinite alternate;
   }
 }
 
-/* A device row: its name over its note. */
-.sv-out {
-  min-block-size: 48px;
-}
-
-.sv-text {
-  flex: 1;
-  display: grid;
-  min-inline-size: 0;
-  text-align: start;
-}
-
-.sv-text small {
-  margin-block-start: 1px;
-}
-
-/* The tick on what's in use is green too (after the grey trailing-glyph rule above). */
-.sv-item[data-on] > .glyph:last-child:not(:first-child) {
-  color: oklch(78% 0.15 150);
+@keyframes sv-joining {
+  to {
+    background: oklch(46% 0 none);
+  }
 }
