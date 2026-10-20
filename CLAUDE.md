@@ -420,6 +420,57 @@ Porting it to the TV once approved (`launcher/`, Java):
   Check that the CVTE firmware actually runs dreams.
 - Mind the 512 MB: three posters at most, TMDB sizes w342 and w780, no blur, no video.
 
+## New home screen (native, `home/`, 2026-10-20)
+
+The approved prototype, Sidebar layout with the Bento clock and Line icons, ported as its own app:
+`com.barontv.home` ("Baron Home"), now the TV's Home. The old launcher (`com.gathin.tvhome`) stays
+installed as the fallback. Kotlin with framework views only (no AndroidX, no Compose: lightest on 512 MB),
+kotlinx-coroutines, minSdk 28, release with R8 (about 1.2 MB). It lays out at 213 dpi, so the TV's 1280 x
+720 is exactly the prototype's 960 x 540 dp and every prototype measurement maps 1:1 (`activity_home.xml`
+slots, `core/Tokens.kt` colours converted from OKLCH).
+
+- **Install, undo, measure** (TV on, `TV_HOST` set): `home/build-and-install.sh` builds, installs, grants
+  location and microphone, sets Home, swaps the Input key's accessibility service from the old launcher to
+  this app (taking it off and back on, see below), turns location providers on for Wi-Fi scans, and saves
+  the TV's previous values once in `home/.tv-state` (gitignored). `SET_SAVER=0` skips the screensaver
+  setting. `home/rollback.sh` puts the old home, accessibility service and screensaver back
+  (`UNINSTALL=1` also removes the app). `home/measure.sh` prints cold start, memory and frame stats.
+  `am start -n com.barontv.home/.HomeActivity --ez show_saver true` shows the screensaver at once.
+- **Parts:** `home/` glow, bento clock (Open-Meteo weather for Bengaluru, cached), shelf, app dock,
+  toast; `side/` the Inputs and TV box with the Wi-Fi view and the Sound bar; `island/` now playing;
+  `media/` what's playing; `music/` music mode (edge light, Visualizer beats, the bot); `saver/` the DVD
+  screensaver; `input/` the Input key service. Built by three agents in parallel, integrated here.
+- **Shelf:** no TMDB key yet, so TVmaze (no key): "New on your apps", episodes from the last 7 days on
+  the installed apps (Prime Video, JioHotstar), credited "Data from TVmaze". `tmdb.key=` in
+  `home/local.properties` switches it to the prototype's TMDB trending.
+- **Dock:** six apps (Netflix isn't installed, so no tile), covers rendered from the prototype's SVGs
+  to PNG, other leanback apps after them. Focus starts on YouTube. Focus is colour only, with the fine ring.
+- **What this TV is like (found on 2026-10-20, keep in mind for any UI work):**
+  - The renderer is Android 9's older OpenGL pipeline (`dumpsys gfxinfo`: Pipeline=FrameBuilder,
+    `debug.hwui.renderer=opengl`), not SkiaGL, and Paparazzi doesn't show its limits. An ALPHA_8
+    bitmap inside a BitmapShader draws black (the first glow was invisible); `drawBitmap` of an ALPHA_8
+    bitmap is tinted fine; gradients with a local matrix work; only basic Porter-Duff blending plus ADD
+    and MULTIPLY are safe; no blur.
+  - `ro.config.low_ram=true`: notification access doesn't exist (`cmd notification allow_listener`
+    exits 0 and does nothing). What's playing comes instead from the Input key's accessibility service:
+    a music app's media notification carries its session token, and a MediaController from a token needs
+    no permission (`media/SessionTokens.kt`). Android keeps an accessibility service's old event types
+    across a reinstall until it's enabled afresh, hence the off-and-on in the install script.
+  - No dream service (`dumpsys dreams`: "Can't find service: dreams"), so no screensaver ever ran on this
+    TV, the clock one included. The DVD screensaver runs inside the home screen instead: after 10 minutes
+    with no key, never while music plays (idle time is music mode's then), first key only wakes it.
+  - Wi-Fi scans and the network's name need location on: the install script sets
+    `location_providers_allowed` (gps, network); the TV has no GPS, nothing is ever located.
+  - The TV reports every input as standby, so HDMI 1 shows no green dot.
+- **Measured on the TV:** cold start about 0.8 s (0.65 to 1.2 s; 1.4 to 5 s only right after an install
+  while the TV compiles), the same as the old launcher. Memory about 58 MB PSS (11 MB of it private).
+  Moving focus round the screen: 557 frames, 1.3% janky, p50 6 ms, p90 9 ms. The screensaver runs at 60
+  fps with 17 ms frames.
+- **Still to check on the TV:** the island and music mode with a song playing on Spotify (that Spotify's
+  TV app posts a media notification with its session; the Visualizer on session 0; the light's half
+  resolution layer, else `LightView.HALF_RES_LAYER = false`); input switching from the tiles; which
+  Picture candidate opens (`side/PictureSettings.kt`).
+
 ## Phone app (native, `phone-app/`, 2026-10-20)
 
 The real Android app for the phone prototype ("yes build it, start with the remote"), built Remote first.

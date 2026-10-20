@@ -2,8 +2,10 @@
 # Build the new home screen (com.barontv.home) and make it the TV's home. The old launcher
 # (com.gathin.tvhome) stays installed as the fallback: home/rollback.sh switches everything back.
 # What this changes on the TV, after saving the old values to home/.tv-state (rollback reads them):
-#   the default Home, the Input key's accessibility service (only one may answer that key), the
-#   screensaver, notification access (now playing), location (Wi-Fi scans) and microphone (music beats).
+#   the default Home, the Input key's accessibility service (only one may answer that key; it also
+#   reads what's playing), the screensaver setting (unused: this firmware runs no dreams), location
+#   (Wi-Fi scans) and microphone (music beats). Notification access is asked for too, but low-RAM
+#   Android ignores it.
 set -euo pipefail
 cd "$(dirname "$0")"
 : "${TV_HOST:?set TV_HOST to the TV IP address, e.g. TV_HOST=192.168.1.25 $0}"
@@ -48,8 +50,10 @@ fi
 # so nothing is ever located): the Wi-Fi view needs it.
 $TV "settings put secure location_providers_allowed +network; settings put secure location_providers_allowed +gps; echo location: \$(settings get secure location_providers_allowed)"
 
-# The Input key: this app's service in place of the old launcher's, every other service left as it was.
-$TV "s=\$(settings get secure enabled_accessibility_services | tr ':' '\n' | grep -v -e '^$OLD/' -e '^$PKG/' -e '^null\$' | tr '\n' ':' | sed 's/:\$//'); settings put secure enabled_accessibility_services \"\${s:+\$s:}$PKG/$PKG.input.InputKeyService\"; settings put secure accessibility_enabled 1; echo Input key: \$(settings get secure enabled_accessibility_services)"
+# The Input key (and now playing): this app's service in place of the old launcher's, every other service
+# left as it was. It's taken off and put back, because Android keeps the service's old settings across a
+# reinstall until it's enabled afresh (it would miss the notification events now playing needs).
+$TV "s=\$(settings get secure enabled_accessibility_services | tr ':' '\n' | grep -v -e '^$OLD/' -e '^$PKG/' -e '^null\$' | tr '\n' ':' | sed 's/:\$//'); settings put secure enabled_accessibility_services \"\${s:-null}\"; sleep 1; settings put secure enabled_accessibility_services \"\${s:+\$s:}$PKG/$PKG.input.InputKeyService\"; settings put secure accessibility_enabled 1; echo Input key: \$(settings get secure enabled_accessibility_services)"
 
 $TV "am start -W -n $PKG/.HomeActivity | grep -E '^(Status|TotalTime|Error)'"
 HOME_NOW=$($TV 'cmd package resolve-activity --brief -c android.intent.category.HOME -a android.intent.action.MAIN' | tail -n 1 | tr -d '\r')
