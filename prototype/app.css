@@ -396,6 +396,7 @@ svg {
 /* Everything else scrolls as one layer: page 2 sits under the dock. */
 .content {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   padding-block: var(--safe-block);

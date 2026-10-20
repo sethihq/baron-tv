@@ -99,7 +99,7 @@ const rowItems = (row) =>
       : row === "dock"
         ? [...dockEl.children]
         : row === "side"
-          ? [...sideDock.querySelectorAll(".bento-tile")]
+          ? sideItems()
           : row === "inputs"
             ? [...inputChips.children]
             : [...shortcutChips.children];
@@ -203,6 +203,166 @@ function chipFor(row, label, icon, onPress, idle) {
   return chip;
 }
 
+// The side dock's views: its tiles, or the Wi-Fi or Sound view that replaces them ("when Wi-Fi is
+// clicked the whole panel should turn into the Wi-Fi devices nearby, same for Sound"), as a Control
+// Centre module opens. Demo data; on the TV the launcher would list WifiManager's scan results and
+// Bluetooth audio devices found nearby.
+const NETWORKS = [
+  { name: "Home 5G", bars: "wifi-high", locked: true, on: true },
+  { name: "Home 2.4G", bars: "wifi-high", locked: true },
+  { name: "JioFiber-8812", bars: "wifi-medium", locked: true },
+  { name: "Airtel_Xstream_4521", bars: "wifi-medium", locked: true },
+  { name: "ACT-Fibernet-77", bars: "wifi-low", locked: true },
+  { name: "Cafe Guest", bars: "wifi-low", locked: false },
+];
+const OUTPUTS = [
+  { name: "TV speakers", icon: "television", note: "This TV", on: true },
+  { name: "boAt Rockerz 450", icon: "headphones", note: "Bluetooth, nearby" },
+  { name: "JBL Flip 5", icon: "speaker-simple-high", note: "Bluetooth, nearby" },
+  { name: "Soundbar", icon: "speaker-high", note: "HDMI ARC" },
+];
+const side = { view: "home", from: "", volume: 35 };
+
+function sideItems() {
+  if (side.view === "home") return [...sideDock.querySelectorAll(":scope > div > .bento-tile")];
+  return [...sideDock.querySelectorAll(`.side-view[data-view="${side.view}"] .sv-item`)];
+}
+
+function svRow(cls, icon, label, note, on, onPress) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = `sv-item ${cls}`;
+  if (on) b.dataset.on = "";
+  const name = document.createElement("span");
+  name.className = "sv-name";
+  name.textContent = label;
+  const small = note ? document.createElement("small") : null;
+  if (small) small.textContent = note;
+  // Devices have long notes ("Bluetooth, nearby"), so theirs sit under the name; networks' sit beside it.
+  if (small && cls === "sv-out") {
+    const text = document.createElement("span");
+    text.className = "sv-text";
+    text.append(name, small);
+    b.append(glyph(icon), text);
+  } else {
+    b.append(glyph(icon), name);
+    if (small) b.append(small);
+  }
+  b.addEventListener("click", () => {
+    focusItem("side", sideItems().indexOf(b));
+    onPress();
+  });
+  return b;
+}
+
+function svHead(title, sub) {
+  const head = document.createElement("div");
+  head.className = "sv-head";
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "sv-item sv-back";
+  back.setAttribute("aria-label", "Back");
+  back.append(glyph("caret-left"));
+  back.addEventListener("click", closeSideView);
+  const t = document.createElement("p");
+  t.className = "sv-title";
+  t.textContent = title;
+  const s = document.createElement("p");
+  s.className = "sv-sub";
+  s.textContent = sub;
+  head.append(back, t, s);
+  return head;
+}
+
+function drawWifiView(view) {
+  const list = document.createElement("div");
+  list.className = "sv-list";
+  list.append(
+    ...NETWORKS.map((n) =>
+      svRow("sv-net", n.bars, n.name, n.on ? "Connected" : n.locked ? "" : "Open", n.on, () => {
+        if (n.on) return toast(`Connected to ${n.name}`);
+        NETWORKS.forEach((x) => (x.on = x === n));
+        toast(`Connecting to ${n.name}`);
+        redrawSideView();
+      }),
+    ),
+  );
+  for (const [i, n] of NETWORKS.entries()) if (n.locked && !n.on) list.children[i].append(glyph("lock-simple"));
+  const label = document.createElement("p");
+  label.className = "sv-label";
+  label.textContent = "Networks nearby";
+  view.replaceChildren(svHead("Wi-Fi", "On"), label, list);
+}
+
+function drawSoundView(view) {
+  const vol = document.createElement("div");
+  vol.className = "sv-item sv-volume";
+  vol.tabIndex = -1;
+  vol.setAttribute("role", "slider");
+  vol.setAttribute("aria-label", "Volume");
+  vol.setAttribute("aria-valuemin", "0");
+  vol.setAttribute("aria-valuemax", "100");
+  const bar = document.createElement("span");
+  bar.className = "sv-bar";
+  bar.append(document.createElement("i"));
+  const val = document.createElement("span");
+  val.className = "sv-val";
+  vol.append(glyph("speaker-low"), bar, val);
+  const label = document.createElement("p");
+  label.className = "sv-label";
+  label.textContent = "Play sound on";
+  const list = document.createElement("div");
+  list.className = "sv-list";
+  list.append(
+    ...OUTPUTS.map((o) =>
+      svRow("sv-out", o.icon, o.name, o.note, o.on, () => {
+        if (o.on) return;
+        OUTPUTS.forEach((x) => (x.on = x === o));
+        toast(`Sound now plays on ${o.name}`);
+        redrawSideView();
+      }),
+    ),
+  );
+  for (const [i, o] of OUTPUTS.entries()) if (o.on) list.children[i].append(glyph("check"));
+  view.replaceChildren(svHead("Sound", OUTPUTS.find((o) => o.on).name), vol, label, list);
+  setVolume(side.volume);
+}
+
+function setVolume(v) {
+  side.volume = clamp(v, 0, 100);
+  const vol = sideDock.querySelector(".sv-volume");
+  if (!vol) return;
+  vol.setAttribute("aria-valuenow", String(side.volume));
+  vol.style.setProperty("--v", side.volume);
+  vol.querySelector(".sv-val").textContent = String(side.volume);
+}
+
+function redrawSideView() {
+  const at = sideItems().indexOf(document.activeElement);
+  const view = sideDock.querySelector(`.side-view[data-view="${side.view}"]`);
+  if (side.view === "wifi") drawWifiView(view);
+  if (side.view === "sound") drawSoundView(view);
+  paintGlyphs();
+  if (at >= 0) focusItem("side", at);
+}
+
+function openSideView(name, fromLabel) {
+  side.view = name;
+  side.from = fromLabel;
+  sideDock.dataset.view = name;
+  redrawSideView();
+  // The first row under the header: the connected network, or the volume.
+  focusItem("side", 1);
+}
+
+function closeSideView() {
+  if (side.view === "home") return;
+  side.view = "home";
+  sideDock.dataset.view = "home";
+  const tile = sideItems().find((t) => t.textContent.trim() === side.from);
+  focusItem("side", Math.max(0, sideItems().indexOf(tile)));
+}
+
 // The sidebar's dock: the inputs on one row, the TV's settings under them, in the bento's tiles.
 function renderSideDock() {
   const tile = (label, icon, onPress, idle) => {
@@ -239,9 +399,22 @@ function renderSideDock() {
     ...section(
       "TV",
       "bento-dock-grid",
-      SHORTCUTS.map((s) => tile(s.name, s.icon, () => toast(s.says))),
+      SHORTCUTS.map((s) =>
+        tile(s.name, s.icon, () => {
+          if (s.name === "Wi-Fi") openSideView("wifi", s.name);
+          else if (s.name === "Sound") openSideView("sound", s.name);
+          else toast(s.says);
+        }),
+      ),
     ),
   );
+  for (const name of ["wifi", "sound"]) {
+    const view = document.createElement("div");
+    view.className = "side-view";
+    view.dataset.view = name;
+    sideDock.append(view);
+  }
+  sideDock.dataset.view = side.view;
 }
 
 function renderChips() {
@@ -513,6 +686,10 @@ function focusEl(el, ctl = 1) {
 }
 
 function move(key) {
+  if (document.activeElement?.classList.contains("sv-volume") && (key === "ArrowLeft" || key === "ArrowRight")) {
+    setVolume(side.volume + (key === "ArrowRight" ? 5 : -5));
+    return;
+  }
   if (state.zone === "inputs") {
     if (key === "ArrowUp") focusInputRow(state.input - 1);
     if (key === "ArrowDown") focusInputRow(state.input + 1);
@@ -588,6 +765,7 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "Escape" || event.key === "Backspace") {
     event.preventDefault();
     if (!inputs.hidden) closeInputs();
+    else if (state.row === "side" && side.view !== "home") closeSideView();
     else if (state.zone === "island" || state.page === 1) focusItem("dock", state.index.dock);
   }
 });
@@ -1090,11 +1268,11 @@ function sizeIsland() {
   if (island.hidden) return;
   island.style.setProperty("--wc", `${islCompact.offsetWidth}px`);
   if (sidebar()) {
-    // Centred in the gap between the dock on the left and the bento on the right.
-    const left = rectIn(sideDock);
-    const right = rectIn(document.getElementById("bento"));
+    // Centred in the gap between the bento on the left and the dock on the right, level with their tops.
+    const left = rectIn(document.getElementById("bento"));
+    const right = rectIn(sideDock);
     island.style.setProperty("--isl-x", `${Math.round((left.x + left.w + right.x) / 2)}px`);
-    island.style.setProperty("--isl-top", `${Math.round(left.y)}px`);
+    island.style.setProperty("--isl-top", `${Math.round(right.y)}px`);
   } else {
     const button = rectIn(rounds[0]);
     island.style.setProperty("--isl-top", `${Math.round(button.y + button.h / 2 - 17)}px`);
@@ -1296,15 +1474,11 @@ const light = {
   swells: [],
   // Three OKLCH colours, easing towards the cover's.
   now: [
-    [64, 0.2, 300],
-    [58, 0.22, 255],
-    [70, 0.17, 345],
-    [60, 0.21, 20],
-    [66, 0.19, 200],
+    [62, 0.2, 300],
+    [56, 0.22, 255],
+    [70, 0.16, 345],
   ],
   goal: null,
-  hueShift: 0,
-  kicks: 0,
 };
 light.goal = light.now.map((c) => [...c]);
 
@@ -1345,23 +1519,23 @@ const rim = (() => {
 const mix = (a, b, k) => a + (b - a) * k;
 const mixHue = (a, b, k) => (a + ((((b - a + 540) % 360) - 180) * k) + 360) % 360;
 
-// Five colours in a loop: the cover's own (up to three) and companions spread round the wheel from its
-// main colour, so the light has range (violet, blue, pink, amber) without clashing. hueShift turns the
-// whole loop: it drifts a little with every kick, so over a song the colours keep travelling.
+// Three colours, as the user liked them ("too many colours now, I liked the earlier one"): the cover's
+// main colour and two spread round the wheel from it, in a loop main, second, third, second. Any hue
+// that lands on olive leans to amber, since dark yellow reads as olive on black.
 const unOlive = (x) => {
   const y = ((x % 360) + 360) % 360;
   return y > 75 && y < 120 ? 68 : y;
 };
 
 function paletteAt(u) {
-  const n = light.now.length;
-  const x = (((u % 1) + 1) % 1) * n;
+  const loop = [0, 1, 2, 1];
+  const x = (((u % 1) + 1) % 1) * 4;
   const i = Math.floor(x);
   const f = x - i;
   const s = f * f * (3 - 2 * f);
-  const a = light.now[i];
-  const b = light.now[(i + 1) % n];
-  return [mix(a[0], b[0], s), mix(a[1], b[1], s), unOlive(mixHue(a[2], b[2], s) + light.hueShift)];
+  const a = light.now[loop[i]];
+  const b = light.now[loop[(i + 1) % 4]];
+  return [mix(a[0], b[0], s), mix(a[1], b[1], s), mixHue(a[2], b[2], s)];
 }
 
 // A colour as CSS; lift moves it towards white.
@@ -1369,22 +1543,17 @@ function colorOf([l, c, h], alpha, lift = 0) {
   return `oklch(${mix(l, 97, lift).toFixed(1)}% ${(c * (1 - lift * 0.6)).toFixed(3)} ${h.toFixed(1)} / ${alpha.toFixed(3)})`;
 }
 
-// The loop for this cover: its main colour, its second (or +40), +105, its third (or -60), -135, at
-// matched lightness and vivid chroma. A grey cover gives a soft, cool silver.
+// The cover's main colour, and two more spread round the wheel from it, vivid on black. A grey cover
+// gives a soft, cool silver.
 function setEdgeColors() {
   if (!islArt.complete || !islArt.naturalWidth) return;
-  const cover = coverColors(islArt).map((rgb) => toOklch(rgb));
-  const [, c, h] = cover[0];
+  const [, c, h] = toOklch(coverColors(islArt)[0]);
   const k = c < 0.03 ? 0.15 : 1;
-  const hues = [h, cover[1]?.[2] ?? h + 40, h + 105, cover[2]?.[2] ?? h - 60, h - 135];
-  const tone = [
-    [64, 0.2],
-    [58, 0.22],
-    [70, 0.17],
-    [60, 0.21],
-    [66, 0.19],
+  light.goal = [
+    [62, 0.2 * k, unOlive(h)],
+    [56, 0.22 * k, unOlive(h + 305)],
+    [70, 0.16 * k, unOlive(h + 45)],
   ];
-  light.goal = hues.map((x, i) => [tone[i][0], tone[i][1] * k, unOlive(x)]);
 }
 
 function drawLight(now) {
@@ -1400,7 +1569,7 @@ function drawLight(now) {
   lightCtx.clearRect(0, 0, EW, EH);
   lightCtx.globalCompositeOperation = "lighter";
   const deep = 1 + light.bass * 0.5;
-  const turn = time / 28;
+  const turn = time / 50;
   for (let i = 0; i < DABS; i++) {
     const p = rim[i];
     const t = i / DABS;
@@ -1410,10 +1579,6 @@ function drawLight(now) {
       0.3 * Math.sin(2 * Math.PI * 5 * t - time * 0.75 + 1.3) +
       0.2 * Math.sin(2 * Math.PI * 8 * t + time * 1.2 + 0.4);
     let swell = 0;
-    let tintL = 0;
-    let tintC = 0;
-    let tintX = 0;
-    let tintY = 0;
     for (const s of light.swells) {
       const age = (now - s.born) / 1000;
       const amp = s.amp * Math.exp(-age / 0.85);
@@ -1421,24 +1586,13 @@ function drawLight(now) {
       for (const c of [s.at + reach, s.at - reach]) {
         let d = Math.abs(t - (((c % 1) + 1) % 1));
         d = Math.min(d, 1 - d);
-        const a = amp * Math.exp(-(d * d) / 0.0018);
-        swell += a;
-        // Each swell carries its own colour round the edge.
-        tintL += s.color[0] * a;
-        tintC += s.color[1] * a;
-        tintX += Math.cos((s.color[2] * Math.PI) / 180) * a;
-        tintY += Math.sin((s.color[2] * Math.PI) / 180) * a;
+        swell += amp * Math.exp(-(d * d) / 0.0018);
       }
     }
     const w = (14 * (1 + tide * 0.45) * deep * (p.corner ? 1.3 : 1) + 14 * swell) * (1 + light.fullK * 0.7) * breath;
     const sparkle = 1 + light.high * 0.4 * Math.sin(i * 12.9898 + time * 21);
     const alpha = Math.min(0.3 + light.fullK * 0.14, (0.085 + swell * 0.09) * sparkle * (1 + light.fullK * 0.6) * breath);
-    let col = paletteAt(t + turn);
-    if (swell > 0.02) {
-      const tint = [tintL / swell, tintC / swell, ((Math.atan2(tintY, tintX) * 180) / Math.PI + 360) % 360];
-      const k = Math.min(1, swell * 0.9);
-      col = [mix(col[0], tint[0], k), mix(col[1], tint[1], k), mixHue(col[2], tint[2], k)];
-    }
+    const col = paletteAt(t + turn);
     const g = lightCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, w);
     g.addColorStop(0, colorOf(col, alpha, 0.25));
     g.addColorStop(0.3, colorOf(col, alpha * 0.85));
@@ -1568,12 +1722,9 @@ function onset(hist, x, floor) {
   return x > Math.max(floor, mean + 1.6 * sd) ? x - mean : 0;
 }
 
-// A kick's swell: from the bottom centre, in the next colour of the loop; it also turns the whole loop
-// on a few degrees, so a busy song travels round the wheel faster than a quiet one.
+// A kick's swell, from the bottom centre.
 function kickSwell(now, amp) {
-  light.kicks += 1;
-  light.hueShift = (light.hueShift + 2 + amp * 3) % 360;
-  return { at: 0.5, born: now, amp, color: paletteAt(light.kicks * 0.2) };
+  return { at: 0.5, born: now, amp };
 }
 
 function hear(now) {
@@ -1603,7 +1754,7 @@ function hear(now) {
   const hat = onset(ear.high, highFlux, 0.02);
   if (hat && now - ear.lastHat > 420 && now - ear.lastKick > 120) {
     ear.lastHat = now;
-    light.swells.push({ at: 0, born: now, amp: 0.35, color: paletteAt(light.kicks * 0.2 + 0.5) });
+    light.swells.push({ at: 0, born: now, amp: 0.35 });
   }
   light.bass += (clamp((low - 0.45) / 0.4, 0, 1) - light.bass) * 0.2;
   light.high += (clamp((high - 0.25) / 0.45, 0, 1) - light.high) * 0.25;
@@ -1614,7 +1765,7 @@ function hear(now) {
 function tempo(now) {
   if (now >= light.next) {
     light.next = now + 60000 / EDGE_BPM[np.i % EDGE_BPM.length];
-    light.swells.push(light.count % 2 === 0 ? kickSwell(now, 0.9) : { at: 0, born: now, amp: 0.35, color: paletteAt(light.kicks * 0.2 + 0.5) });
+    light.swells.push(light.count % 2 === 0 ? kickSwell(now, 0.9) : { at: 0, born: now, amp: 0.35 });
     light.count = (light.count + 1) % 4;
   }
   light.bass = 0.3 + 0.1 * Math.sin(now / 900);

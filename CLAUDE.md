@@ -170,7 +170,7 @@ there first: **nothing goes to the TV until they approve it in the prototype.** 
 no build step:
 
 ```bash
-uv run --no-project python -I -m http.server 4321 --bind 127.0.0.1 --directory prototype
+uv run --no-project python -I prototype/serve.py   # no-cache server, so a plain reload shows the latest
 open http://localhost:4321
 ```
 
@@ -284,12 +284,12 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   Third version, after "the edge glow sucks, not aesthetic", "not straight clipped, inner shadows, make it
   interesting", the user's reference of glowing recap cards and "there is this hard line, don't want
   that": soft dabs of light along the rounded edge on a half-resolution canvas, added together, centred
-  just outside the screen so the edge never reads as a line (no stroke at the edge). Colour ("should change
-  colours, only some specific colours are there"): a loop of five, the cover's own colours (up to three,
-  35 degrees apart) plus companions spread round the wheel (+105, -135), vivid at matched lightness, any
-  olive hue leaned to amber, lightest at the edge and saturating inward; it flows round the screen every
-  28 s, each kick's swell carries the next colour of the loop round the edges (the highs' swells the
-  opposite one), and every kick turns the whole loop a few degrees, so busy songs travel the wheel faster. Its depth rolls along the edge like a slow tide and pools in
+  just outside the screen so the edge never reads as a line (no stroke at the edge). Colour: three hues,
+  the cover's main colour, -55 and +45 degrees, vivid, any olive hue leaned to amber, lightest at the edge
+  and saturating inward, flowing round every 50 s. (A five-colour loop that drifted round the wheel with
+  every kick was tried and dropped: "too many colours, I liked the earlier one".) It sits behind the UI
+  like a backlight, under the content layer ("it's coming on top of the tiles"); music mode brings it
+  forward over the dimming. Its depth rolls along the edge like a slow tide and pools in
   the corners; a soft inner shadow under it gives depth.
   **Synced to the real music** ("edge lighting should be syncing with music"): panel Glow follows Song /
   Mic / Tempo. Song plays each track's 30 s Apple Music preview (`previewUrl` from the iTunes search, open
@@ -315,12 +315,20 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   Cloud TV App Store and Media Center traced from their APK banners.
 
 - **Layout: Sidebar** (default; Top bar to compare), `sidebar.css` ("move this panel to the right side,
-  and a similar dock on the right for HDMI and the others", then "this top right, this top left"): the dock
-  of tiles (Inputs: HDMI 1 with a green dot while connected, HDMI 2, AV; TV: Wi-Fi, Picture, Sound,
-  Settings) runs down the left from the top-left corner, 232 wide; the bento widget sits top right, 232
-  wide, with the shelf under it; the island hangs centred in the gap between them, level with their tops,
-  and opens only 364 wide so it covers neither; the app dock runs the full width along the bottom; no page
-  2. A focused dock tile only turns lighter ("selected state big, remove, only colour change is fine"). Focus moves to the nearest item in the pressed direction (FocusFinder
+  and a similar dock on the right for HDMI and the others", then, after a first swap, "the bento on the
+  left, the HDMI one on the right"): the bento widget sits top left, 232 wide, with the shelf under it;
+  the dock of tiles (Inputs: HDMI 1 with a green dot while connected, HDMI 2, AV; TV: Wi-Fi, Picture,
+  Sound, Settings) runs down the right from the top-right corner, 232 wide; the island hangs centred in
+  the gap between them, level with their tops, and opens only 364 wide so it covers neither; the shelf's
+  art flexes so its captions end exactly where the dock of tiles ends, above the full-width app dock; no
+  page 2. A focused dock tile only turns lighter ("selected state big, remove, only colour change is fine").
+  **Wi-Fi and Sound views** ("when Wi-Fi is clicked the whole panel should turn into the Wi-Fi devices
+  nearby, same for Sound"): the tiles slide out and a view slides in, as a Control Centre module opens.
+  Wi-Fi lists the connected network (green "Connected") and the networks nearby with signal bars and
+  locks; choosing one connects it. Sound has a volume bar (Left and Right in fives), then "Play sound on":
+  TV speakers, Bluetooth devices nearby, a soundbar on HDMI ARC, the one in use ticked green. Back or the
+  chevron returns. Demo data; on the TV, `WifiManager` scan results (location permission is granted by the
+  install script) and Bluetooth discovery would fill them. Focus moves to the nearest item in the pressed direction (FocusFinder
   style: same band first, then closest), since these aren't simple rows any more.
 - **Clock: Bento** (default; Widget and Classic stay), `bento.css` and `bento.js` (the user sent four
   widget references, "cute widgets like this but don't want to copy"): a black frame with a hairline

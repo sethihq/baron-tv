@@ -1,9 +1,9 @@
-/* Layout: Sidebar. The dock of inputs and TV settings runs down the left from the top-left corner, the
-   time and weather bento sits in the top-right corner with the shelf under it, the island hangs in the
+/* Layout: Sidebar. The time and weather bento sits in the top-left corner with the shelf under it, the
+   dock of inputs and TV settings runs down the right from the top-right corner, the island hangs in the
    gap between the two, and the app dock runs the full width along the bottom (the user: "move this
-   panel to the right side, and a similar dock for HDMI and the others", then "this top right, this top
-   left"). Focus moves to the nearest item in the pressed direction (app.js), since these aren't simple
-   rows. There's no page 2: its tiles live in the dock now. */
+   panel to the right side, and a similar dock for HDMI and the others", then "the bento on the left,
+   the HDMI one on the right"). Focus moves to the nearest item in the pressed direction (app.js), since
+   these aren't simple rows. There's no page 2: its tiles live in the dock now. */
 
 .side-dock {
   display: none;
@@ -11,11 +11,11 @@
 
 .screen[data-layout="sidebar"] .content {
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 232px;
   grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
-    "controls widget"
-    "controls shelf"
+    "widget controls"
+    "shelf controls"
     "dock dock";
   column-gap: var(--s-6);
   row-gap: var(--s-3);
@@ -34,7 +34,7 @@
 .screen[data-layout="sidebar"] .bento {
   display: grid;
   grid-area: widget;
-  justify-self: end;
+  justify-self: start;
   align-self: start;
   inline-size: 232px;
 }
@@ -55,8 +55,30 @@
   gap: var(--s-4);
 }
 
+/* The shelf fills its cell: the art takes whatever height is left, so the titles always end above the
+   app dock, level with the bottom of the dock of tiles beside it. */
+.screen[data-layout="sidebar"] .shelf {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
+.screen[data-layout="sidebar"] .posters {
+  flex: 1;
+  min-block-size: 0;
+  align-items: stretch;
+}
+
+.screen[data-layout="sidebar"] .poster {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
 .screen[data-layout="sidebar"] .art {
-  block-size: var(--art-sidebar, 222px);
+  flex: 1;
+  block-size: auto;
+  min-block-size: 0;
 }
 
 .screen[data-layout="sidebar"] .dock {
@@ -92,4 +114,222 @@
 
 .bento-tile:active {
   scale: none;
+}
+
+/* ---- The dock's Wi-Fi and Sound views ------------------------------------------------------------ */
+/* Selecting Wi-Fi or Sound turns the whole dock into that view, as a Control Centre module opens: the
+   tiles slide out to the left, the view slides in from the right. Back (or the chevron) returns. */
+
+.side-dock {
+  position: relative;
+}
+
+.side-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--bd-pad, 5px) var(--bd-pad, 5px);
+  opacity: 0;
+  visibility: hidden;
+  translate: 14px 0;
+}
+
+.side-dock:is([data-view="wifi"], [data-view="sound"]) > :not(.side-view) {
+  opacity: 0;
+  visibility: hidden;
+  translate: -14px 0;
+}
+
+.side-dock[data-view="wifi"] > .side-view[data-view="wifi"],
+.side-dock[data-view="sound"] > .side-view[data-view="sound"] {
+  opacity: 1;
+  visibility: visible;
+  translate: 0 0;
+}
+
+.sv-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding-block: var(--s-1) 0;
+  padding-inline: var(--s-1);
+}
+
+.sv-title {
+  flex: none;
+  font-size: var(--t-body);
+  font-weight: 600;
+  letter-spacing: var(--tr-body);
+}
+
+.sv-sub {
+  margin-inline-start: auto;
+  overflow: clip;
+  color: var(--text-2);
+  font-size: var(--t-caption);
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sv-label {
+  padding-block: var(--s-1) 0;
+  padding-inline: var(--s-2);
+  color: var(--text-2);
+  font-size: var(--t-caption);
+  font-weight: 600;
+  letter-spacing: var(--tr-caption);
+}
+
+.sv-list {
+  display: grid;
+  gap: var(--s-1);
+}
+
+/* Rows, the back button and the volume share one surface and one focus: a lighter colour, no lift. */
+.sv-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 40px;
+  padding-inline: var(--s-3);
+  border-radius: 12px;
+  background: oklch(16% 0 none);
+  color: var(--text);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--tr-label);
+}
+
+.sv-item:focus {
+  outline: 2px solid transparent;
+  background: oklch(36% 0 none);
+}
+
+.sv-item .glyph {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+.sv-name {
+  flex: 1;
+  overflow: clip;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: start;
+}
+
+.sv-item small {
+  color: var(--text-2);
+  font-size: var(--t-caption);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* What's in use: the connected network, the output sound plays on. */
+.sv-item[data-on] small {
+  color: oklch(78% 0.15 150);
+}
+
+.sv-item[data-on] > .glyph:last-child {
+  color: oklch(78% 0.15 150);
+}
+
+.sv-item > .glyph:last-child:not(:first-child) {
+  inline-size: 14px;
+  block-size: 14px;
+  color: var(--text-2);
+}
+
+.sv-back {
+  flex: none;
+  justify-content: center;
+  inline-size: 30px;
+  min-block-size: 30px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.sv-back .glyph {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+/* The volume: Left and Right move it in fives. */
+.sv-volume {
+  gap: var(--s-3);
+  min-block-size: 46px;
+}
+
+.sv-bar {
+  flex: 1;
+  block-size: 6px;
+  overflow: clip;
+  border-radius: 3px;
+  background: oklch(100% 0 none / 0.14);
+}
+
+.sv-bar i {
+  display: block;
+  inline-size: calc(var(--v, 35) * 1%);
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--text);
+}
+
+.sv-val {
+  min-inline-size: 2ch;
+  color: var(--text-2);
+  font-size: var(--t-caption);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .side-dock > *,
+  .side-view {
+    transition:
+      opacity 220ms var(--ease-out),
+      translate 260ms var(--ease-out),
+      visibility 0s linear 260ms;
+  }
+
+  .side-dock:is([data-view="wifi"], [data-view="sound"]) > .side-view[data-view],
+  .side-dock[data-view="home"] > :not(.side-view) {
+    transition:
+      opacity 240ms var(--ease-out) 60ms,
+      translate 280ms var(--ease-out) 60ms,
+      visibility 0s;
+  }
+
+  .sv-item {
+    transition: background-color 200ms var(--ease-out);
+  }
+
+  .sv-bar i {
+    transition: inline-size 160ms var(--ease-out);
+  }
+}
+
+/* A device row: its name over its note. */
+.sv-out {
+  min-block-size: 48px;
+}
+
+.sv-text {
+  flex: 1;
+  display: grid;
+  min-inline-size: 0;
+  text-align: start;
+}
+
+.sv-text small {
+  margin-block-start: 1px;
+}
+
+/* The tick on what's in use is green too (after the grey trailing-glyph rule above). */
+.sv-item[data-on] > .glyph:last-child:not(:first-child) {
+  color: oklch(78% 0.15 150);
 }

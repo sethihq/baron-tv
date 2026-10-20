@@ -6,12 +6,19 @@
    under it gives the light depth, as if it came from the bezel. It only lights for music, never for
    video. app.js draws the light on the canvas and turns the whole thing on and off. */
 
+/* Behind the UI, like a backlight ("the glow should feel like it's behind the UI, it's coming on top of
+   the tiles"): under the content layer, so it shows round and between the panels, not over them. In
+   music mode the middle is black anyway, and the light comes forward over the dimming. */
 .edge {
   position: absolute;
   inset: 0;
-  z-index: 25;
+  z-index: 0;
   pointer-events: none;
   opacity: 0;
+}
+
+.screen.music-mode .edge {
+  z-index: 26;
 }
 
 .edge[data-on] {
