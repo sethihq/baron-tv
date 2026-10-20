@@ -10,8 +10,9 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
-import android.widget.Toast
 import com.barontv.home.core.HomeHost
+import com.barontv.home.home.HomeScreen
+import com.barontv.home.home.Images
 import com.barontv.home.island.IslandView
 import com.barontv.home.music.MusicMode
 import com.barontv.home.side.SideDockView
@@ -23,6 +24,7 @@ import com.barontv.home.side.SideDockView
  */
 class HomeActivity : Activity(), HomeHost {
 
+    private lateinit var home: HomeScreen
     private lateinit var sideDock: SideDockView
     private lateinit var island: IslandView
     private lateinit var musicMode: MusicMode
@@ -39,29 +41,45 @@ class HomeActivity : Activity(), HomeHost {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
+        // The layout's root paints the screen black, so the theme's black window behind it would only be
+        // a second full-screen fill on every frame (the launch preview still uses the theme's).
+        window.setBackgroundDrawable(null)
 
-        // TODO(home part): glow, bento, shelf, app dock and toast go into their slots here.
+        // The glow, bento, shelf, app dock and toast (home/). First, so the toast is there for the others.
+        home = HomeScreen(this, this, findViewById(R.id.root))
 
         sideDock = SideDockView(this, this)
         findViewById<FrameLayout>(R.id.sideDockSlot).addView(sideDock, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         island = IslandView(this, this)
         findViewById<FrameLayout>(R.id.islandSlot).addView(island, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         musicMode = MusicMode(this, findViewById(R.id.musicSlot))
+
+        // Last, once every part is in: the apps, focus on YouTube, then the cached and fresh data.
+        home.start()
     }
 
     override fun onResume() {
         super.onResume()
+        home.resume()
         musicMode.setForeground(true)
     }
 
     override fun onPause() {
         musicMode.setForeground(false)
+        home.pause()
         super.onPause()
     }
 
     override fun onDestroy() {
         musicMode.release()
+        home.destroy()
         super.onDestroy()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // Out of sight or short of memory: let the decoded-picture cache go (what's on screen stays).
+        if (level >= TRIM_MEMORY_UI_HIDDEN) Images.trim()
     }
 
     // Every key first goes to music mode: it restarts the idle clock, and while music mode is on the
@@ -85,8 +103,7 @@ class HomeActivity : Activity(), HomeHost {
     // ---- HomeHost ----
 
     override fun toast(text: CharSequence) {
-        // TODO(home part): the prototype's toast in toastSlot.
-        Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
+        home.toast(text)
     }
 
     override fun launch(intent: Intent): Boolean = try {

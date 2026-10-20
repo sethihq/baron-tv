@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The home screen's own words (bento, shelf and dock live in com.barontv.home.home). -->
+<resources>
+    <!-- The shelf's head: TVmaze lists what's new this week; TMDB ranks what's trending. -->
+    <string name="home_shelf_new">New on your apps</string>
+    <string name="home_shelf_trending">Trending on your apps</string>
+    <!-- TVmaze's licence asks for credit; TMDB's terms do too, and JustWatch supplies its streaming data. -->
+    <string name="home_credit_tvmaze">Data from TVmaze</string>
+    <string name="home_credit_tmdb">Data from TMDB and JustWatch</string>
+    <!-- Under the wide poster while there's nothing to show yet (offline, or nothing new). -->
+    <string name="home_shelf_waiting">Shows from your apps appear here</string>
+</resources>
