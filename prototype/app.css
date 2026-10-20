@@ -1,0 +1,928 @@
+/* Baron TV home prototype. The TV canvas is 960x540: one CSS pixel here is one dp in the launcher,
+   which the TV draws at 1.33x on its 1280x720 output. */
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("assets/fonts/open-runde/OpenRunde-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("assets/fonts/open-runde/OpenRunde-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("assets/fonts/open-runde/OpenRunde-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("assets/fonts/open-runde/OpenRunde-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Outfit TV";
+  src: url("assets/fonts/outfit.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+:root {
+  color-scheme: dark;
+  interpolate-size: allow-keywords;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* One accent, only ever the fill of the focused round button or menu row. */
+  --accent: oklch(73% 0.14 243);
+  --on-accent: oklch(100% 0 none);
+
+  /* Prototype chrome around the TV: dim, like the room a TV is watched in. */
+  --page: oklch(11% 0 none);
+  --tray: oklch(21% 0 none);
+  --chrome-text: oklch(88% 0 none);
+  --chrome-text-2: oklch(64% 0 none);
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--page);
+  color: var(--chrome-text);
+  font-family: "Open Runde", system-ui, sans-serif;
+}
+
+p,
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+ol,
+ul {
+  list-style: none;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ---- Prototype chrome ------------------------------------------------------------------------ */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-block: 14px;
+  padding-inline: 24px;
+}
+
+.bar-title {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.bar-title span {
+  color: var(--chrome-text-2);
+  font-weight: 400;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px 16px;
+}
+
+.ctl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctl-label {
+  color: var(--chrome-text-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  corner-shape: squircle;
+  background: var(--tray);
+}
+
+.seg label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  block-size: 28px;
+  padding-inline: 11px;
+  border-radius: 9px;
+  corner-shape: squircle;
+  color: var(--chrome-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.seg input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.seg label:has(input:checked) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.seg label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.seg label:active {
+  scale: 0.97;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .seg label:hover:not(:has(input:checked)) {
+    color: var(--chrome-text);
+  }
+}
+
+.stage {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding-inline: 24px;
+}
+
+.frame {
+  zoom: var(--fit, 1);
+}
+
+.now-shot {
+  inline-size: 960px;
+  block-size: 540px;
+  border-radius: 20px;
+  corner-shape: squircle;
+}
+
+/* The img rule above outranks the browser's own [hidden]. */
+.now-shot[hidden] {
+  display: none;
+}
+
+.hint {
+  padding-block: 12px 18px;
+  color: var(--chrome-text-2);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---- The TV screen --------------------------------------------------------------------------- */
+
+.screen {
+  /* Black, with trays as a veil of white: the glow tints them instead of stopping at a grey slab. */
+  --bg: oklch(0% 0 none);
+  --band: oklch(100% 0 none / 0.075);
+  --fill: oklch(21.8% 0.004 286);
+  --fill-2: oklch(100% 0 none / 0.1);
+  --chip: oklch(100% 0 none / 0.08);
+  --chip-on: oklch(100% 0 none / 0.17);
+  --panel: oklch(27.5% 0 none);
+  --text: oklch(94% 0 none);
+  --text-2: oklch(71% 0 none);
+  --font: "Open Runde", system-ui, sans-serif;
+  --w-light: 400;
+  --track-big: -0.035em;
+
+  position: relative;
+  inline-size: 960px;
+  block-size: 540px;
+  overflow: clip;
+  border-radius: 20px;
+  corner-shape: squircle;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+.screen[hidden] {
+  display: none;
+}
+
+/* Open Runde has no Light, so its big numbers are Regular. Outfit is the installed look. */
+.screen[data-font="outfit"] {
+  --font: "Outfit TV", system-ui, sans-serif;
+  --w-light: 300;
+  --track-big: -0.02em;
+}
+
+.screen[data-font="timeless"] {
+  --font: "Timeless Sans", "Open Runde", system-ui, sans-serif;
+  --w-light: 300;
+  --track-big: -0.02em;
+}
+
+/* Glow in the colour of the focused artwork, under everything. */
+.ambient {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle 595px at 32% 42%, var(--amb-1, transparent), var(--amb-2, transparent) 50%, transparent 100%);
+}
+
+/* Everything else scrolls as one layer: page 2 sits under the dock. */
+.content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-block: 28px;
+  padding-inline: 58px;
+  translate: 0 var(--page-scroll, 0px);
+}
+
+/* ---- Page 1: top bar ------------------------------------------------------------------------- */
+
+.top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.greeting {
+  margin-block-end: 2px;
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.time-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.time {
+  font-size: 56px;
+  font-weight: var(--w-light);
+  line-height: 1;
+  letter-spacing: var(--track-big);
+  font-variant-numeric: tabular-nums;
+}
+
+.ampm,
+.date {
+  color: var(--text-2);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.date {
+  margin-inline-start: 14px;
+}
+
+.corner {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-wrap {
+  position: relative;
+}
+
+.round {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  background: var(--fill-2);
+  color: var(--text);
+}
+
+/* A Phosphor icon drawn in the text colour: the SVG is a mask, so duotone's tint follows too. */
+.glyph {
+  flex: none;
+  display: block;
+  inline-size: 20px;
+  block-size: 20px;
+  background: currentColor;
+  -webkit-mask: var(--src) center / contain no-repeat;
+  mask: var(--src) center / contain no-repeat;
+}
+
+.round .glyph {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+.weather {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.weather[hidden] {
+  display: none;
+}
+
+.wx-temp {
+  color: var(--text);
+}
+
+.wx-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 26px;
+  block-size: 26px;
+  color: var(--text);
+}
+
+/* Meteocons draw inside a wide margin, so they render larger to match the glyphs' weight. */
+.wx-icon img,
+.wx-hour-icon img {
+  inline-size: 38px;
+  block-size: 38px;
+  max-width: none;
+}
+
+/* On a TV the focused item is the selection itself, so it shows whether it was reached with the
+   remote or the mouse. The outline stays, transparent, for forced-colors mode. */
+.round:focus,
+.input-row:focus {
+  outline: 2px solid transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.round:active,
+.input-row:active {
+  scale: 0.96;
+}
+
+/* Inputs dropdown, hanging under its button. */
+
+.inputs {
+  position: absolute;
+  inset-block-start: calc(100% + 10px);
+  inset-inline-end: 0;
+  z-index: 10;
+  display: grid;
+  gap: 2px;
+  inline-size: 220px;
+  padding: 6px;
+  border-radius: 18px;
+  corner-shape: squircle;
+  background: var(--panel);
+  transition: opacity 160ms var(--ease-out);
+}
+
+.inputs[hidden] {
+  display: none;
+}
+
+@starting-style {
+  .inputs {
+    opacity: 0;
+  }
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  block-size: 44px;
+  padding-inline: 14px;
+  border-radius: 12px;
+  corner-shape: squircle;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.input-row small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.input-row:focus small {
+  color: inherit;
+}
+
+.input-row i {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---- Page 1: trending shelf ------------------------------------------------------------------ */
+
+.shelf {
+  margin-block-start: 12px;
+}
+
+.shelf-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-block-end: 10px;
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.shelf-head small {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.posters {
+  display: grid;
+  grid-template-columns: 1fr 140px 140px;
+  gap: 20px;
+}
+
+.poster {
+  position: relative;
+  display: block;
+}
+
+.poster:focus {
+  outline: 2px solid transparent;
+}
+
+.art {
+  display: grid;
+  place-items: center;
+  block-size: 206px;
+  overflow: clip;
+  border-radius: 16px;
+  background: var(--fill);
+  color: var(--text-2);
+}
+
+.art img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.art .glyph {
+  inline-size: 36px;
+  block-size: 36px;
+  opacity: 0.6;
+}
+
+.p-title {
+  display: block;
+  margin-block-start: 10px;
+  overflow: clip;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.p-meta {
+  display: block;
+  margin-block-start: 3px;
+  overflow: clip;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Focus lifts the item where it is: a little larger, a soft shadow under it. Nothing travels. */
+.poster:focus .art {
+  scale: 1.035;
+  box-shadow: 0 14px 28px oklch(0% 0 none / 0.55);
+}
+
+/* ---- The dock, as the installed launcher draws it ----------------------------------------------- */
+
+.dock {
+  display: grid;
+  grid-template-columns: repeat(var(--count, 6), 1fr);
+  gap: 14px;
+  margin-block-start: 12px;
+  padding: 14px;
+  border-radius: 26px;
+  background: var(--band);
+}
+
+.tile {
+  position: relative;
+  display: block;
+}
+
+.tile:focus {
+  outline: 2px solid transparent;
+}
+
+.card {
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: clip;
+  border-radius: 14px;
+  background: var(--fill);
+}
+
+.card img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.tile:focus .card {
+  scale: 1.08;
+  box-shadow: 0 10px 22px oklch(0% 0 none / 0.55);
+}
+
+.tile:active .card,
+.poster:active .art {
+  scale: 1.02;
+}
+
+/* ---- Page 2: inputs and shortcuts ------------------------------------------------------------ */
+
+.extras {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  margin-block-start: 26px;
+}
+
+.group-head {
+  margin-block-end: 10px;
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.chips {
+  display: flex;
+  gap: 12px;
+}
+
+.chip {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  inline-size: 106px;
+  block-size: 72px;
+  border-radius: 16px;
+  background: var(--chip);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chip .glyph {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+/* An input with nothing plugged in. */
+.chip[data-idle] {
+  color: var(--text-2);
+}
+
+.chip[data-idle] > * {
+  opacity: 0.55;
+}
+
+.chip:focus {
+  outline: 2px solid transparent;
+  scale: 1.06;
+  background: var(--chip-on);
+  box-shadow: 0 10px 22px oklch(0% 0 none / 0.55);
+}
+
+.chip:active {
+  scale: 1.02;
+}
+
+/* ---- Page 2: the weather card ---------------------------------------------------------------- */
+
+.cards {
+  margin-block-start: 24px;
+}
+
+.panel {
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--band);
+}
+
+.panel-head {
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.wx-card {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 28px;
+  min-block-size: 200px;
+}
+
+.wx-big {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-block-start: 10px;
+  font-size: 56px;
+  font-weight: var(--w-light);
+  line-height: 1;
+  letter-spacing: var(--track-big);
+}
+
+.wx-big-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 48px;
+  block-size: 48px;
+}
+
+.wx-big-icon .glyph {
+  inline-size: 40px;
+  block-size: 40px;
+}
+
+.wx-big-icon img {
+  inline-size: 72px;
+  block-size: 72px;
+  max-width: none;
+}
+
+.wx-cond {
+  margin-block-start: 12px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.wx-range {
+  margin-block-start: 4px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.wx-later {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.wx-hours {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  margin-block-start: 6px;
+}
+
+.wx-hours li {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.wx-hour-time {
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wx-hour-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+}
+
+.wx-hour-icon .glyph {
+  inline-size: 24px;
+  block-size: 24px;
+}
+
+.wx-hour-temp {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.wx-sun {
+  display: flex;
+  gap: 24px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wx-sun span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wx-sun .glyph {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .content {
+    transition: translate 420ms var(--ease-out);
+  }
+
+  .card,
+  .art,
+  .chip {
+    transition:
+      scale 240ms var(--ease-out),
+      box-shadow 240ms var(--ease-out),
+      background-color 240ms var(--ease-out);
+  }
+
+  .round,
+  .input-row,
+  .seg label {
+    transition: scale 160ms var(--ease-out);
+  }
+}
+
+/* What would happen on the TV, said in place of doing it. */
+
+.toast {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 20px;
+  z-index: 40;
+  inline-size: fit-content;
+  margin-inline: auto;
+  padding-block: 10px;
+  padding-inline: 18px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms var(--ease-out);
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+/* ---- Prototype: the Show now button ---------------------------------------------------------- */
+
+.ctl-btn {
+  block-size: 34px;
+  padding-inline: 12px;
+  border-radius: 12px;
+  corner-shape: squircle;
+  background: var(--tray);
+  color: var(--chrome-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ctl-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ctl-btn:active {
+  scale: 0.97;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ctl-btn {
+    transition: scale 160ms var(--ease-out);
+  }
+}
+
+/* ---- Idle screensaver ------------------------------------------------------------------------ */
+/* Black over the whole screen; the logo is moved by app.js with a transform, so each frame is only
+   a composite. It fades in; a key wakes it at once. */
+
+.saver {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: oklch(0% 0 none);
+  transition: opacity 600ms var(--ease-out);
+}
+
+.saver[hidden] {
+  display: none;
+}
+
+@starting-style {
+  .saver {
+    opacity: 0;
+  }
+}
+
+.saver-logo {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 150px;
+  color: oklch(72% 0.19 25);
+  fill: currentColor;
+  overflow: visible;
+}
+
+.saver-dvd {
+  font-family: var(--font);
+  font-size: 66px;
+  font-weight: 700;
+  letter-spacing: -2px;
+}
+
+.saver-video {
+  fill: oklch(0% 0 none);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 6px;
+}

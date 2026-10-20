@@ -10,3 +10,5 @@ launcher/local.properties
 .DS_Store
 # Claude Code agent worktrees
 .claude/worktrees/
+# Prototype secrets, such as the TMDB key
+prototype/local/

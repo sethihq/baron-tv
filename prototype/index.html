@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Baron TV Home</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="bar">
+    <p class="bar-title">Baron TV home <span>prototype</span></p>
+    <form class="controls" id="controls">
+      <div class="ctl">
+        <span class="ctl-label" id="l-view">View</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-view">
+          <label><input type="radio" name="view" value="new" checked>New</label>
+          <label><input type="radio" name="view" value="now">Now</label>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label" id="l-font">Font</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-font">
+          <label><input type="radio" name="font" value="open-runde" checked>Open Runde</label>
+          <label><input type="radio" name="font" value="outfit">Outfit</label>
+          <label><input type="radio" name="font" value="timeless">Timeless</label>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label" id="l-ui">Icons</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-ui">
+          <label><input type="radio" name="ui" value="regular" checked>Line</label>
+          <label><input type="radio" name="ui" value="duotone">Duotone</label>
+          <label><input type="radio" name="ui" value="fill">Fill</label>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label" id="l-weather">Weather</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-weather">
+          <label><input type="radio" name="weather" value="phosphor" checked>Phosphor</label>
+          <label><input type="radio" name="weather" value="meteocons">Meteocons</label>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label" id="l-saver">Screensaver after</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-saver">
+          <label><input type="radio" name="saver" value="600" checked>10 min</label>
+          <label><input type="radio" name="saver" value="10">10 sec</label>
+        </div>
+        <button class="ctl-btn" type="button" id="saverNow">Show now</button>
+      </div>
+    </form>
+  </header>
+
+  <main class="stage">
+    <div class="frame" id="frame">
+      <section class="screen" id="screen" aria-label="TV home screen">
+        <div class="ambient" id="ambient" aria-hidden="true"></div>
+
+        <div class="content" id="content">
+          <!-- Page 1: clock, controls, what's trending, the dock. -->
+          <div class="top">
+            <div class="clock">
+              <p class="greeting" id="greeting">Good morning</p>
+              <p class="time-row">
+                <span class="time" id="time">10:00</span>
+                <span class="ampm" id="ampm">am</span>
+                <span class="date" id="date">Tuesday 20 October</span>
+              </p>
+            </div>
+            <div class="corner">
+              <nav class="buttons" aria-label="TV controls">
+                <div class="btn-wrap">
+                  <button class="round" type="button" aria-label="Inputs"><span class="glyph" data-icon="arrow-square-in" aria-hidden="true"></span></button>
+                  <div class="inputs" id="inputs" hidden>
+                    <button class="input-row" type="button" data-input="HDMI 1"><span>HDMI 1</span><small><i></i>Connected</small></button>
+                    <button class="input-row" type="button" data-input="HDMI 2"><span>HDMI 2</span></button>
+                    <button class="input-row" type="button" data-input="AV"><span>AV</span></button>
+                  </div>
+                </div>
+                <button class="round" type="button" aria-label="Wi-Fi"><span class="glyph" data-icon="wifi-high" aria-hidden="true"></span></button>
+                <button class="round" type="button" aria-label="Settings"><span class="glyph" data-icon="gear-six" aria-hidden="true"></span></button>
+              </nav>
+              <p class="weather" id="weather" hidden>
+                <span class="wx-icon" id="wxIcon" aria-hidden="true"></span>
+                <span class="wx-temp" id="wxTemp"></span>
+                <span class="wx-text" id="wxText"></span>
+              </p>
+            </div>
+          </div>
+
+          <section class="shelf" aria-labelledby="shelfTitle">
+            <p class="shelf-head">
+              <span id="shelfTitle">Trending on your apps</span>
+              <small id="credit">Data from TMDB and JustWatch</small>
+            </p>
+            <div class="posters" id="posters"></div>
+          </section>
+
+          <div class="dock" id="dock"></div>
+
+          <!-- Page 2, under the dock: inputs, shortcuts and the weather card. -->
+          <div class="extras">
+            <section class="group" aria-labelledby="inputsTitle">
+              <p class="group-head" id="inputsTitle">Inputs</p>
+              <div class="chips" id="inputChips"></div>
+            </section>
+            <section class="group" aria-labelledby="shortcutsTitle">
+              <p class="group-head" id="shortcutsTitle">Shortcuts</p>
+              <div class="chips" id="shortcutChips"></div>
+            </section>
+          </div>
+
+          <div class="cards">
+            <section class="panel wx-card" aria-labelledby="wxPlace">
+              <div class="wx-now">
+                <p class="panel-head" id="wxPlace">Bengaluru</p>
+                <p class="wx-big"><span class="wx-big-icon" id="wxBigIcon" aria-hidden="true"></span><span id="wxBigTemp">--°</span></p>
+                <p class="wx-cond" id="wxCond">Loading the weather</p>
+                <p class="wx-range" id="wxRange"></p>
+              </div>
+              <div class="wx-later">
+                <ol class="wx-hours" id="wxHours"></ol>
+                <p class="wx-sun" id="wxSun"></p>
+              </div>
+            </section>
+          </div>
+
+        </div>
+
+        <p class="toast" id="toast" role="status"></p>
+
+        <!-- Idle screensaver: the old DVD logo bouncing off the edges, a new colour at every bounce. -->
+        <div class="saver" id="saver" hidden aria-hidden="true">
+          <svg class="saver-logo" id="saverLogo" viewBox="0 0 200 104">
+            <text x="111" y="60" text-anchor="middle" transform="skewX(-12)" class="saver-dvd">DVD</text>
+            <ellipse cx="100" cy="84" rx="93" ry="15"/>
+            <text x="100" y="89.6" text-anchor="middle" class="saver-video">VIDEO</text>
+          </svg>
+        </div>
+      </section>
+      <img class="now-shot" id="nowShot" src="assets/current-home.png" alt="The current home screen on the TV" hidden>
+    </div>
+  </main>
+
+  <p class="hint">Arrow keys move, Enter opens, Esc goes back. Down from the dock opens page 2. The weather is live. Any key wakes the screensaver.</p>
+
+  <script src="app.js"></script>
+</body>
+</html>
