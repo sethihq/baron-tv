@@ -2,6 +2,9 @@ package com.barontv.remote.tv
 
 import android.content.Context
 import android.util.Log
+import java.net.Proxy
+import java.net.URL
+import java.net.URLConnection
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -37,7 +40,8 @@ internal const val CLOUDWALKER_PORT = 5511
 /** The mDNS service type that server announces. */
 internal const val CLOUDWALKER_SERVICE = "_cloudwalker._tcp"
 
-private const val LOG_TAG = "BaronRemote"
+/** The phone app's logcat tag, for the remote and the bridge alike. */
+internal const val LOG_TAG = "BaronRemote"
 
 /**
  * How long each step may take. On a home Wi-Fi the TV accepts a connection within milliseconds when it's
@@ -78,6 +82,9 @@ internal data class Timings(
  * port 5511 and nothing more: the server's endpoints all change what the TV shows.
  *
  * Android stays behind the small interfaces in TvParts.kt, so all of this runs in plain JVM tests.
+ *
+ * [connect] opens HTTP connections to the TV over the same Wi-Fi the keys use, so the home's bridge
+ * (HttpTvBridge) reaches the TV exactly as the keys do.
  */
 class CloudWalkerRemote internal constructor(
     private val wifi: WifiWatcher,
@@ -88,6 +95,7 @@ class CloudWalkerRemote internal constructor(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val timings: Timings = Timings(),
     private val log: (String) -> Unit = {},
+    internal val connect: (URL) -> URLConnection = { it.openConnection(Proxy.NO_PROXY) },
 ) : TvRemote {
 
     /** The remote for whichever TV is on this phone's Wi-Fi. */
@@ -100,6 +108,7 @@ class CloudWalkerRemote internal constructor(
         sender = parts.sender,
         store = parts.store,
         log = parts.log,
+        connect = parts.route::open,
     )
 
     private val _state = MutableStateFlow<TvState>(TvState.Searching)
@@ -317,7 +326,7 @@ internal suspend fun <T : Any> firstNonNull(tasks: List<suspend () -> T?>): T? =
 internal class AndroidTvParts(context: Context) {
     val log: (String) -> Unit = { Log.d(LOG_TAG, it) }
     val wifi = AndroidWifiWatcher(context, log)
-    private val route = WifiRoute(wifi)
+    val route = WifiRoute(wifi)
     val browser = NsdTvBrowser(context, log)
     val probe = TcpProbe(newSocket = route::newSocket)
     val sender = HttpKeySender(open = route::open)

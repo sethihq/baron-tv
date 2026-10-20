@@ -65,14 +65,13 @@ import kotlinx.coroutines.launch
 /** The round keys' face: 60 dp, as the prototype's `.key-face`. */
 private val Face = 60.dp
 
-/** Volume repeats while held, as the TV's own remote does: first after 420 ms, then every 160 ms. */
-private const val HOLD_MS = 420L
-private const val REPEAT_MS = 160L
-
 /**
  * The keys the TV's own remote has, under the pad: Back, Home, Input and Menu, then the Volume pill,
  * Mute and Play/Pause, on a grid of four equal columns. The pill spans two columns and its ends line up
  * with the round keys above it. While [enabled] is false a press only plays a gentle reject.
+ *
+ * Volume and Mute go to [onKey] like the rest, as 24, 25 and 164; the Remote tab decides whether they
+ * travel as key presses or through the home's bridge (see RemoteKeys).
  */
 @Composable
 internal fun KeyPad(
@@ -230,9 +229,9 @@ private fun VolumeRocker(enabled: Boolean, haptics: Haptics, onKey: (TvKey) -> U
 }
 
 /**
- * One half of the volume pill. It sends as soon as it's pressed, then again after 420 ms and every
- * 160 ms while the finger stays on it; lifting the finger or sliding off stops it. Each repeat ticks
- * lighter than the first press. A keyboard, switch or TalkBack press sends one step.
+ * One half of the volume pill. It sends as soon as it's pressed, then repeats on [HoldRepeat]'s clock
+ * (after 420 ms, every 160 ms) while the finger stays on it; lifting the finger or sliding off stops it.
+ * Each repeat ticks lighter than the first press. A keyboard, switch or TalkBack press sends one step.
  */
 @Composable
 private fun RockerHalf(
@@ -303,9 +302,9 @@ private fun RockerHalf(
                     pressed = true
                     send(first = true)
                     val repeating: Job = scope.launch {
-                        delay(HOLD_MS)
+                        delay(HoldRepeat.HOLD_MS)
                         while (true) {
-                            delay(REPEAT_MS)
+                            delay(HoldRepeat.EVERY_MS)
                             if (!enabledNow) break
                             send(first = false)
                         }

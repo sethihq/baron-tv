@@ -53,4 +53,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    // Android has org.json built in, but JVM tests only see android.jar's empty stand-ins for it.
+    testImplementation("org.json:json:20260814")
 }

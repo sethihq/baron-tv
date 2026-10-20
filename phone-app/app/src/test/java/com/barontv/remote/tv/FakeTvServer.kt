@@ -9,15 +9,22 @@ import java.net.URI
 import java.util.Collections
 
 /**
- * A stand-in for the TV's remote server on a free local port: the JDK's own HTTP server
- * (com.sun.net.httpserver.HttpServer), answering "OK" to every request and noting each key code in the
- * order it arrives.
+ * A stand-in for a server on the TV, on a free local port: the JDK's own HTTP server
+ * (com.sun.net.httpserver.HttpServer). By default it answers "OK" to every request, as CloudWalker's
+ * remote server does, and notes each key code in the order it arrives; [answer] makes it answer as
+ * something else, such as the home's bridge.
  *
  * Android's test compilers only see the Android API (android.jar), which has no com.sun.net.httpserver,
  * so the server is reached by reflection. The JVM that runs the tests has it. Methods are looked up on the
  * public com.sun.net.httpserver types: the classes behind them aren't open to reflection.
  */
-internal class FakeTvServer : Closeable {
+internal class FakeTvServer(
+    /** The reply to a request for `path` (decoded) with `query` (as sent, or null). */
+    private val answer: (path: String, query: String?) -> Answer = { _, _ -> Answer(200, "OK") },
+) : Closeable {
+    /** A reply: its status and its body. */
+    class Answer(val status: Int, val body: String)
+
     /** Key codes received, oldest first. */
     val keycodes: MutableList<Int> = Collections.synchronizedList(mutableListOf())
 
@@ -54,10 +61,12 @@ internal class FakeTvServer : Closeable {
         val uri = exchangeType.getMethod("getRequestURI").invoke(exchange) as URI
         requests += uri.toString()
         Regex("""keycode=(\d+)""").find(uri.rawQuery ?: "")?.let { keycodes += it.groupValues[1].toInt() }
-        val reply = "OK".toByteArray()
+        val reply = answer(uri.path, uri.rawQuery)
+        val body = reply.body.toByteArray()
+        // For this server a length of 0 would mean "chunked"; -1 is how it says there's no body.
         exchangeType.getMethod("sendResponseHeaders", Int::class.javaPrimitiveType, Long::class.javaPrimitiveType)
-            .invoke(exchange, 200, reply.size.toLong())
-        (exchangeType.getMethod("getResponseBody").invoke(exchange) as OutputStream).use { it.write(reply) }
+            .invoke(exchange, reply.status, if (body.isEmpty()) -1L else body.size.toLong())
+        (exchangeType.getMethod("getResponseBody").invoke(exchange) as OutputStream).use { it.write(body) }
         exchangeType.getMethod("close").invoke(exchange)
         return null
     }

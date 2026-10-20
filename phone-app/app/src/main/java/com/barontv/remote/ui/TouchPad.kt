@@ -1,5 +1,6 @@
 package com.barontv.remote.ui
 
+import android.os.SystemClock
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -51,6 +53,7 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,14 +67,25 @@ private val PadShape = SquircleShape(32.dp)
 /** How long a step's caret and a tap's ring take to settle: the prototype's 420 ms. */
 private const val FLASH_MS = 420
 
+/** How quickly the caret under a finger lights: as quickly as a key presses in. */
+private const val PRESS_MS = 160
+
+/** A caret at rest, and lit (at a step, or under a finger), as the prototype's `.cue` animation. */
+private const val REST_ALPHA = 0.28f
+private const val LIT_ALPHA = 0.7f
+
 /**
- * The touch pad. A swipe moves the TV's focus one step for every 56 dp of travel, a flick moves it once
- * and a tap is OK (the rules are in [PadGesture]). Four faint carets say it has directions and the one a
- * step went lights up; a soft light follows the finger; a thin ring opens where a tap lands. The hint in
- * the middle fades for good at the first touch.
+ * The touch pad, a swipe pad and a D-pad in one (the rules are in [PadGesture]). A swipe moves the TV's
+ * focus one step for every 56 dp of travel and a flick moves it once; a tap on an edge, where its caret
+ * is, moves it once, and holding there repeats; a tap in the middle is OK. The four faint carets mark the
+ * edges: the one under a finger lights while it's pressed, and every step flashes its caret, however it
+ * was made. A soft light follows the finger; a thin ring opens where an OK lands. The hint in the middle
+ * fades for good at the first touch.
  *
  * While [enabled] is false (no TV) a touch does nothing but play a gentle reject, once. The surface is
  * drawn at [dim]; the [overlay] (what to do about the missing TV) sits centred on top, undimmed.
+ * [pressedEdge] draws the pad as if a finger rested on that edge's caret, for previews and snapshots;
+ * touches work as usual.
  */
 @Composable
 internal fun TouchPad(
@@ -82,18 +96,19 @@ internal fun TouchPad(
     onKey: (TvKey) -> Unit,
     modifier: Modifier = Modifier,
     showHint: Boolean = true,
+    pressedEdge: TvKey? = null,
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val enabledNow by rememberUpdatedState(enabled)
     val onKeyNow by rememberUpdatedState(onKey)
 
-    var hintGone by rememberSaveable { mutableStateOf(false) }
-    var pressed by remember { mutableStateOf(false) }
+    var hintGone by rememberSaveable { mutableStateOf(pressedEdge != null) }
+    var pressed by remember { mutableStateOf(pressedEdge != null) }
     var finger by remember { mutableStateOf(Offset.Unspecified) }
     var padSize by remember { mutableStateOf(IntSize.Zero) }
-    val light = remember { Animatable(0f) }
-    val cues = remember { CUES.associateWith { Animatable(1f) } }
+    val light = remember { Animatable(if (pressedEdge != null) 1f else 0f) }
+    val cues = remember { CUES.associateWith { CueLight(lit = it == pressedEdge) } }
     val rings = remember { mutableStateListOf<TapRing>() }
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
@@ -109,7 +124,32 @@ internal fun TouchPad(
         label = "pad hint",
     )
 
-    // Sends a key from the pad. A step flashes its caret and ticks; OK taps and opens a ring where it
+    // A step's caret jumps lit and 4 dp outward, then settles back over 420 ms: to rest, or to lit while
+    // a finger still holds that edge.
+    fun flash(cue: CueLight) {
+        scope.launch {
+            cue.kick.snapTo(1f)
+            cue.kick.animateTo(0f, tween(FLASH_MS, easing = Motion.EaseOut))
+        }
+        scope.launch {
+            cue.glow.snapTo(1f)
+            cue.glow.animateTo(if (cue.held) 1f else 0f, tween(FLASH_MS, easing = Motion.EaseOut))
+        }
+    }
+
+    // Lights the caret of the edge under a pressing finger ([edge]), and lets any other go back to rest.
+    fun hold(edge: TvKey?) {
+        for ((key, cue) in cues) {
+            val on = key == edge
+            if (cue.held == on) continue
+            cue.held = on
+            scope.launch {
+                cue.glow.animateTo(if (on) 1f else 0f, tween(if (on) PRESS_MS else FLASH_MS, easing = Motion.EaseOut))
+            }
+        }
+    }
+
+    // Sends a key from the pad. A step ticks and flashes its caret; OK taps and opens a ring where it
     // landed (the middle, for a keyboard or TalkBack).
     fun press(key: TvKey, at: Offset) {
         hintGone = true
@@ -125,11 +165,7 @@ internal fun TouchPad(
             }
         } else {
             haptics.tick()
-            val cue = cues.getValue(key)
-            scope.launch {
-                cue.snapTo(0f)
-                cue.animateTo(1f, tween(FLASH_MS, easing = Motion.EaseOut))
-            }
+            flash(cues.getValue(key))
         }
     }
 
@@ -146,21 +182,23 @@ internal fun TouchPad(
                     val ringWidth = 1.dp.toPx()
                     // Drawn twice as wide and clipped to the pad, so exactly 1.5 dp shows inside the edge.
                     val focusStroke = Stroke(1.5.dp.toPx() * 2)
+                    val resting = pressedEdge?.let { caretCentre(it, size, this) } ?: Offset.Unspecified
                     onDrawBehind {
                         drawPath(path, surface)
                         clipPath(path) {
                             // The prototype's `.touch`: a soft light under the finger, glued to it.
-                            if (light.value > 0f && finger.isSpecified) {
+                            val at = if (finger.isSpecified) finger else resting
+                            if (light.value > 0f && at.isSpecified) {
                                 drawCircle(
                                     brush = Brush.radialGradient(
                                         0f to Color.White.copy(alpha = 0.09f),
                                         0.55f to Color.White.copy(alpha = 0.03f),
                                         1f to Color.White.copy(alpha = 0f),
-                                        center = finger,
+                                        center = at,
                                         radius = lightRadius,
                                     ),
                                     radius = lightRadius,
-                                    center = finger,
+                                    center = at,
                                     alpha = light.value,
                                 )
                             }
@@ -184,10 +222,7 @@ internal fun TouchPad(
                     }
                 },
         ) {
-            for (key in CUES) {
-                val cue = cues.getValue(key)
-                Cue(key, settle = { cue.value }, reduceMotion)
-            }
+            for (key in CUES) Cue(key, cues.getValue(key), reduceMotion)
             BasicText(
                 text = "Swipe to move\nTap to select",
                 style = Type.Body.copy(color = Palette.Text3, textAlign = TextAlign.Center, lineHeight = 24.sp),
@@ -234,6 +269,8 @@ internal fun TouchPad(
                         slop = PadGesture.SLOP_DP.dp.toPx(),
                         step = PadGesture.STEP_DP.dp.toPx(),
                         flick = PadGesture.FLICK_DP_PER_MS * density,
+                        edge = PadGesture.EDGE_DP.dp.toPx(),
+                        holdSlack = PadGesture.HOLD_SLACK_DP.dp.toPx(),
                     )
                     awaitEachGesture {
                         // One finger drives the pad; a second one changes nothing.
@@ -251,16 +288,37 @@ internal fun TouchPad(
                                 }
                             }
                         }
-                        gesture.down(down.position.x, down.position.y, down.uptimeMillis)
+                        gesture.down(
+                            down.position.x,
+                            down.position.y,
+                            down.uptimeMillis,
+                            size.width.toFloat(),
+                            size.height.toFloat(),
+                        )
                         if (live) {
                             hintGone = true
                             pressed = true
                             finger = down.position
                             scope.launch { light.animateTo(1f, tween(60, easing = Motion.EaseOut)) }
+                            hold(gesture.armed)
                         }
                         try {
                             while (true) {
-                                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
+                                // While an edge is held, wait for the next event or its next press,
+                                // whichever comes first. Event times share SystemClock's uptime.
+                                val due = gesture.dueAt
+                                val event = if (due == null) {
+                                    awaitPointerEvent()
+                                } else {
+                                    withTimeoutOrNull((due - SystemClock.uptimeMillis()).coerceAtLeast(1L)) {
+                                        awaitPointerEvent()
+                                    }
+                                }
+                                if (event == null) {
+                                    act(gesture.poll(SystemClock.uptimeMillis()), Offset.Unspecified)
+                                    continue
+                                }
+                                val change = event.changes.firstOrNull { it.id == down.id }
                                 if (change == null) {
                                     gesture.cancel()
                                     break
@@ -277,13 +335,18 @@ internal fun TouchPad(
                                 }
                                 if (change.positionChanged()) {
                                     val p = change.position
-                                    if (live) finger = p
                                     act(gesture.move(p.x, p.y, change.uptimeMillis), p)
+                                    if (live) {
+                                        finger = p
+                                        // A swipe, or a finger slid off its edge, lets the caret go.
+                                        hold(gesture.armed)
+                                    }
                                     change.consume()
                                 }
                             }
                         } finally {
                             pressed = false
+                            hold(null)
                             scope.launch { light.animateTo(0f, tween(220, easing = Motion.EaseOut)) }
                         }
                     }
@@ -295,23 +358,22 @@ internal fun TouchPad(
 }
 
 /**
- * One of the four carets, 12 dp in from its edge. [settle] runs 0 to 1 after a step: bright, then back.
- * It's read in the layer, so a flash redraws the caret without recomposing the pad.
+ * One of the four carets, 12 dp in from its edge. Its light is read in the layer, so a flash redraws
+ * the caret without recomposing the pad.
  */
 @Composable
-private fun BoxScope.Cue(key: TvKey, settle: () -> Float, reduceMotion: Boolean) {
+private fun BoxScope.Cue(key: TvKey, light: CueLight, reduceMotion: Boolean) {
     val look = CUE_LOOK.getValue(key)
     Box(
         Modifier
             .align(look.alignment)
             .padding(Space.S3)
-            .size(28.dp)
+            .size(CUE_SIZE)
             .graphicsLayer {
-                val p = settle()
-                alpha = lerp(0.7f, 0.28f, p)
+                alpha = lerp(REST_ALPHA, LIT_ALPHA, light.glow.value)
                 if (!reduceMotion) {
-                    // Nudged 4 dp outward at the flash, settling back in.
-                    val nudge = 4.dp.toPx() * (1f - p)
+                    // Nudged 4 dp outward at a step, settling back in.
+                    val nudge = 4.dp.toPx() * light.kick.value
                     translationX = look.dx * nudge
                     translationY = look.dy * nudge
                 }
@@ -319,6 +381,29 @@ private fun BoxScope.Cue(key: TvKey, settle: () -> Float, reduceMotion: Boolean)
         contentAlignment = Alignment.Center,
     ) {
         Glyph(look.icon, 18.dp, Palette.Text)
+    }
+}
+
+/**
+ * A caret's light: [glow] runs from 0 at rest to 1 lit, [kick] is a step's outward nudge (1 at its
+ * height). [held] is true while a finger presses that edge, so a step's flash settles back to lit.
+ */
+private class CueLight(lit: Boolean) {
+    val glow = Animatable(if (lit) 1f else 0f)
+    val kick = Animatable(0f)
+    var held = lit
+}
+
+private val CUE_SIZE = 28.dp
+
+/** The middle of [edge]'s caret on a pad of [size]: 12 dp in, plus half the caret's 28. */
+private fun caretCentre(edge: TvKey, size: Size, density: Density): Offset {
+    val inset = with(density) { (Space.S3 + CUE_SIZE / 2).toPx() }
+    return when (edge) {
+        TvKey.UP -> Offset(size.width / 2f, inset)
+        TvKey.DOWN -> Offset(size.width / 2f, size.height - inset)
+        TvKey.LEFT -> Offset(inset, size.height / 2f)
+        else -> Offset(size.width - inset, size.height / 2f)
     }
 }
 
