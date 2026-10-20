@@ -481,6 +481,15 @@ slots, `core/Tokens.kt` colours converted from OKLCH).
   while the TV compiles), the same as the old launcher. Memory about 58 MB PSS (11 MB of it private).
   Moving focus round the screen: 557 frames, 1.3% janky, p50 6 ms, p90 9 ms. The screensaver runs at 60
   fps with 17 ms frames.
+- **The lamp** ("I've a Philips lamp, sync it with the music"): a Philips Smart Wi-Fi colour bulb (WiZ
+  inside, module ESP25_SHRGB_01, firmware 1.38, at 192.168.1.x on 2026-10-20). WiZ lamps take JSON over
+  UDP port 38899 with no account, but this firmware answered "Invalid params" to every change (reads
+  worked, replies were signed) until the user turned on local communication and all controls in the
+  WiZ app (Settings > Security). `music/LampSync.kt`: when music mode starts it finds the lamps that are
+  on by broadcast, saves what each is doing, flashes them on every kick in the edge light's next colour
+  at full brightness and sinks to 25% 160 ms later (at most one command per lamp every 90 ms; a command
+  answers in about 20 to 40 ms), and puts each back (scene, colour or white, brightness) when music mode
+  ends. A lamp that's off stays off.
 - **Still to check on the TV:** that the Visualizer hears the beat over Spotify (no "Can't hear the TV"
   warning under logcat tag `BaronMusic` so far) and music mode's frame times; input switching from the
   tiles; which Picture candidate opens (`side/PictureSettings.kt`). Spotify's TV app posts no media
