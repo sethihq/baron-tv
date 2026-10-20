@@ -696,18 +696,19 @@ svg {
   opacity: 0.75;
 }
 
-/* Focus lifts the item where it is: larger, a deeper shadow, a lighter surface where there's no art
-   yet, and its title brightens and steps down to clear the lifted card, as tvOS does. Nothing travels. */
-.poster:focus .art {
-  scale: 1.05;
-  background: oklch(29% 0.004 286);
-  color: var(--text);
-  box-shadow: 0 8px 20px oklch(0% 0 none / 0.3);
+/* Focus changes colour only: nothing grows, lifts or moves ("selected state, only colour change", then
+   "getting too big on selected state"). A white ring round the art, since a poster's picture hides any
+   change of surface; a lighter surface where there's no art yet; the title brightens. The ring is an
+   outline, transparent at rest, so it also shows in forced-colors mode. */
+.art {
+  outline: 2px solid transparent;
+  outline-offset: 3px;
 }
 
-.poster:focus .p-title,
-.poster:focus .p-meta {
-  translate: 0 5px;
+.poster:focus .art {
+  outline-color: oklch(96% 0 none);
+  background: oklch(29% 0.004 286);
+  color: var(--text);
 }
 
 .poster:focus .p-title {
@@ -754,9 +755,12 @@ svg {
   object-fit: cover;
 }
 
-/* A hairline round every tile, so black ones (Netflix, Spotify) keep their edge on the dark dock. */
+/* A hairline round every tile, so black ones (Netflix, Spotify) keep their edge on the dark dock. The
+   focus ring waits outside it, transparent. */
 .card {
   position: relative;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
 }
 
 .card::after {
@@ -768,14 +772,14 @@ svg {
   pointer-events: none;
 }
 
+/* Like the posters: a white ring, no growing, no shadow. A press dips a touch, as the buttons do. */
 .tile:focus .card {
-  scale: 1.08;
-  box-shadow: 0 5px 14px oklch(0% 0 none / 0.28);
+  outline-color: oklch(96% 0 none);
 }
 
 .tile:active .card,
 .poster:active .art {
-  scale: 1.02;
+  scale: 0.97;
 }
 
 /* ---- Page 2: inputs and shortcuts ------------------------------------------------------------ */
@@ -844,13 +848,11 @@ svg {
 
 .chip:focus {
   outline: 2px solid transparent;
-  scale: 1.06;
   background: var(--chip-on);
-  box-shadow: 0 5px 14px oklch(0% 0 none / 0.26);
 }
 
 .chip:active {
-  scale: 1.02;
+  scale: 0.97;
 }
 
 /* ---- Page 2: the weather card ---------------------------------------------------------------- */
@@ -1097,15 +1099,14 @@ svg {
   .art,
   .chip {
     transition:
-      scale 240ms var(--ease-out),
-      box-shadow 240ms var(--ease-out),
+      scale 160ms var(--ease-out),
+      outline-color 200ms var(--ease-out),
       background-color 240ms var(--ease-out);
   }
 
   .p-title,
   .p-meta {
     transition:
-      translate 240ms var(--ease-out),
       color 240ms var(--ease-out),
       opacity 240ms var(--ease-out);
   }

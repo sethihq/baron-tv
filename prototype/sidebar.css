@@ -108,18 +108,6 @@
   border-radius: 14px;
 }
 
-/* The side dock's tiles show focus with colour alone ("selected state big, remove, only colour change
-   is fine"): no lift, no shadow, a lighter surface. */
-.bento-tile:focus {
-  scale: none;
-  background: oklch(36% 0 none);
-  box-shadow: none;
-}
-
-.bento-tile:active {
-  scale: none;
-}
-
 /* ---- The dock's Wi-Fi and Sound views ------------------------------------------------------------ */
 /* Selecting Wi-Fi or Sound turns the whole dock into that view, as a Control Centre module opens: the
    tiles slide out to the left, the view slides in from the right. Back (or the chevron) returns. */

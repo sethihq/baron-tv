@@ -440,15 +440,12 @@
   background: oklch(78% 0.17 150);
 }
 
-/* Focus lifts the tile where it is: a touch larger, a lighter surface, a soft shadow. The outline
-   stays, transparent, for forced-colors mode. */
+/* Focus is a lighter surface only, no lift or shadow ("selected state big, remove, only colour change is
+   fine"). The outline stays, transparent, for forced-colors mode. */
 .bento-tile:focus {
-  z-index: 1;
   outline: 2px solid transparent;
-  scale: 1.06;
-  background: oklch(32% 0 none);
+  background: oklch(36% 0 none);
   color: var(--text);
-  box-shadow: 0 8px 18px oklch(0% 0 none / 0.3);
 }
 
 .bento-tile[data-idle]:focus > * {
@@ -456,14 +453,13 @@
 }
 
 .bento-tile:active {
-  scale: 1.02;
+  scale: 0.97;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .bento-tile {
     transition:
-      scale 240ms var(--ease-out),
-      box-shadow 240ms var(--ease-out),
+      scale 160ms var(--ease-out),
       background-color 240ms var(--ease-out);
   }
 }

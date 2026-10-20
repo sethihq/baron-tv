@@ -361,8 +361,13 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   colour of the sky now (sun, part cloud, cloud, rain, storm, night) with the temperature, and a line
   that reads like a sentence: the date, then what the weather does next ("Drizzle from 2 pm", "Clear till
   late"), computed from the coming hours.
-- **Selected states** ("drop shadows on selected states too strong"): the dock tiles', posters' and
-  chips' focus shadows are now 26 to 30% black with short drops (from 55 to 60%).
+- **Selected states** ("drop shadows on selected states too strong", then "selected state big, remove,
+  only colour change is fine", then "getting too big on selected state"): focus is colour only
+  everywhere, nothing grows, lifts, casts a shadow or moves. Posters and app tiles get a 2 dp white ring
+  3 dp outside the art (their pictures hide any change of surface; a poster with no art also turns
+  lighter, and its title brightens); dock tiles, chips and the Wi-Fi and Sound rows turn lighter. A
+  press dips to 0.97 for a moment, as the round buttons do. Port: a focus ring drawable, no scale
+  animators on focus.
 - **Phone app polish** ("selected glow and drop shadow too strong, should be subtle; also use haptics"):
   quieter selected, pressed and dragged states; haptics through one helper (`navigator.vibrate` in the
   prototype) with named patterns (tick, tap, repeat, confirm, reject, lift, slot, select), each mapped in a
