@@ -8,29 +8,27 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
 import android.view.View
 import com.barontv.home.core.Tokens
 import com.barontv.home.core.dp
-import java.nio.ByteBuffer
 import java.util.Random
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 /**
  * The glow behind everything (glow.css "Refined"): light rising from below the dock in the focused
  * artwork's colour, a deep core and a darker mid tone in one wide ellipse centred below the screen, and a
  * faint second tone in the top-left corner. A fine grain sits on top so the long fades don't band.
  *
- * The prototype's gradients are drawn here as weight maps: each ellipse's falloff is a small alpha-only
- * bitmap, stretched over the screen and tinted by its paint's colour, the layers added together. So a
- * colour change only changes three paint colours: nothing is allocated or rebuilt per frame, and the view
- * redraws only while its colours ease (700 ms) or it fades (600 ms in, 300 ms out). The two ellipses never
- * overlap, so adding them equals the prototype's layering; mixing the core into the mid tone in sRGB
- * instead of OKLCH is within 2 levels of 255 for every colour tried.
+ * Both ellipses are radial gradients stretched by a local matrix, as the CSS's are. The TV draws with
+ * Android 9's older OpenGL renderer (dumpsys gfxinfo: Pipeline=FrameBuilder), which handles gradient
+ * shaders but not alpha-only bitmaps inside a shader (those come out black), so no weight maps here. The
+ * gradients are rebuilt only while the colours ease (700 ms); the fades (600 ms in, 300 ms out) only change
+ * the paints' alpha. Mixing the core into the mid tone in sRGB instead of OKLCH is within 2 levels of 255.
  */
 class GlowView(context: Context) : View(context) {
 
@@ -47,9 +45,26 @@ class GlowView(context: Context) : View(context) {
     private var goalArt = 0
     private var hasGoal = false
 
-    private val corePaint = layerPaint(Profiles.core)
-    private val midPaint = layerPaint(Profiles.mid)
-    private val farPaint = layerPaint(Profiles.far)
+    private val widePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG)
+    private val farPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG)
+
+    // Where each ellipse is centred and how it's stretched (the gradients are circles of radius rx).
+    private var wideCx = 0f
+    private var wideCy = 0f
+    private var wideRx = 1f
+    private val wideMatrix = Matrix()
+    private var farCx = 0f
+    private var farCy = 0f
+    private var farRx = 1f
+    private val farMatrix = Matrix()
+
+    // The colours the gradients were last built with, so they're only rebuilt when the colours move.
+    private val wideColors = IntArray(3)
+    private val farColors = IntArray(2)
+    private var builtCore = 0
+    private var builtMid = 0
+    private var builtFar = 0
+    private var built = false
     private val grainPaint = Paint().apply {
         shader = BitmapShader(Profiles.grain, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT).apply {
             // One noise cell per dp, as the prototype's 160 px tile is drawn at one CSS pixel per dp.
@@ -127,21 +142,23 @@ class GlowView(context: Context) : View(context) {
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        // radial-gradient(115% 74% at 50% 112%, core, mid 44%, transparent 80%): the map covers the
-        // ellipse out to 80%, where it ends.
-        place(corePaint, w * 0.5f, h * 1.12f, w * 1.15f * 0.8f, h * 0.74f * 0.8f, wideRect, w, h)
-        place(midPaint, w * 0.5f, h * 1.12f, w * 1.15f * 0.8f, h * 0.74f * 0.8f, wideRect, w, h)
+        // radial-gradient(115% 74% at 50% 112%, core, mid 44%, transparent 80%).
+        wideCx = w * 0.5f
+        wideCy = h * 1.12f
+        wideRx = w * 1.15f
+        place(wideMatrix, wideCx, wideCy, wideRx, h * 0.74f, 0.80f, wideRect, w, h)
         // radial-gradient(60% 62% at 6% -10%, far, transparent 72%).
-        place(farPaint, w * 0.06f, h * -0.10f, w * 0.60f * 0.72f, h * 0.62f * 0.72f, farRect, w, h)
+        farCx = w * 0.06f
+        farCy = h * -0.10f
+        farRx = w * 0.60f
+        place(farMatrix, farCx, farCy, farRx, h * 0.62f, 0.72f, farRect, w, h)
+        built = false
     }
 
-    private fun place(paint: Paint, cx: Float, cy: Float, rx: Float, ry: Float, bounds: RectF, w: Int, h: Int) {
-        val side = Profiles.SIDE.toFloat()
-        val m = Matrix()
-        m.setScale(2 * rx / side, 2 * ry / side)
-        m.postTranslate(cx - rx, cy - ry)
-        paint.shader.setLocalMatrix(m)
-        bounds.set(cx - rx, cy - ry, cx + rx, cy + ry)
+    /** Squashes a circle of radius [rx] into the CSS ellipse, and bounds what it lights out to [extent]. */
+    private fun place(m: Matrix, cx: Float, cy: Float, rx: Float, ry: Float, extent: Float, bounds: RectF, w: Int, h: Int) {
+        m.setScale(1f, ry / rx, cx, cy)
+        bounds.set(cx - rx * extent, cy - ry * extent, cx + rx * extent, cy + ry * extent)
         if (!bounds.intersect(0f, 0f, w.toFloat(), h.toFloat())) bounds.setEmpty()
     }
 
@@ -149,62 +166,58 @@ class GlowView(context: Context) : View(context) {
         val t = HomeMotion.now()
         val moving = opacity.step(t) or stepColors(t)
         val o = opacity.value
-        if (o > 0f) {
-            if (tint(farPaint, 8, o)) canvas.drawRect(farRect, farPaint)
-            val core = tint(corePaint, 0, o)
-            val mid = tint(midPaint, 4, o)
-            if (core) canvas.drawRect(wideRect, corePaint)
-            if (mid) canvas.drawRect(wideRect, midPaint)
+        if (o > 0f && hasGoal) {
+            rebuildIfMoved()
+            val alpha = (o * 255).roundToInt().coerceIn(0, 255)
+            widePaint.alpha = alpha
+            farPaint.alpha = alpha
+            if (!farRect.isEmpty) canvas.drawRect(farRect, farPaint)
+            if (!wideRect.isEmpty) canvas.drawRect(wideRect, widePaint)
             canvas.drawRect(wideRect, grainPaint)
             canvas.drawRect(farRect, grainPaint)
         }
         if (moving) postInvalidateOnAnimation()
     }
 
-    /** Sets [paint] to colour [at] in sRGB at opacity [o]; false if it's fully transparent. */
-    private fun tint(paint: Paint, at: Int, o: Float): Boolean {
+    /** New gradients only when a colour has moved since the last ones (while easing, or the first time). */
+    private fun rebuildIfMoved() {
+        val core = colorAt(0)
+        val mid = colorAt(4)
+        val far = colorAt(8)
+        if (built && core == builtCore && mid == builtMid && far == builtFar) return
+        built = true
+        builtCore = core
+        builtMid = mid
+        builtFar = far
+        // Each ends in its own colour at no alpha, so the fade out doesn't darken on the way, as CSS's
+        // premultiplied fades don't.
+        wideColors[0] = core
+        wideColors[1] = mid
+        wideColors[2] = mid and 0xFFFFFF
+        widePaint.shader = RadialGradient(wideCx, wideCy, wideRx, wideColors, WIDE_STOPS, Shader.TileMode.CLAMP)
+            .apply { setLocalMatrix(wideMatrix) }
+        farColors[0] = far
+        farColors[1] = far and 0xFFFFFF
+        farPaint.shader = RadialGradient(farCx, farCy, farRx, farColors, FAR_STOPS, Shader.TileMode.CLAMP)
+            .apply { setLocalMatrix(farMatrix) }
+    }
+
+    /** Colour [at] in sRGB with its own alpha (raised to make up for the grain's multiply). */
+    private fun colorAt(at: Int): Int {
         val a = now[at + 3]
-        if (a <= 0.0) return false
-        val alpha = (a * o * GRAIN_LIFT * 255).roundToInt().coerceIn(0, 255)
-        if (alpha == 0) return false
+        if (a <= 0.0) return 0
+        val alpha = (a * GRAIN_LIFT * 255).roundToInt().coerceIn(0, 255)
         val rgb = Oklab.toArgb(now[at] / a, now[at + 1] / a, now[at + 2] / a)
-        paint.color = (rgb and 0xFFFFFF) or (alpha shl 24)
-        return true
+        return (rgb and 0xFFFFFF) or (alpha shl 24)
     }
 
     override fun hasOverlappingRendering() = false
 
-    private fun layerPaint(map: Bitmap) = Paint(Paint.FILTER_BITMAP_FLAG or Paint.DITHER_FLAG).apply {
-        shader = BitmapShader(map, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-        xfermode = PorterDuffXfermode(PorterDuff.Mode.ADD)
-    }
-
-    /** The falloff maps and the grain tile: made once and shared, 64 KB in all. */
+    /** The grain tile: made once and shared, 64 KB. */
     private object Profiles {
         const val SIDE = 128
 
-        // The core fades into the mid tone by 44%, the mid tone out by 80% (both on the map's 0.8 scale).
-        val core: Bitmap = falloff(0.8f) { t -> 1f - t / 0.44f }
-        val mid: Bitmap = falloff(0.8f) { t -> if (t <= 0.44f) t / 0.44f else (0.8f - t) / 0.36f }
-        val far: Bitmap = falloff(0.72f) { t -> 1f - t / 0.72f }
         val grain: Bitmap = grainTile()
-
-        /** An alpha-only map of [weight] over an ellipse whose edge is [extent] of the gradient's size. */
-        private fun falloff(extent: Float, weight: (Float) -> Float): Bitmap {
-            val bytes = ByteArray(SIDE * SIDE)
-            for (y in 0 until SIDE) {
-                val v = (y + 0.5f) / SIDE * 2f - 1f
-                for (x in 0 until SIDE) {
-                    val u = (x + 0.5f) / SIDE * 2f - 1f
-                    val t = sqrt(u * u + v * v) * extent
-                    val w = if (t >= extent) 0f else weight(t).coerceIn(0f, 1f)
-                    bytes[y * SIDE + x] = (w * 255).roundToInt().toByte()
-                }
-            }
-            return Bitmap.createBitmap(SIDE, SIDE, Bitmap.Config.ALPHA_8).apply {
-                copyPixelsFromBuffer(ByteBuffer.wrap(bytes))
-            }
-        }
 
         /**
          * The fine grain: soft noise in a narrow band just under white, multiplied over the glow. With the
@@ -237,5 +250,8 @@ class GlowView(context: Context) : View(context) {
         /** The grain's strength: overlay of sRGB 0.735 grey (0.5 in linear light) at 9%. */
         private const val GRAIN = 0.47f * 0.09f
         private const val GRAIN_LIFT = 1f + GRAIN
+
+        private val WIDE_STOPS = floatArrayOf(0f, 0.44f, 0.80f)
+        private val FAR_STOPS = floatArrayOf(0f, 0.72f)
     }
 }
