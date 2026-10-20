@@ -420,6 +420,52 @@ Porting it to the TV once approved (`launcher/`, Java):
   Check that the CVTE firmware actually runs dreams.
 - Mind the 512 MB: three posters at most, TMDB sizes w342 and w780, no blur, no video.
 
+## Phone app (native, `phone-app/`, 2026-10-20)
+
+The real Android app for the phone prototype ("yes build it, start with the remote"), built Remote first.
+Kotlin and Jetpack Compose, AGP 8.5.2, Gradle 8.9 wrapper, compileSdk 34, minSdk 26 (Android 8), package
+`com.barontv.remote`, app name "Baron TV". Release APK about 1.7 MB, signed with the debug key like the
+launcher (sideloaded, never published).
+
+- **Build and install:** `phone-app/share.sh` builds the release APK and serves it over the Wi-Fi with a
+  QR code (`http://<mac-ip>:8090/BaronTV.apk`): scan it on the phone, download, tap to install, and allow
+  installs from the browser once. The phone must be on the same Wi-Fi. macOS may ask to allow Python's
+  incoming connections. With USB debugging, `adb install -r` works too (adb is in
+  `/opt/homebrew/share/android-commandlinetools/platform-tools/`).
+- **Checks:** `./gradlew assembleDebug testDebugUnitTest verifyPaparazziDebug assembleRelease` from
+  `phone-app/` (JAVA_HOME=/opt/homebrew/opt/openjdk@17, ANDROID_HOME=/opt/homebrew/share/android-commandlinetools).
+  56 JVM tests: the pad's gesture rules, subnet maths, the key URL, the search order and state changes
+  with fakes, and end to end against a stand-in HTTP server. Paparazzi renders the screen without a
+  phone: `recordPaparazziDebug` writes `app/src/test/snapshots/images/` (Connected, Searching, TV not
+  found, Not on Wi-Fi on a Pixel 6, Connected on a Nexus 5).
+- **Screen (`ui/`):** the prototype's Remote tab, ported value for value from `prototype/phone/`
+  (OKLCH colours converted exactly, Open Runde as TTFs in `res/font`, Phosphor as vector drawables from
+  `tools/phosphor_to_vector.py`, the pad's squircle corners). No tab bar yet, so the pad takes the height.
+  The touch pad works as phone.js: past 10 dp a swipe counts, then every 56 dp is one D-pad step in the
+  main direction, a short fast flick sends once, a still tap under 500 ms is OK; cues light, the hint
+  fades on the first touch; TalkBack gets Up, Down, Left, Right and OK actions. Keys: Back, Home, Input,
+  Menu, the Volume pill (hold to repeat), Mute, Play/Pause, with a slight press-in, no ripples. Haptics
+  through `View.performHapticFeedback`, better constants on newer Android (`Haptics.kt`). The header
+  shows the TV's name and state; tapping the name shows its address. Not connected, the pad and keys dim
+  and a press only buzzes "no"; "TV not found" offers Try again, "Not on Wi-Fi" opens Wi-Fi settings.
+- **Connection (`tv/`, `CloudWalkerRemote`):** talks to CloudWalker's phone-remote server, port 5511,
+  `GET /input/?keycode=N`. Finding the TV (its IP changes every boot): the last address (TCP connect,
+  400 ms), then mDNS `_cloudwalker._tcp` (multicast lock held, each answer re-checked since caches keep
+  old addresses), then after 2 s a scan of the phone's /24 as well, 64 at a time, 300 ms each, nearest the
+  last address first; first answer wins, nothing in 7 s is "TV not found". Probing is only ever a TCP
+  connect: every endpoint of that server is an action. Connected, it checks every 5 s. Presses go in
+  order on one worker, a queue of 32 (full drops new presses); a press that can't reach the TV starts a
+  new search. Nothing runs in the background (start and stop follow the app being on screen). Logcat
+  tag `BaronRemote`.
+- **To check on the real TV** (it was off while this was built): that it advertises `_cloudwalker._tcp`
+  and the phone resolves an IPv4 address; that the server copes with bare connect-and-close probes; that
+  each press answers quickly; the timeouts on the real Wi-Fi; every key. Input (178) is likely ignored:
+  injected keys skip the accessibility service that turns Input into CVTE's source panel (see "Keys").
+  After a TV reboot the server sleeps until opened once, so the app ends in "TV not found" until then.
+- **Next:** a small LAN server in the launcher (it starts at boot, so it can also wake CloudWalker's
+  server), for Input (open `com.cvte.intent.SHOW_INPUT` directly), apps, now playing, inputs, volume and
+  the dock order; then the Apps, Playing and TV tabs. TV changes still need the user's approval first.
+
 ## Next steps
 
 ### To finish this round
