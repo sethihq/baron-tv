@@ -1,23 +1,16 @@
 package com.barontv.remote
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.barontv.remote.tv.TvKey
+import com.barontv.remote.tv.CloudWalkerRemote
 import com.barontv.remote.tv.TvRemote
-import com.barontv.remote.tv.TvState
 import com.barontv.remote.ui.RemoteApp
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 class MainActivity : ComponentActivity() {
-    // Placeholder until the TV connection lands.
-    private val remote: TvRemote = object : TvRemote {
-        override val state: StateFlow<TvState> = MutableStateFlow(TvState.Searching)
-        override fun send(key: TvKey) {}
-        override fun retry() {}
-    }
+    private val remote: TvRemote by lazy { sharedRemote(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +18,7 @@ class MainActivity : ComponentActivity() {
         setContent { RemoteApp(remote) }
     }
 
+    // Only while the app is on screen: no searching or checking in the background.
     override fun onStart() {
         super.onStart()
         remote.start()
@@ -35,3 +29,8 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
 }
+
+// One remote for the whole app, so turning the phone round doesn't look for the TV all over again.
+private var shared: TvRemote? = null
+
+private fun sharedRemote(context: Context): TvRemote = shared ?: CloudWalkerRemote(context).also { shared = it }
