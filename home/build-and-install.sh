@@ -39,9 +39,14 @@ printf '%s\n' \
   "cmd notification allow_listener $PKG/$PKG.media.NowPlayingListener" \
   "cmd package compile -m speed -f $PKG" \
   "cmd package set-home-activity --user 0 $PKG/.HomeActivity" \
-  "settings put secure screensaver_components $PKG/$PKG.saver.DvdDream" \
-  "settings put secure screensaver_enabled 1" \
   | $TV --batch
+# The DVD screensaver (SET_SAVER=0 keeps the TV's current one, e.g. while the dream isn't built yet).
+if [ "${SET_SAVER:-1}" = 1 ]; then
+  $TV "settings put secure screensaver_components $PKG/$PKG.saver.DvdDream; settings put secure screensaver_enabled 1; echo screensaver: DvdDream"
+fi
+# Android 9 only gives Wi-Fi scan results and the network's name with location on (the TV has no GPS,
+# so nothing is ever located): the Wi-Fi view needs it.
+$TV "settings put secure location_providers_allowed +network; settings put secure location_providers_allowed +gps; echo location: \$(settings get secure location_providers_allowed)"
 
 # The Input key: this app's service in place of the old launcher's, every other service left as it was.
 $TV "s=\$(settings get secure enabled_accessibility_services | tr ':' '\n' | grep -v -e '^$OLD/' -e '^$PKG/' -e '^null\$' | tr '\n' ':' | sed 's/:\$//'); settings put secure enabled_accessibility_services \"\${s:+\$s:}$PKG/$PKG.input.InputKeyService\"; settings put secure accessibility_enabled 1; echo Input key: \$(settings get secure enabled_accessibility_services)"

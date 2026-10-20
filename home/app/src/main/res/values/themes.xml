@@ -5,5 +5,7 @@
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:windowShowWallpaper">false</item>
         <item name="android:colorAccent">#FFEBEBEB</item>
+        <!-- Every part draws its own focus (colour only): no grey box from Android on top of it. -->
+        <item name="android:defaultFocusHighlightEnabled">false</item>
     </style>
 </resources>
