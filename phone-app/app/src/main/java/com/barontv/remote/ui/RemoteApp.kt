@@ -64,7 +64,6 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
-import com.barontv.remote.tv.NoBridge
 import com.barontv.remote.tv.TvBridge
 import com.barontv.remote.tv.TvRemote
 import com.barontv.remote.tv.TvState
@@ -85,11 +84,10 @@ private const val NOTICE_MS = 1600L
  * comes back at the next launch, and Back from any other tab goes to the Remote first.
  *
  * [remote] sends the keys and says whether the TV is there; [bridge] is the TV's new home, for its apps,
- * inputs, dock and what's playing. The bridge defaults to [NoBridge] only until MainActivity passes the
- * real one.
+ * inputs, dock and what's playing.
  */
 @Composable
-fun RemoteApp(remote: TvRemote, bridge: TvBridge = NoBridge) {
+fun RemoteApp(remote: TvRemote, bridge: TvBridge) {
     val context = LocalContext.current
     val memory = remember(context) { TabMemory(context) }
     var tab by rememberSaveable { mutableStateOf(memory.load()) }

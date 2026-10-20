@@ -10,29 +10,29 @@ import com.barontv.remote.tv.TvState
 @Preview(name = "Connected", device = Devices.PIXEL_6, showSystemUi = true, backgroundColor = 0xFF000000)
 @Composable
 private fun ConnectedPreview() {
-    RemoteApp(FakeTvRemote(TvState.Connected(name = "Living room TV", host = "192.168.1.25")))
+    RemoteApp(FakeTvRemote(TvState.Connected(name = "Living room TV", host = "192.168.1.25")), FakeTvBridge())
 }
 
 @Preview(name = "Searching", device = Devices.PIXEL_6, showSystemUi = true, backgroundColor = 0xFF000000)
 @Composable
 private fun SearchingPreview() {
-    RemoteApp(FakeTvRemote(TvState.Searching))
+    RemoteApp(FakeTvRemote(TvState.Searching), FakeTvBridge())
 }
 
 @Preview(name = "Not found", device = Devices.PIXEL_6, showSystemUi = true, backgroundColor = 0xFF000000)
 @Composable
 private fun NotFoundPreview() {
-    RemoteApp(FakeTvRemote(TvState.NotFound))
+    RemoteApp(FakeTvRemote(TvState.NotFound), FakeTvBridge())
 }
 
 @Preview(name = "No Wi-Fi", device = Devices.PIXEL_6, showSystemUi = true, backgroundColor = 0xFF000000)
 @Composable
 private fun NoWifiPreview() {
-    RemoteApp(FakeTvRemote(TvState.NoWifi))
+    RemoteApp(FakeTvRemote(TvState.NoWifi), FakeTvBridge())
 }
 
 @Preview(name = "Small phone", device = Devices.NEXUS_5, showSystemUi = true, backgroundColor = 0xFF000000)
 @Composable
 private fun SmallPhonePreview() {
-    RemoteApp(FakeTvRemote())
+    RemoteApp(FakeTvRemote(), FakeTvBridge())
 }
