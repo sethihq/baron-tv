@@ -218,17 +218,6 @@
   block-size: 15px;
 }
 
-/* Meteocons draw inside a wide margin, so they render larger to match the glyph. */
-.bt-sky-icon img {
-  align-self: start;
-  justify-self: start;
-  inline-size: 22px;
-  block-size: 22px;
-  max-width: none;
-  margin-block-start: -4px;
-  margin-inline-start: -4px;
-}
-
 .bt-temp {
   font-size: 17px;
   font-weight: 600;
@@ -283,14 +272,6 @@
   inline-size: 13px;
   block-size: 13px;
   color: var(--text);
-}
-
-.bt-line img {
-  inline-size: 22px;
-  block-size: 22px;
-  max-width: none;
-  margin-block: -6px;
-  margin-inline: -4px;
 }
 
 /* ---- Motion: the second hand ticks, nothing else moves ---------------------------------------------- */

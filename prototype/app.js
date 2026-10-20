@@ -626,11 +626,8 @@ function setGlow(rgb) {
   const [, c, h0] = toOklch(rgb);
   const h = h0 > 75 && h0 < 120 ? 68 : h0;
   const chroma = c < 0.03 ? 0 : Math.min(c, 0.16);
-  const tone = `62% ${chroma.toFixed(3)} ${h.toFixed(1)}`;
-  ambient.style.setProperty("--amb-1", `oklch(${tone} / 0.34)`);
-  ambient.style.setProperty("--amb-2", `oklch(${tone} / 0.13)`);
-  // Refined (glow.css): a deeper, more saturated core behind the dock, and the far corner a step
-  // round the colour wheel so the screen has depth instead of one flat tint.
+  // The glow (glow.css): a deep, saturated core below the dock, and the far corner a step round the
+  // colour wheel so the screen has depth instead of one flat tint.
   const deep = chroma ? Math.min(chroma * 1.15, 0.18) : 0;
   ambient.style.setProperty("--g-core", `oklch(50% ${deep.toFixed(3)} ${h.toFixed(1)} / 0.6)`);
   ambient.style.setProperty("--g-mid", `oklch(40% ${(deep * 0.9).toFixed(3)} ${h.toFixed(1)} / 0.26)`);
@@ -638,10 +635,6 @@ function setGlow(rgb) {
 }
 
 function glowFor(el) {
-  if (settings().glow === "off") {
-    hideGlow();
-    return;
-  }
   const img = el.querySelector("img");
   const rgb = img && img.complete && img.naturalWidth ? vividColor(img) : FALLBACK_GLOW;
   if (!glowShown) {
@@ -649,14 +642,8 @@ function glowFor(el) {
     setGlow(rgb);
     fade(ambient, 1, 600);
   } else if (rgb.join(",") !== glowKey) {
-    // The refined glow's colours are registered properties, so they morph on their own.
-    if (settings().glow === "refined") setGlow(rgb);
-    else {
-      fade(ambient, 0.35, 200, () => {
-        setGlow(rgb);
-        fade(ambient, 1, 500);
-      });
-    }
+    // The glow's colours are registered properties, so they morph on their own.
+    setGlow(rgb);
   }
 }
 
@@ -945,17 +932,17 @@ async function loadTrending() {
 
 // ---- Weather, from Open-Meteo ------------------------------------------------------------------------
 
-// WMO weather codes, as Open-Meteo reports them, to words and an icon from each set.
+// WMO weather codes, as Open-Meteo reports them, to words and a Phosphor icon.
 function describe(code, isDay) {
   const dn = (day, night) => (isDay ? day : night);
-  if (code === 0) return { text: "Clear", ph: dn("sun", "moon"), mc: dn("clear-day", "clear-night") };
-  if (code === 1) return { text: "Mostly clear", ph: dn("sun", "moon"), mc: dn("mostly-clear-day", "mostly-clear-night") };
-  if (code === 2) return { text: "Partly cloudy", ph: dn("cloud-sun", "cloud-moon"), mc: dn("partly-cloudy-day", "partly-cloudy-night") };
-  if (code === 3) return { text: "Cloudy", ph: "cloud", mc: "cloudy" };
-  if (code === 45 || code === 48) return { text: "Foggy", ph: "cloud-fog", mc: "fog" };
-  if (code >= 51 && code <= 57) return { text: "Drizzle", ph: "cloud-rain", mc: "drizzle" };
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { text: "Snow", ph: "cloud-snow", mc: "snow" };
-  if (code >= 95) return { text: "Thunderstorms", ph: "cloud-lightning", mc: "thunderstorms-rain" };
+  if (code === 0) return { text: "Clear", ph: dn("sun", "moon") };
+  if (code === 1) return { text: "Mostly clear", ph: dn("sun", "moon") };
+  if (code === 2) return { text: "Partly cloudy", ph: dn("cloud-sun", "cloud-moon") };
+  if (code === 3) return { text: "Cloudy", ph: "cloud" };
+  if (code === 45 || code === 48) return { text: "Foggy", ph: "cloud-fog" };
+  if (code >= 51 && code <= 57) return { text: "Drizzle", ph: "cloud-rain" };
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { text: "Snow", ph: "cloud-snow" };
+  if (code >= 95) return { text: "Thunderstorms", ph: "cloud-lightning" };
   const rain = {
     61: "Light rain",
     63: "Rain",
@@ -966,18 +953,12 @@ function describe(code, isDay) {
     81: "Showers",
     82: "Heavy showers",
   };
-  if (rain[code]) return { text: rain[code], ph: "cloud-rain", mc: "rain" };
-  return { text: "Weather", ph: "cloud", mc: "cloudy" };
+  if (rain[code]) return { text: rain[code], ph: "cloud-rain" };
+  return { text: "Weather", ph: "cloud" };
 }
 
-// Meteocons use their colour set: its pale clouds are drawn for a dark screen.
+// Weather icons are Phosphor's, in the Icons weight like every other glyph.
 function weatherIcon(w) {
-  if (settings().weather === "meteocons") {
-    const img = new Image();
-    img.alt = "";
-    img.src = `assets/icons/meteocons/flat/${w.mc}.svg`;
-    return img;
-  }
   return glyph(w.ph);
 }
 
@@ -1659,15 +1640,9 @@ function drawLight(now) {
         swell += amp * Math.exp(-(d * d) / 0.0018);
       }
     }
-    // On the home screen the light rises from the bottom, where the glow has always been ("it should be
-    // at the bottom like earlier"): full along the bottom edge, fading up the sides, none across the top.
-    // Music mode lights the whole rim.
-    const rise = clamp((p.y / EH - 0.15) / 0.85, 0, 1);
-    const lit = mix(rise * rise * (3 - 2 * rise), 1, light.fullK);
-    if (lit < 0.01) continue;
-    const w = (14 * (1 + tide * 0.45) * deep * (p.corner ? 1.3 : 1) + 14 * swell) * (1 + light.fullK * 0.7) * breath * (0.6 + 0.4 * lit);
+    const w = (14 * (1 + tide * 0.45) * deep * (p.corner ? 1.3 : 1) + 14 * swell) * (1 + light.fullK * 0.7) * breath;
     const sparkle = 1 + light.high * 0.4 * Math.sin(i * 12.9898 + time * 21);
-    const alpha = lit * Math.min(0.3 + light.fullK * 0.14, (0.085 + swell * 0.09) * sparkle * (1 + light.fullK * 0.6) * breath);
+    const alpha = Math.min(0.3 + light.fullK * 0.14, (0.085 + swell * 0.09) * sparkle * (1 + light.fullK * 0.6) * breath);
     const col = paletteAt(t + turn);
     const g = lightCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, w);
     g.addColorStop(0, colorOf(col, alpha, 0.25));
@@ -2301,11 +2276,8 @@ function apply() {
   state.view = v.view;
   screen.hidden = v.view !== "new";
   nowShot.hidden = v.view !== "now";
-  screen.dataset.font = v.font;
   screen.dataset.clock = v.clock || "widget";
   screen.dataset.layout = v.layout || "sidebar";
-  ambient.dataset.glow = v.glow || "refined";
-  if (v.glow === "off") hideGlow();
   paintGlyphs();
   renderWeather();
   syncIsland();

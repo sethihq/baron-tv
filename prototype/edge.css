@@ -6,9 +6,9 @@
    under it gives the light depth, as if it came from the bezel. It only lights for music, never for
    video. app.js draws the light on the canvas and turns the whole thing on and off. */
 
-/* Behind the UI, like a backlight ("the glow should feel like it's behind the UI, it's coming on top of
-   the tiles"): under the content layer, so it shows round and between the panels, not over them. In
-   music mode the middle is black anyway, and the light comes forward over the dimming. */
+/* Only in music mode (and over the screensaver): on the home screen the one light is the glow below
+   the dock, as it was before the edge light ("the glow should be the bottom glow below the dock, how you
+   made before"). When it fades out it goes behind the UI, not over the tiles. */
 .edge {
   position: absolute;
   inset: 0;
@@ -21,7 +21,8 @@
   z-index: 26;
 }
 
-.edge[data-on] {
+.screen.music-mode .edge[data-on],
+.edge[data-on].over-saver {
   opacity: 1;
 }
 

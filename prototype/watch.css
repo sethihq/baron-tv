@@ -124,12 +124,6 @@
   block-size: 12px;
 }
 
-.cx-glyph img {
-  inline-size: 22px;
-  block-size: 22px;
-  max-width: none;
-}
-
 /* ---- Time --------------------------------------------------------------------------------------- */
 
 .watch-time {

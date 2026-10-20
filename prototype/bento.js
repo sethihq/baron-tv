@@ -86,7 +86,7 @@
     const parts = [el("span", "bt-wday", wday), el("b", "", String(now.getDate())), el("span", "bt-sep", "·")];
     if (r) {
       const next = nextFor(r);
-      const icon = weatherIcon({ ...r, ph: next.icon, mc: (r.hours.find((h) => h.ph === next.icon) || r).mc });
+      const icon = weatherIcon({ ...r, ph: next.icon });
       parts.push(icon, ...next.words.map(([text, strong]) => el(strong ? "b" : "span", "", text)));
     } else {
       parts.push(el("span", "", "Bengaluru"));
@@ -131,7 +131,7 @@
     ampmEl.textContent = h < 12 ? "am" : "pm";
 
     const v = settings();
-    const look = `${v.weather}|${v.ui}`;
+    const look = v.ui;
     const day = now.toDateString();
     if (reading !== seen.reading || day !== seen.day || look !== seen.look) {
       seen = { reading, day, look };

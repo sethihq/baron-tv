@@ -29,13 +29,6 @@
   font-display: block;
 }
 
-@font-face {
-  font-family: "Outfit TV";
-  src: url("assets/fonts/outfit.ttf") format("truetype");
-  font-weight: 100 900;
-  font-display: block;
-}
-
 *,
 *::before,
 *::after {
@@ -322,6 +315,8 @@ svg {
   --text-2: oklch(71% 0 none);
   /* The focus ring on art: fine and soft, not stark white. */
   --focus-ring: oklch(100% 0 none / 0.6);
+  /* Open Runde, the one font ("Open Runde default, remove the others"). It has no Light, so the big
+     numbers are Regular. */
   --font: "Open Runde", system-ui, sans-serif;
   --w-light: 400;
   --track-big: -0.035em;
@@ -366,26 +361,12 @@ svg {
   display: none;
 }
 
-/* Open Runde has no Light, so its big numbers are Regular. Outfit is the installed look. */
-.screen[data-font="outfit"] {
-  --font: "Outfit TV", system-ui, sans-serif;
-  --w-light: 300;
-  --track-big: -0.02em;
-}
-
-.screen[data-font="timeless"] {
-  --font: "Timeless Sans", "Open Runde", system-ui, sans-serif;
-  --w-light: 300;
-  --track-big: -0.02em;
-}
-
-/* Glow in the colour of the focused artwork, under everything. */
+/* Glow in the colour of the focused artwork, under everything; glow.css draws it. */
 .ambient {
   position: absolute;
   inset: 0;
   opacity: 0;
   pointer-events: none;
-  background: radial-gradient(circle 595px at 32% 42%, var(--amb-1, transparent), var(--amb-2, transparent) 50%, transparent 100%);
 }
 
 /* Registered so it reads 0px until app.js sets it, which the page 2 query below relies on. */
@@ -524,14 +505,6 @@ svg {
   inline-size: 26px;
   block-size: 26px;
   color: var(--text);
-}
-
-/* Meteocons draw inside a wide margin, so they render larger to match the glyphs' weight. */
-.wx-icon img,
-.wx-hour-icon img {
-  inline-size: 38px;
-  block-size: 38px;
-  max-width: none;
 }
 
 /* On a TV the focused item is the selection itself, so it shows whether it was reached with the
@@ -915,12 +888,6 @@ svg {
 .wx-big-icon .glyph {
   inline-size: 40px;
   block-size: 40px;
-}
-
-.wx-big-icon img {
-  inline-size: 72px;
-  block-size: 72px;
-  max-width: none;
 }
 
 .wx-cond {

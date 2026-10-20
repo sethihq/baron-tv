@@ -182,11 +182,11 @@ delay, and has a Show now button for the screensaver.
 What the user has decided, in order:
 
 - **Dark only**, on black, after trying light.
-- **Font: Open Runde** (rounded Inter, SIL OFL, `assets/fonts/open-runde/`). It has no Light, so the big
-  numbers are Regular. Outfit (the installed launcher's font) and Timeless (only when installed on the
-  Mac; its licence for embedding in an app is unchecked) are there to compare.
+- **Font: Open Runde** (rounded Inter, SIL OFL, `assets/fonts/open-runde/`), the only one ("Open Runde
+  default, remove the others": Outfit and Timeless are gone; the launcher keeps its own Outfit). It has no
+  Light, so the big numbers are Regular.
 - **Icons: Phosphor** (MIT, `assets/icons/phosphor/<regular|duotone|fill>/`) for the buttons, chips and
-  weather glyph. Weather can also use **Meteocons** flat (MIT, animated), whose pale clouds suit black.
+  weather glyph; the weather icons are Phosphor too, the only set ("Meteocons remove, Phosphor default").
 - **Layout from the user's two reference photos** of a custom Apple TV style launcher:
   - Page 1: greeting, clock and date on the left; round Inputs, Wi-Fi and Settings buttons on the right
     with live Bengaluru weather under them; a "Trending on your apps" shelf (one wide backdrop and two
@@ -239,8 +239,9 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
 - **Glow** ("these bg color glow should be more optimized"), `glow.css`: the new default "Refined" rises
   from behind the dock, deeper and more saturated at its core, with a faint second tone in the top-left
   corner; the colours are registered properties so they morph between apps instead of dimming through
-  black; a fine grain (overlay blend, invisible on black) stops banding on the 8-bit panel. Toolbar Glow
-  Refined / Original / Off.
+  black; a fine grain (overlay blend, invisible on black) stops banding on the 8-bit panel. It is the only
+  glow ("glow set to the refined one, remove the others": Original and Off are gone) and the home
+  screen's only light ("the glow should be the bottom glow below the dock, how you made before").
 - **Typography and spacing** ("how apple does for its products"), in `app.css`: a type scale on `.screen`
   (`--t-display` 56, `--t-sub` 17, `--t-body` 15, `--t-label` 13, `--t-caption` 12, with `--tr-*`
   tracking and `--lh-text` 1.3), a 4 dp spacing scale (`--s-1` to `--s-8`), safe area 32 by 56. Section
@@ -290,12 +291,12 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   just outside the screen so the edge never reads as a line (no stroke at the edge). Colour: three hues,
   the cover's main colour, -55 and +45 degrees, vivid, any olive hue leaned to amber, lightest at the edge
   and saturating inward, flowing round every 50 s. (A five-colour loop that drifted round the wheel with
-  every kick was tried and dropped: "too many colours, I liked the earlier one".) It sits behind the UI
-  like a backlight, under the content layer ("it's coming on top of the tiles"); music mode brings it
-  forward over the dimming. On the home screen it rises from the bottom, where the cover-coloured glow
-  has always been ("it should be at the bottom like earlier"): full along the bottom edge, fading up the
-  sides, nothing across the top; music mode lights the whole rim. Its depth rolls along the edge like a
-  slow tide and pools in the corners; a soft inner shadow under it gives depth.
+  every kick was tried and dropped: "too many colours, I liked the earlier one".) It shows only in
+  music mode (and over the screensaver), over the dimming: on the home screen the one light is the glow
+  below the dock, as before the edge light existed ("the glow should be the bottom glow below the dock,
+  how you made before"; a backlight version behind the UI, then a bottom-weighted one, came first). Its
+  depth rolls along the edge like a slow tide and pools in the corners; a soft inner shadow under it
+  gives depth.
   **Synced to the real music** ("edge lighting should be syncing with music"): panel Glow follows Song /
   Mic / Tempo. Song plays each track's 30 s Apple Music preview (`previewUrl` from the iTunes search, open
   CORS) and listens with a Web Audio FFT; Mic listens to the room (getUserMedia); Tempo fakes it. Kicks
@@ -395,12 +396,12 @@ Open questions for the user:
 
 1. The TMDB key (not given yet).
 2. Keep App Store and Media Center in the dock, or move them to page 2 so the dock is the five apps?
-3. Glow: Refined, Original, or Off? (Asked as "keep, fixed colour or remove" before the refined one existed.)
-4. The Netflix tile on the real TV: drop it, or point it at an HDMI stick once there is one?
-5. Island (always black now): keep it over the screensaver?
-6. Edge glow (second version): keep it? Beat or Steady?
-7. Layout: the sidebar, or the top bar? Clock: Bento, Widget or Classic? (Tiles are settled: covers.)
-8. Music mode: 8 s, 30 s or off? Glow follows the song, the mic, or a fixed tempo?
+3. The Netflix tile on the real TV: drop it, or point it at an HDMI stick once there is one?
+4. Island (always black now): keep it over the screensaver?
+5. Edge glow (music mode only now): Beat or Steady?
+6. Layout: the sidebar, or the top bar? Clock: Bento, Widget or Classic? (Settled: covers, Open Runde,
+   the Refined glow, Phosphor weather icons.)
+7. Music mode: 8 s, 30 s or off? Glow follows the song, the mic, or a fixed tempo?
 
 Porting it to the TV once approved (`launcher/`, Java):
 

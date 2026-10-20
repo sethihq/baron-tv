@@ -1,5 +1,7 @@
-/* Refined glow: light rising from behind the dock in the focused artwork's colour, deeper and more
-   saturated at its core than the original fog, with a faint second tone up in the far corner. The
+/* The glow, the only one ("glow set to the refined one, remove the others"): light rising from below
+   the dock in the focused artwork's colour, deep and saturated at its core, with a faint second tone up
+   in the far corner. It is the home screen's only light: the music edge light shows in music mode only
+   ("the glow should be the bottom glow below the dock, how you made before"). The
    colours are registered so they morph from one app to the next instead of blinking through dim. A
    fine grain sits on top so the long dark fades don't band on an 8-bit TV panel; on black it
    disappears (overlay leaves black alone). app.js sets the three colours from the artwork. */
@@ -22,13 +24,13 @@
   initial-value: oklch(0% 0 none / 0);
 }
 
-.ambient[data-glow="refined"] {
+.ambient {
   background:
     radial-gradient(115% 74% at 50% 112% in oklch, var(--g-core), var(--g-mid) 44%, oklch(0% 0 none / 0) 80%),
     radial-gradient(60% 62% at 6% -10% in oklch, var(--g-far), oklch(0% 0 none / 0) 72%);
 }
 
-.ambient[data-glow="refined"]::after {
+.ambient::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -38,7 +40,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .ambient[data-glow="refined"] {
+  .ambient {
     transition:
       --g-core 700ms var(--ease-out),
       --g-mid 700ms var(--ease-out),
