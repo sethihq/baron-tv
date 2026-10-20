@@ -1,8 +1,9 @@
-/* Layout: Sidebar ("move this panel to the right side, and a similar dock on the right for HDMI and the
-   others"). The time and weather bento and a matching dock of inputs and TV settings stack down a
-   right-hand column; the shelf takes the rest, with the island centred over it; the app dock runs the
-   full width along the bottom. Focus moves to the nearest item in the pressed direction (app.js), since
-   these are no longer simple rows. There's no page 2: its tiles live in the column now. */
+/* Layout: Sidebar. The dock of inputs and TV settings runs down the left from the top-left corner, the
+   time and weather bento sits in the top-right corner with the shelf under it, the island hangs in the
+   gap between the two, and the app dock runs the full width along the bottom (the user: "move this
+   panel to the right side, and a similar dock for HDMI and the others", then "this top right, this top
+   left"). Focus moves to the nearest item in the pressed direction (app.js), since these aren't simple
+   rows. There's no page 2: its tiles live in the dock now. */
 
 .side-dock {
   display: none;
@@ -10,11 +11,11 @@
 
 .screen[data-layout="sidebar"] .content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 232px;
+  grid-template-columns: 232px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
-    "shelf widget"
-    "shelf controls"
+    "controls widget"
+    "controls shelf"
     "dock dock";
   column-gap: var(--s-6);
   row-gap: var(--s-3);
@@ -33,7 +34,9 @@
 .screen[data-layout="sidebar"] .bento {
   display: grid;
   grid-area: widget;
+  justify-self: end;
   align-self: start;
+  inline-size: 232px;
 }
 
 .screen[data-layout="sidebar"] .side-dock {
@@ -45,11 +48,6 @@
 .screen[data-layout="sidebar"] .shelf {
   grid-area: shelf;
   margin-block-start: 0;
-}
-
-/* Room for the island over the shelf while music plays. */
-.screen[data-layout="sidebar"]:has(.island:not([hidden])) .shelf {
-  padding-block-start: 46px;
 }
 
 .screen[data-layout="sidebar"] .posters {
@@ -67,9 +65,21 @@
   margin-block-start: var(--s-2);
 }
 
-/* The island hangs over the middle of the shelf, not the middle of the screen. */
+/* The island hangs in the gap between the dock and the bento (app.js centres it there), level with
+   their tops, and opens no wider than the gap, so it never covers either. */
 .screen[data-layout="sidebar"] .island {
-  inset-inline-start: var(--isl-x, 352px);
+  inset-inline-start: var(--isl-x, 480px);
+}
+
+.screen[data-layout="sidebar"] .island[data-size="expanded"],
+.screen[data-layout="sidebar"] .isl-full {
+  inline-size: 364px;
+}
+
+.screen[data-layout="sidebar"] .isl-art-big {
+  inline-size: 60px;
+  block-size: 60px;
+  border-radius: 14px;
 }
 
 /* The side dock's tiles show focus with colour alone ("selected state big, remove, only colour change

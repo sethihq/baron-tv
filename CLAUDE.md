@@ -284,9 +284,12 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   Third version, after "the edge glow sucks, not aesthetic", "not straight clipped, inner shadows, make it
   interesting", the user's reference of glowing recap cards and "there is this hard line, don't want
   that": soft dabs of light along the rounded edge on a half-resolution canvas, added together, centred
-  just outside the screen so the edge never reads as a line (no stroke at the edge). Three hues spread
-  round the cover's main colour (main, -55 degrees, +45 degrees, vivid, any olive hue leaned to amber),
-  lightest at the edge and saturating inward. Its depth rolls along the edge like a slow tide and pools in
+  just outside the screen so the edge never reads as a line (no stroke at the edge). Colour ("should change
+  colours, only some specific colours are there"): a loop of five, the cover's own colours (up to three,
+  35 degrees apart) plus companions spread round the wheel (+105, -135), vivid at matched lightness, any
+  olive hue leaned to amber, lightest at the edge and saturating inward; it flows round the screen every
+  28 s, each kick's swell carries the next colour of the loop round the edges (the highs' swells the
+  opposite one), and every kick turns the whole loop a few degrees, so busy songs travel the wheel faster. Its depth rolls along the edge like a slow tide and pools in
   the corners; a soft inner shadow under it gives depth.
   **Synced to the real music** ("edge lighting should be syncing with music"): panel Glow follows Song /
   Mic / Tempo. Song plays each track's 30 s Apple Music preview (`previewUrl` from the iTunes search, open
@@ -312,10 +315,12 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   Cloud TV App Store and Media Center traced from their APK banners.
 
 - **Layout: Sidebar** (default; Top bar to compare), `sidebar.css` ("move this panel to the right side,
-  and a similar dock on the right for HDMI and the others"): a right-hand column, 232 wide, holds the bento
-  widget and under it a matching dock of tiles (Inputs: HDMI 1, HDMI 2, AV; TV: Wi-Fi, Picture, Sound,
-  Settings); the shelf takes the rest with the island centred over it; the app dock runs the full width
-  along the bottom; no page 2. Focus moves to the nearest item in the pressed direction (FocusFinder
+  and a similar dock on the right for HDMI and the others", then "this top right, this top left"): the dock
+  of tiles (Inputs: HDMI 1 with a green dot while connected, HDMI 2, AV; TV: Wi-Fi, Picture, Sound,
+  Settings) runs down the left from the top-left corner, 232 wide; the bento widget sits top right, 232
+  wide, with the shelf under it; the island hangs centred in the gap between them, level with their tops,
+  and opens only 364 wide so it covers neither; the app dock runs the full width along the bottom; no page
+  2. A focused dock tile only turns lighter ("selected state big, remove, only colour change is fine"). Focus moves to the nearest item in the pressed direction (FocusFinder
   style: same band first, then closest), since these aren't simple rows any more.
 - **Clock: Bento** (default; Widget and Classic stay), `bento.css` and `bento.js` (the user sent four
   widget references, "cute widgets like this but don't want to copy"): a black frame with a hairline

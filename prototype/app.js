@@ -1090,9 +1090,11 @@ function sizeIsland() {
   if (island.hidden) return;
   island.style.setProperty("--wc", `${islCompact.offsetWidth}px`);
   if (sidebar()) {
-    const shelf = rectIn(document.querySelector(".shelf"));
-    island.style.setProperty("--isl-x", `${Math.round(shelf.x + shelf.w / 2)}px`);
-    island.style.setProperty("--isl-top", "32px");
+    // Centred in the gap between the dock on the left and the bento on the right.
+    const left = rectIn(sideDock);
+    const right = rectIn(document.getElementById("bento"));
+    island.style.setProperty("--isl-x", `${Math.round((left.x + left.w + right.x) / 2)}px`);
+    island.style.setProperty("--isl-top", `${Math.round(left.y)}px`);
   } else {
     const button = rectIn(rounds[0]);
     island.style.setProperty("--isl-top", `${Math.round(button.y + button.h / 2 - 17)}px`);
@@ -1245,8 +1247,8 @@ const EDGE_BPM = [86, 94, 104, 103, 90];
 const DABS = 220;
 const paletteCache = new Map();
 
-// The cover's two colours: its most vivid one, then the most vivid one at least 40 degrees round the
-// wheel from it (or the first one turned 50 degrees, for a one-colour cover). The rim uses the first.
+// The cover's colours, most vivid first: up to three, each at least 35 degrees round the wheel from the
+// others. A one-colour cover gives one.
 function coverColors(img) {
   if (paletteCache.has(img.src)) return paletteCache.get(img.src);
   let pair = [FALLBACK_GLOW, FALLBACK_GLOW];
@@ -1265,10 +1267,14 @@ function coverColors(img) {
       seen.push({ rgb, h, score: s * Math.min(1, v * 1.4) });
     }
     seen.sort((a, b) => b.score - a.score);
-    const first = seen[0];
+    // Up to three: the most vivid colour, then the most vivid ones at least 35 degrees from those taken.
     const apart = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
-    const second = seen.find((c) => c.score > 0.2 && apart(c.h, first.h) >= 40);
-    pair = [first.rgb, second ? second.rgb : hsvToRgb((first.h + 50) % 360, 0.8, 0.9)];
+    const taken = [seen[0]];
+    for (const c of seen) {
+      if (taken.length === 3) break;
+      if (c.score > 0.2 && taken.every((t) => apart(c.h, t.h) >= 35)) taken.push(c);
+    }
+    pair = taken.map((c) => c.rgb);
   } catch {
     // A cover the canvas may not read: grey.
   }
@@ -1290,11 +1296,15 @@ const light = {
   swells: [],
   // Three OKLCH colours, easing towards the cover's.
   now: [
-    [62, 0.2, 300],
-    [56, 0.22, 255],
-    [70, 0.16, 345],
+    [64, 0.2, 300],
+    [58, 0.22, 255],
+    [70, 0.17, 345],
+    [60, 0.21, 20],
+    [66, 0.19, 200],
   ],
   goal: null,
+  hueShift: 0,
+  kicks: 0,
 };
 light.goal = light.now.map((c) => [...c]);
 
@@ -1335,41 +1345,51 @@ const rim = (() => {
 const mix = (a, b, k) => a + (b - a) * k;
 const mixHue = (a, b, k) => (a + ((((b - a + 540) % 360) - 180) * k) + 360) % 360;
 
-// The colour u of the way round the loop main, second, third, second; lift moves it towards white.
-function lightColor(u, alpha, lift = 0) {
-  const loop = [0, 1, 2, 1];
-  const x = (((u % 1) + 1) % 1) * 4;
+// Five colours in a loop: the cover's own (up to three) and companions spread round the wheel from its
+// main colour, so the light has range (violet, blue, pink, amber) without clashing. hueShift turns the
+// whole loop: it drifts a little with every kick, so over a song the colours keep travelling.
+const unOlive = (x) => {
+  const y = ((x % 360) + 360) % 360;
+  return y > 75 && y < 120 ? 68 : y;
+};
+
+function paletteAt(u) {
+  const n = light.now.length;
+  const x = (((u % 1) + 1) % 1) * n;
   const i = Math.floor(x);
   const f = x - i;
   const s = f * f * (3 - 2 * f);
-  const a = light.now[loop[i]];
-  const b = light.now[loop[(i + 1) % 4]];
-  const l = mix(mix(a[0], b[0], s), 97, lift);
-  const c = mix(a[1], b[1], s) * (1 - lift * 0.6);
-  return `oklch(${l.toFixed(1)}% ${c.toFixed(3)} ${mixHue(a[2], b[2], s).toFixed(1)} / ${alpha.toFixed(3)})`;
+  const a = light.now[i];
+  const b = light.now[(i + 1) % n];
+  return [mix(a[0], b[0], s), mix(a[1], b[1], s), unOlive(mixHue(a[2], b[2], s) + light.hueShift)];
 }
 
-// The cover's main colour, and two more spread round the wheel from it, vivid on black. A grey cover
-// gives a cool silver.
+// A colour as CSS; lift moves it towards white.
+function colorOf([l, c, h], alpha, lift = 0) {
+  return `oklch(${mix(l, 97, lift).toFixed(1)}% ${(c * (1 - lift * 0.6)).toFixed(3)} ${h.toFixed(1)} / ${alpha.toFixed(3)})`;
+}
+
+// The loop for this cover: its main colour, its second (or +40), +105, its third (or -60), -135, at
+// matched lightness and vivid chroma. A grey cover gives a soft, cool silver.
 function setEdgeColors() {
   if (!islArt.complete || !islArt.naturalWidth) return;
-  const [, c, h] = toOklch(coverColors(islArt)[0]);
+  const cover = coverColors(islArt).map((rgb) => toOklch(rgb));
+  const [, c, h] = cover[0];
   const k = c < 0.03 ? 0.15 : 1;
-  // Dark yellows read as olive on black, so any hue that lands there leans to amber.
-  const hue = (x) => {
-    const y = (x + 360) % 360;
-    return y > 75 && y < 120 ? 68 : y;
-  };
-  light.goal = [
-    [62, 0.2 * k, hue(h)],
-    [56, 0.22 * k, hue(h + 305)],
-    [70, 0.16 * k, hue(h + 45)],
+  const hues = [h, cover[1]?.[2] ?? h + 40, h + 105, cover[2]?.[2] ?? h - 60, h - 135];
+  const tone = [
+    [64, 0.2],
+    [58, 0.22],
+    [70, 0.17],
+    [60, 0.21],
+    [66, 0.19],
   ];
+  light.goal = hues.map((x, i) => [tone[i][0], tone[i][1] * k, unOlive(x)]);
 }
 
 function drawLight(now) {
   const time = now / 1000;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < light.goal.length; i++) {
     const [a, b] = [light.now[i], light.goal[i]];
     light.now[i] = [mix(a[0], b[0], 0.04), mix(a[1], b[1], 0.04), mixHue(a[2], b[2], 0.04)];
   }
@@ -1380,7 +1400,7 @@ function drawLight(now) {
   lightCtx.clearRect(0, 0, EW, EH);
   lightCtx.globalCompositeOperation = "lighter";
   const deep = 1 + light.bass * 0.5;
-  const turn = time / 50;
+  const turn = time / 28;
   for (let i = 0; i < DABS; i++) {
     const p = rim[i];
     const t = i / DABS;
@@ -1390,6 +1410,10 @@ function drawLight(now) {
       0.3 * Math.sin(2 * Math.PI * 5 * t - time * 0.75 + 1.3) +
       0.2 * Math.sin(2 * Math.PI * 8 * t + time * 1.2 + 0.4);
     let swell = 0;
+    let tintL = 0;
+    let tintC = 0;
+    let tintX = 0;
+    let tintY = 0;
     for (const s of light.swells) {
       const age = (now - s.born) / 1000;
       const amp = s.amp * Math.exp(-age / 0.85);
@@ -1397,18 +1421,29 @@ function drawLight(now) {
       for (const c of [s.at + reach, s.at - reach]) {
         let d = Math.abs(t - (((c % 1) + 1) % 1));
         d = Math.min(d, 1 - d);
-        swell += amp * Math.exp(-(d * d) / 0.0018);
+        const a = amp * Math.exp(-(d * d) / 0.0018);
+        swell += a;
+        // Each swell carries its own colour round the edge.
+        tintL += s.color[0] * a;
+        tintC += s.color[1] * a;
+        tintX += Math.cos((s.color[2] * Math.PI) / 180) * a;
+        tintY += Math.sin((s.color[2] * Math.PI) / 180) * a;
       }
     }
     const w = (14 * (1 + tide * 0.45) * deep * (p.corner ? 1.3 : 1) + 14 * swell) * (1 + light.fullK * 0.7) * breath;
     const sparkle = 1 + light.high * 0.4 * Math.sin(i * 12.9898 + time * 21);
     const alpha = Math.min(0.3 + light.fullK * 0.14, (0.085 + swell * 0.09) * sparkle * (1 + light.fullK * 0.6) * breath);
-    const u = t + turn;
+    let col = paletteAt(t + turn);
+    if (swell > 0.02) {
+      const tint = [tintL / swell, tintC / swell, ((Math.atan2(tintY, tintX) * 180) / Math.PI + 360) % 360];
+      const k = Math.min(1, swell * 0.9);
+      col = [mix(col[0], tint[0], k), mix(col[1], tint[1], k), mixHue(col[2], tint[2], k)];
+    }
     const g = lightCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, w);
-    g.addColorStop(0, lightColor(u, alpha, 0.25));
-    g.addColorStop(0.3, lightColor(u, alpha * 0.85));
-    g.addColorStop(0.7, lightColor(u, alpha * 0.28));
-    g.addColorStop(1, lightColor(u, 0));
+    g.addColorStop(0, colorOf(col, alpha, 0.25));
+    g.addColorStop(0.3, colorOf(col, alpha * 0.85));
+    g.addColorStop(0.7, colorOf(col, alpha * 0.28));
+    g.addColorStop(1, colorOf(col, 0));
     lightCtx.fillStyle = g;
     lightCtx.beginPath();
     lightCtx.arc(p.x, p.y, w, 0, Math.PI * 2);
@@ -1533,6 +1568,14 @@ function onset(hist, x, floor) {
   return x > Math.max(floor, mean + 1.6 * sd) ? x - mean : 0;
 }
 
+// A kick's swell: from the bottom centre, in the next colour of the loop; it also turns the whole loop
+// on a few degrees, so a busy song travels round the wheel faster than a quiet one.
+function kickSwell(now, amp) {
+  light.kicks += 1;
+  light.hueShift = (light.hueShift + 2 + amp * 3) % 360;
+  return { at: 0.5, born: now, amp, color: paletteAt(light.kicks * 0.2) };
+}
+
 function hear(now) {
   ear.analyser.getByteFrequencyData(ear.bins);
   const hz = ear.ctx.sampleRate / ear.analyser.fftSize;
@@ -1555,12 +1598,12 @@ function hear(now) {
   const kick = onset(ear.low, lowFlux, 0.035);
   if (kick && now - ear.lastKick > 240) {
     ear.lastKick = now;
-    light.swells.push({ at: 0.5, born: now, amp: Math.min(1, 0.55 + kick * 5) });
+    light.swells.push(kickSwell(now, Math.min(1, 0.55 + kick * 5)));
   }
   const hat = onset(ear.high, highFlux, 0.02);
   if (hat && now - ear.lastHat > 420 && now - ear.lastKick > 120) {
     ear.lastHat = now;
-    light.swells.push({ at: 0, born: now, amp: 0.35 });
+    light.swells.push({ at: 0, born: now, amp: 0.35, color: paletteAt(light.kicks * 0.2 + 0.5) });
   }
   light.bass += (clamp((low - 0.45) / 0.4, 0, 1) - light.bass) * 0.2;
   light.high += (clamp((high - 0.25) / 0.45, 0, 1) - light.high) * 0.25;
@@ -1571,7 +1614,7 @@ function hear(now) {
 function tempo(now) {
   if (now >= light.next) {
     light.next = now + 60000 / EDGE_BPM[np.i % EDGE_BPM.length];
-    light.swells.push(light.count % 2 === 0 ? { at: 0.5, born: now, amp: 0.9 } : { at: 0, born: now, amp: 0.35 });
+    light.swells.push(light.count % 2 === 0 ? kickSwell(now, 0.9) : { at: 0, born: now, amp: 0.35, color: paletteAt(light.kicks * 0.2 + 0.5) });
     light.count = (light.count + 1) % 4;
   }
   light.bass = 0.3 + 0.1 * Math.sin(now / 900);
