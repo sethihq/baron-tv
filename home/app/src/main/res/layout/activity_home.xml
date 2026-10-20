@@ -2,7 +2,8 @@
 <!-- The Sidebar layout, at the prototype's own positions (960 x 540 dp; HomeActivity sets 213 dpi, which
      makes the TV's 1280 x 720 exactly that). Each slot is filled in code by its part:
      glow behind everything, bento top left, the shelf under it, the side dock on the right, the app dock
-     along the bottom, the island over the top, music mode over everything, the toast on top. -->
+     along the bottom, the island over the top, music mode over everything, then the screensaver, the toast
+     on top. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -62,6 +63,12 @@
 
     <FrameLayout
         android:id="@+id/musicSlot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- The DVD screensaver: this firmware runs no dreams, so the home screen shows it itself. -->
+    <FrameLayout
+        android:id="@+id/saverSlot"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
