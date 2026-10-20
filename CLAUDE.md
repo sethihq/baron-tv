@@ -497,9 +497,13 @@ slots, `core/Tokens.kt` colours converted from OKLCH).
   media keys (`dispatchMediaKeyEvent`), shortcuts. The home's own volume bar (`volume/`): the side dock's
   Sound view in an accessibility overlay at the dock's place, 2 s after the last change, shown for bridge
   changes and for the remote's volume and mute keys, which the accessibility service takes over (flags
-  without the system UI) so CVTE's pop-up shouldn't show. Caveat from the AOSP 9 source: the framework may
-  hand Vol+ and Vol- to the window manager before any accessibility service sees them, in which case CVTE's
-  pop-up still shows for those two (check `logcat -s BaronVolume`); Mute is taken over either way.
+  without the system UI) so CVTE's pop-up shouldn't show. Checked on the TV on 2026-10-21: the phone's
+  volume (through the bridge) shows the home's bar and no CVTE pop-up, but the physical remote's Vol+ and
+  Vol- never reach the home: CVTE's hotkey service in `com.cvte.tv.api.impl` (logcat tag `hotkey`,
+  `handleMapKeyEvent`) takes them first, sets the volume and draws its own round pop-up. There's no setting
+  to turn that off (only `osd_timer`), so the remote's volume keys keep CVTE's pop-up. Simulate a real
+  remote key with `sendevent /dev/input/event0 1 <scan> 1` then `0 0 0`, release likewise (Vol+ 115,
+  Vol- 114, Mute 113; Input 79). Steps snap to fives, so a step from 18 lands on 20.
 - **Still to check on the TV** (it was off when the tabs and bridge landed): reinstall the home, then the
   bridge endpoints with curl, the remote's volume keys and the bar, `/now` with Spotify in front (its
   screen may read only as a web view, then title and artist stay empty), `/media` in Spotify (if it has no
