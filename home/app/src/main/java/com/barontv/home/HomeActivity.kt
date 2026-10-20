@@ -53,6 +53,8 @@ class HomeActivity : Activity(), HomeHost {
         island = IslandView(this, this)
         findViewById<FrameLayout>(R.id.islandSlot).addView(island, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         musicMode = MusicMode(this, findViewById(R.id.musicSlot))
+        // Under music mode's black the clock stops ticking: nothing there can be seen.
+        musicMode.onCovered = { covered -> home.setCovered(covered) }
 
         // Last, once every part is in: the apps, focus on YouTube, then the cached and fresh data.
         home.start()

@@ -37,6 +37,9 @@ class MusicMode(private val activity: Activity, private val layer: FrameLayout) 
     private var music = false
     private var looping = false
     private var behindHidden = false
+
+    /** Told when the home screen goes under the black (true) and comes back (false), so it can rest. */
+    var onCovered: ((Boolean) -> Unit)? = null
     private val behind = arrayOfNulls<View>(BEHIND.size)
     private val behindWas = IntArray(BEHIND.size)
     private var art: Bitmap? = null
@@ -197,6 +200,7 @@ class MusicMode(private val activity: Activity, private val layer: FrameLayout) 
     private fun hideBehind() {
         if (behindHidden) return
         behindHidden = true
+        onCovered?.invoke(true)
         for (i in BEHIND.indices) {
             val v = activity.findViewById<View>(BEHIND[i]) ?: continue
             behind[i] = v
@@ -208,6 +212,7 @@ class MusicMode(private val activity: Activity, private val layer: FrameLayout) 
     private fun showBehind() {
         if (!behindHidden) return
         behindHidden = false
+        onCovered?.invoke(false)
         for (i in BEHIND.indices) {
             val v = behind[i] ?: continue
             if (v.visibility == View.INVISIBLE) v.visibility = behindWas[i]
