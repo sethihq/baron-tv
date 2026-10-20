@@ -163,6 +163,12 @@ svg {
   font-weight: 500;
 }
 
+.ctl-note {
+  color: var(--chrome-text-2);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
 /* A choice with its action beside it: Spotify and Next song, the delay and Show now. */
 .ctl-row {
   display: flex;
@@ -695,7 +701,7 @@ svg {
   scale: 1.05;
   background: oklch(29% 0.004 286);
   color: var(--text);
-  box-shadow: 0 18px 36px oklch(0% 0 none / 0.6);
+  box-shadow: 0 8px 20px oklch(0% 0 none / 0.3);
 }
 
 .poster:focus .p-title,
@@ -763,7 +769,7 @@ svg {
 
 .tile:focus .card {
   scale: 1.08;
-  box-shadow: 0 10px 22px oklch(0% 0 none / 0.55);
+  box-shadow: 0 5px 14px oklch(0% 0 none / 0.28);
 }
 
 .tile:active .card,
@@ -839,7 +845,7 @@ svg {
   outline: 2px solid transparent;
   scale: 1.06;
   background: var(--chip-on);
-  box-shadow: 0 10px 22px oklch(0% 0 none / 0.55);
+  box-shadow: 0 5px 14px oklch(0% 0 none / 0.26);
 }
 
 .chip:active {

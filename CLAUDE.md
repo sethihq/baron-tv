@@ -278,18 +278,31 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   stack down the left, the weather panel takes the right column, its place name level with "Inputs",
   its top and bottom flush with the tiles; six hours of forecast. Inputs and shortcuts are two focus rows.
 - **Edge glow while music plays** ("a Mac app glows the screen edges when music plays, not for a movie
-  intro"), `edge.css`. Researched: Lumn (paid, $9.99, two cover colours 60/40, beat or steady idle glow,
-  brightness and thickness), Open Glow (MIT: two k-means cover colours flowing round, FFT beat swells),
-  Rimshot (open source: neon cover palette, kick detection, drawn only in four edge strips), MacGlow,
-  EdgeBeat. The first version (thick strips, two clashing cover colours, a wash over the screen) got "the
-  edge glow sucks, not aesthetic"; now it's a thin luminous line at the edge with a halo and a faint
-  bloom (one ring blurred three ways, the screen clipping the outer half), in three neighbouring shades
-  of the cover's main colour, turning slowly and breathing brighter on the beat. Panel: Sound is Music /
-  Video (dark for video), Edge glow Beat / Steady / Off. On the TV: light only when the playing stream's
-  `AudioAttributes` content type is MUSIC (`AudioManager.getActivePlaybackConfigurations`), never MOVIE;
-  beats from `android.media.audiofx.Visualizer` on the output mix (needs RECORD_AUDIO, `pm grant`) or the
-  steady mode; draw a pre-blurred ring texture tinted per song rather than live blur (512 MB); over other
-  apps it needs an overlay window (SYSTEM_ALERT_WINDOW through `appops`).
+  intro"), `edge.css` plus the edge section of `app.js`. Researched: Lumn (paid, $9.99, two cover colours
+  60/40, beat or steady idle glow), Open Glow (MIT: k-means cover colours flowing round, FFT beat swells),
+  Rimshot (open source: neon cover palette, kick detection, drawn only in edge strips), MacGlow, EdgeBeat.
+  Third version, after "the edge glow sucks, not aesthetic", "not straight clipped, inner shadows, make it
+  interesting", the user's reference of glowing recap cards and "there is this hard line, don't want
+  that": soft dabs of light along the rounded edge on a half-resolution canvas, added together, centred
+  just outside the screen so the edge never reads as a line (no stroke at the edge). Three hues spread
+  round the cover's main colour (main, -55 degrees, +45 degrees, vivid, any olive hue leaned to amber),
+  lightest at the edge and saturating inward. Its depth rolls along the edge like a slow tide and pools in
+  the corners; a soft inner shadow under it gives depth.
+  **Synced to the real music** ("edge lighting should be syncing with music"): panel Glow follows Song /
+  Mic / Tempo. Song plays each track's 30 s Apple Music preview (`previewUrl` from the iTunes search, open
+  CORS) and listens with a Web Audio FFT; Mic listens to the room (getUserMedia); Tempo fakes it. Kicks
+  (spectral flux 40 to 150 Hz over an adaptive threshold) send a swell of light from the bottom centre
+  round both sides; the highs' jumps (4 to 10 kHz) send small ones from the top; the bass deepens the glow,
+  the highs sparkle it. The island shows the preview's real time. Never for video (Sound is: Video).
+  **Music mode** ("when a song plays the middle should dim, only the edge lighting visible and breathing,
+  at full"): while music plays and the remote rests (Music mode after 8 s / 30 s / Off, plus Show now),
+  everything in the middle fades to black and the light grows to full strength, breathing on a 5.5 s
+  cycle with the beat swells on top; it replaces the DVD screensaver while music plays; the first key
+  only wakes the screen.
+  On the TV: light only when the playing stream's `AudioAttributes` content type is MUSIC
+  (`AudioManager.getActivePlaybackConfigurations`); the spectrum from `android.media.audiofx.Visualizer`
+  on the output mix (RECORD_AUDIO through `pm grant`); draw with one pre-blurred dab bitmap, tinted, at
+  half resolution; over other apps it needs an overlay window (SYSTEM_ALERT_WINDOW through `appops`).
 - **App tiles** ("tiles not united, logos not well designed, I want the covers real TVs use"), the default
   Look > Tiles: Covers, `assets/apps/covers/*.svg` (Banners shows the APK banners to compare): each
   brand's TV banner colour full-bleed, every mark centred at one optical size (at most 62% wide and 40%
@@ -297,6 +310,26 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   black ones keep their edge. Netflix shows its red wordmark. Logos: Prime Video 2024, Netflix, YouTube
   and Spotify are official SVGs from Wikimedia Commons; JioHotstar traced from Wikipedia's 2025 PNG;
   Cloud TV App Store and Media Center traced from their APK banners.
+
+- **Layout: Sidebar** (default; Top bar to compare), `sidebar.css` ("move this panel to the right side,
+  and a similar dock on the right for HDMI and the others"): a right-hand column, 232 wide, holds the bento
+  widget and under it a matching dock of tiles (Inputs: HDMI 1, HDMI 2, AV; TV: Wi-Fi, Picture, Sound,
+  Settings); the shelf takes the rest with the island centred over it; the app dock runs the full width
+  along the bottom; no page 2. Focus moves to the nearest item in the pressed direction (FocusFinder
+  style: same band first, then closest), since these aren't simple rows any more.
+- **Clock: Bento** (default; Widget and Classic stay), `bento.css` and `bento.js` (the user sent four
+  widget references, "cute widgets like this but don't want to copy"): a black frame with a hairline
+  holding a cream watch dial with an orange second hand, the greeting over a chunky time, a square in the
+  colour of the sky now (sun, part cloud, cloud, rain, storm, night) with the temperature, and a line
+  that reads like a sentence: the date, then what the weather does next ("Drizzle from 2 pm", "Clear till
+  late"), computed from the coming hours.
+- **Selected states** ("drop shadows on selected states too strong"): the dock tiles', posters' and
+  chips' focus shadows are now 26 to 30% black with short drops (from 55 to 60%).
+- **Phone app polish** ("selected glow and drop shadow too strong, should be subtle; also use haptics"):
+  quieter selected, pressed and dragged states; haptics through one helper (`navigator.vibrate` in the
+  prototype) with named patterns (tick, tap, repeat, confirm, reject, lift, slot, select), each mapped in a
+  comment to `HapticFeedbackConstants` and Compose's haptic types for the native build. The native app is
+  not built yet: only the localhost prototype exists.
 
 Porting the island: a `NotificationListenerService` (say `MediaListener`) gives the launcher
 `MediaSessionManager.getActiveSessions`; follow Spotify's `MediaController` (metadata title, artist,
@@ -317,6 +350,8 @@ Open questions for the user:
 6. Edge glow (second version): keep it? Beat or Steady?
 7. Clock: the widget, or back to the classic big clock?
 8. Tiles: the new covers, or the APK banners?
+9. Layout: the sidebar, or the top bar? Clock: Bento, Widget or Classic?
+10. Music mode: 8 s, 30 s or off? Glow follows the song, the mic, or a fixed tempo?
 
 Porting it to the TV once approved (`launcher/`, Java):
 

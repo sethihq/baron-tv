@@ -1,0 +1,85 @@
+/* Layout: Sidebar ("move this panel to the right side, and a similar dock on the right for HDMI and the
+   others"). The time and weather bento and a matching dock of inputs and TV settings stack down a
+   right-hand column; the shelf takes the rest, with the island centred over it; the app dock runs the
+   full width along the bottom. Focus moves to the nearest item in the pressed direction (app.js), since
+   these are no longer simple rows. There's no page 2: its tiles live in the column now. */
+
+.side-dock {
+  display: none;
+}
+
+.screen[data-layout="sidebar"] .content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 232px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "shelf widget"
+    "shelf controls"
+    "dock dock";
+  column-gap: var(--s-6);
+  row-gap: var(--s-3);
+  block-size: 100%;
+}
+
+/* The top band's own box goes; its bento becomes a cell of the grid. */
+.screen[data-layout="sidebar"] .top {
+  display: contents;
+}
+
+.screen[data-layout="sidebar"] :is(.clock, .corner, .watch, .page2) {
+  display: none;
+}
+
+.screen[data-layout="sidebar"] .bento {
+  display: grid;
+  grid-area: widget;
+  align-self: start;
+}
+
+.screen[data-layout="sidebar"] .side-dock {
+  display: grid;
+  grid-area: controls;
+  align-self: stretch;
+}
+
+.screen[data-layout="sidebar"] .shelf {
+  grid-area: shelf;
+  margin-block-start: 0;
+}
+
+/* Room for the island over the shelf while music plays. */
+.screen[data-layout="sidebar"]:has(.island:not([hidden])) .shelf {
+  padding-block-start: 46px;
+}
+
+.screen[data-layout="sidebar"] .posters {
+  grid-template-columns: minmax(0, 1fr) 124px 124px;
+  gap: var(--s-4);
+}
+
+.screen[data-layout="sidebar"] .art {
+  block-size: var(--art-sidebar, 222px);
+}
+
+.screen[data-layout="sidebar"] .dock {
+  grid-area: dock;
+  align-self: end;
+  margin-block-start: var(--s-2);
+}
+
+/* The island hangs over the middle of the shelf, not the middle of the screen. */
+.screen[data-layout="sidebar"] .island {
+  inset-inline-start: var(--isl-x, 352px);
+}
+
+/* The side dock's tiles show focus with colour alone ("selected state big, remove, only colour change
+   is fine"): no lift, no shadow, a lighter surface. */
+.bento-tile:focus {
+  scale: none;
+  background: oklch(36% 0 none);
+  box-shadow: none;
+}
+
+.bento-tile:active {
+  scale: none;
+}

@@ -142,13 +142,60 @@ function say(text) {
   sayTimer = setTimeout(() => statusEl.classList.remove("show"), 1600);
 }
 
-// A short tick on phones that have a vibration motor; desktop browsers ignore it.
-function buzz(ms) {
-  try {
-    if (navigator.vibrate) navigator.vibrate(ms);
-  } catch {
-    // Not allowed here: no tick.
+// ---- Haptics ---------------------------------------------------------------------------------------------
+
+// One helper with named patterns, as a polished remote does it: the lighter the action, the lighter
+// the tick, and only actions that commit something get more than one pulse. navigator.vibrate works
+// in Android Chrome; elsewhere it's missing or ignored, so every call is guarded. Each pattern comes
+// with a small visible response (pulse()), so desktop review still shows the feedback, on the same
+// frame as the vibration.
+//
+// In the native build (Kotlin, Jetpack Compose) each name maps to View.performHapticFeedback with a
+// HapticFeedbackConstants value, or to LocalHapticFeedback.current.performHapticFeedback with the
+// matching HapticFeedbackType (Compose 1.8 and later has most of these; older versions only have
+// LongPress and TextHandleMove, so fall back to the View call):
+//   tick     a D-pad step from the touch pad    CLOCK_TICK                     (TextHandleMove)
+//   tap      OK, Back, Home, Input, Menu, media VIRTUAL_KEY                    (VirtualKey)
+//   repeat   each volume step while held        KEYBOARD_TAP                   (KeyboardTap)
+//   confirm  an app opening on the TV           CONFIRM, API 30+               (Confirm)
+//   reject   an app that can't run on this TV   REJECT, API 30+                (Reject)
+//   lift     picking up a dock row              GESTURE_THRESHOLD_ACTIVATE, API 34+, else LONG_PRESS
+//   slot     the dragged row passing a slot,    SEGMENT_TICK, API 34+, else CLOCK_TICK (SegmentTick)
+//            and each tenth of the volume slider
+//   select   a tab or a picker choice           SEGMENT_FREQUENT_TICK, API 34+ (SegmentFrequentTick)
+const HAPTICS = {
+  tick: 6,
+  tap: 10,
+  repeat: 5,
+  confirm: [12, 60, 18],
+  reject: [8, 50, 8, 50, 8],
+  lift: 14,
+  slot: 4,
+  select: 7,
+};
+
+const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
+
+// The visible half of a haptic: a brief, small press on the element that caused it. Reject shakes a
+// little instead, as a wrong passcode does. With reduced motion, a short dim stands in for movement.
+function pulse(el, kind) {
+  if (!el) return;
+  if (reduceMotion.matches) {
+    el.animate([{ opacity: 0.7 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+  } else if (kind === "reject") {
+    el.animate([{ translate: "0 0" }, { translate: "-3px 0" }, { translate: "3px 0" }, { translate: "-2px 0" }, { translate: "0 0" }], { duration: 260, easing: "ease-in-out" });
+  } else {
+    el.animate([{ scale: kind === "repeat" || kind === "slot" ? 0.97 : 0.95 }, { scale: 1 }], { duration: 180, easing: EASE_OUT });
   }
+}
+
+function haptic(kind, el) {
+  try {
+    if (navigator.vibrate) navigator.vibrate(HAPTICS[kind]);
+  } catch {
+    // Not allowed here (no user gesture yet, or a frame without permission): no vibration.
+  }
+  pulse(el, kind);
 }
 
 // On the TV: fetch(`http://${tv}:5511/input/?keycode=${KEYS[key].code}`).
@@ -162,24 +209,24 @@ const NUDGE = { up: "0 -4px", down: "0 4px", left: "-4px 0", right: "4px 0" };
 
 function flashCue(dir) {
   const cue = pad.querySelector(`.cue-${dir}`);
-  const from = reduceMotion.matches ? { opacity: 0.9 } : { opacity: 0.9, translate: NUDGE[dir] };
+  const from = reduceMotion.matches ? { opacity: 0.7 } : { opacity: 0.7, translate: NUDGE[dir] };
   cue.animate([from, { opacity: 0.28, translate: "0 0" }], { duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
 }
 
 function step(dir) {
   send(dir);
   flashCue(dir);
-  buzz(6);
+  haptic("tick");
 }
 
 function tap(p) {
   send("ok");
-  buzz(12);
+  haptic("tap");
   const ring = document.createElement("span");
   ring.className = "ripple";
   ring.style.translate = `${p.x}px ${p.y}px`;
   pad.append(ring);
-  const frames = reduceMotion.matches ? [{ opacity: 0.6 }, { opacity: 0 }] : [{ scale: 0.45, opacity: 0.7 }, { scale: 1, opacity: 0 }];
+  const frames = reduceMotion.matches ? [{ opacity: 0.45 }, { opacity: 0 }] : [{ scale: 0.45, opacity: 0.5 }, { scale: 1, opacity: 0 }];
   ring.animate(frames, { duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }).onfinish = () => ring.remove();
 }
 
@@ -260,7 +307,7 @@ pad.addEventListener("keydown", (e) => {
   } else if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
     hideHint();
-    send("ok");
+    tap({ x: pad.offsetWidth / 2, y: pad.offsetHeight / 2 });
   }
 });
 
@@ -275,22 +322,28 @@ for (const button of document.querySelectorAll("[data-key]")) {
       clearTimeout(hold);
       clearInterval(again);
     };
+    const glyphEl = button.querySelector(".glyph");
     button.addEventListener("pointerdown", () => {
       send(key);
-      buzz(6);
+      haptic("tap", glyphEl);
       hold = setTimeout(() => {
-        again = setInterval(() => send(key), 160);
+        again = setInterval(() => {
+          send(key);
+          haptic("repeat", glyphEl);
+        }, 160);
       }, 420);
     });
     for (const type of ["pointerup", "pointerleave", "pointercancel"]) button.addEventListener(type, stop);
     // Keyboard and switch access: one step per press.
     button.addEventListener("click", (e) => {
-      if (e.detail === 0) send(key);
+      if (e.detail !== 0) return;
+      send(key);
+      haptic("tap", glyphEl);
     });
   } else {
     button.addEventListener("click", () => {
       send(key);
-      buzz(8);
+      haptic("tap", button.querySelector(".key-face") || button);
     });
   }
 }
@@ -329,7 +382,10 @@ function renderApps() {
         note.textContent = app.note;
         tile.append(note);
       }
-      tile.addEventListener("click", () => say(app.pkg ? `Opening ${app.name} on the TV` : `${app.name} can't run on this TV`));
+      tile.addEventListener("click", () => {
+        haptic(app.pkg ? "confirm" : "reject", card);
+        say(app.pkg ? `Opening ${app.name} on the TV` : `${app.name} can't run on this TV`);
+      });
       return tile;
     }),
   );
@@ -449,7 +505,7 @@ for (const button of document.querySelectorAll(".np-btn")) {
       nextSong(-1);
       say("Previous song on the TV");
     }
-    buzz(8);
+    haptic("tap", button.querySelector(".glyph"));
   });
 }
 
@@ -520,8 +576,8 @@ npArt.addEventListener("load", () => {
   const h = h0 > 75 && h0 < 120 ? 68 : h0; // yellows lean to amber: dark yellow on black reads as olive
   const chroma = c < 0.03 ? 0 : Math.min(c, 0.16);
   const glow = $("npGlow");
-  glow.style.setProperty("--np-1", `oklch(54% ${chroma.toFixed(3)} ${h.toFixed(1)} / 0.62)`);
-  glow.style.setProperty("--np-2", `oklch(44% ${(chroma * 0.9).toFixed(3)} ${h.toFixed(1)} / 0.24)`);
+  glow.style.setProperty("--np-1", `oklch(54% ${chroma.toFixed(3)} ${h.toFixed(1)} / 0.4)`);
+  glow.style.setProperty("--np-2", `oklch(44% ${(chroma * 0.9).toFixed(3)} ${h.toFixed(1)} / 0.15)`);
 });
 
 // ---- Now playing: TV volume -----------------------------------------------------------------------------
@@ -533,7 +589,9 @@ const volFill = $("volFill");
 let vol = 40;
 
 function setVolume(v, announce) {
+  const before = vol;
   vol = clamp(Math.round(v), 0, 100);
+  if (announce && Math.floor(before / 10) !== Math.floor(vol / 10)) haptic("slot");
   volFill.style.scale = `${vol / 100} 1`;
   volume.setAttribute("aria-valuenow", String(vol));
   if (announce) say(`TV volume ${vol}`);
@@ -585,7 +643,7 @@ function tileFor(item, onPress) {
   tile.append(glyph(item.icon), text);
   tile.addEventListener("click", () => {
     onPress();
-    buzz(8);
+    haptic("tap", tile);
   });
   return tile;
 }
@@ -619,6 +677,7 @@ function renderDockList(focusName) {
       handle.addEventListener("keydown", (e) => {
         if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
         e.preventDefault();
+        haptic("slot");
         moveApp(name, prefs.dock.indexOf(name) + (e.key === "ArrowUp" ? -1 : 1), true);
       });
       row.append(thumb, label, handle);
@@ -654,7 +713,7 @@ function startDrag(e, row, handle) {
   const rows = [...dockList.children];
   drag = { id: e.pointerId, row, handle, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY };
   row.classList.add("lifted");
-  buzz(8);
+  haptic("lift");
   handle.addEventListener("pointermove", onDrag);
   handle.addEventListener("pointerup", endDrag);
   handle.addEventListener("pointercancel", endDrag);
@@ -679,7 +738,7 @@ function onDrag(e) {
     if (drag.from > to && i < drag.from && i >= to) shift = ROW;
     other.style.translate = shift ? `0 ${shift}px` : "";
   });
-  buzz(4);
+  haptic("slot");
 }
 
 function endDrag(e) {
@@ -693,6 +752,7 @@ function endDrag(e) {
   row.classList.remove("lifted");
   row.style.translate = `0 ${(to - from) * ROW}px`;
   const name = prefs.dock[from];
+  haptic("tap");
   setTimeout(() => moveApp(name, to, false), reduceMotion.matches ? 0 : 210);
 }
 
@@ -709,6 +769,7 @@ function bindPick(id, key, says) {
   group.addEventListener("change", (e) => {
     prefs[key] = e.target.value;
     save();
+    haptic("select", e.target.closest("label"));
     say(says[e.target.value]);
   });
 }
@@ -716,7 +777,10 @@ function bindPick(id, key, says) {
 bindPick("glowPick", "glow", GLOW_SAYS);
 bindPick("islandPick", "island", ISLAND_SAYS);
 
-$("tvPick").addEventListener("click", () => say("This is the only TV on your Wi-Fi"));
+$("tvPick").addEventListener("click", () => {
+  haptic("tap", $("tvPick"));
+  say("This is the only TV on your Wi-Fi");
+});
 
 // ---- Tabs, with the prototype's Screen control kept in step ----------------------------------------------
 
@@ -724,7 +788,11 @@ const tabs = [...document.querySelectorAll(".tab")];
 const views = [...document.querySelectorAll(".view")];
 const screenSeg = $("screenSeg");
 
-function showTab(name, focus) {
+function showTab(name, focus, felt) {
+  if (felt && name !== prefs.tab) {
+    const icon = tabs.find((t) => t.dataset.tab === name)?.querySelector(".tab-icon");
+    haptic("select", icon);
+  }
   prefs.tab = name;
   save();
   $("phone").dataset.tab = name;
@@ -743,12 +811,12 @@ function showTab(name, focus) {
 }
 
 tabs.forEach((tab, i) => {
-  tab.addEventListener("click", () => showTab(tab.dataset.tab));
+  tab.addEventListener("click", () => showTab(tab.dataset.tab, false, true));
   tab.addEventListener("keydown", (e) => {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
     const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
-    showTab(next.dataset.tab, true);
+    showTab(next.dataset.tab, true, true);
   });
 });
 

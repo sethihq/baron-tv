@@ -1,36 +1,10 @@
 /* Edge glow while music plays, after the Mac rim-light apps (Lumn, Open Glow, Rimshot) and Apple's
-   Siri glow: a thin line of light right at the screen's edge, in neighbouring shades of the cover's
-   colour, feathering softly inward so the middle of the screen stays clean. It follows the rounded
-   corners, turns slowly, and breathes brighter on the beat rather than changing size. It only lights
-   for music, never for video, so a trailer or a film's intro doesn't set it off. app.js sets the
-   three colours and --edge-pulse (0 to 1).
-
-   Three copies of one ring: a sharp core, a halo and a wide bloom, each blurred more. The blur spills
-   both ways, the screen clips the outer half, and what's left is light coming in from the bezel. */
-
-@property --edge-angle {
-  syntax: "<angle>";
-  inherits: true;
-  initial-value: 0deg;
-}
-
-@property --e1 {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: oklch(80% 0.15 25);
-}
-
-@property --e2 {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: oklch(74% 0.18 355);
-}
-
-@property --e3 {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: oklch(84% 0.13 55);
-}
+   Siri glow. Light runs round the screen's edges in three neighbouring shades of the cover's colour.
+   It is never a straight band: its depth rolls along the edge like a slow tide and pools a little in
+   the corners, each kick sends a swell of light out from the bottom edge both ways (the highs send
+   smaller ones from the top), the bass deepens it and the highs make it sparkle. A soft inner shadow
+   under it gives the light depth, as if it came from the bezel. It only lights for music, never for
+   video. app.js draws the light on the canvas and turns the whole thing on and off. */
 
 .edge {
   position: absolute;
@@ -49,74 +23,66 @@
   z-index: 55;
 }
 
-.edge > i {
+/* Depth: the screen darkens softly towards its edges under the light. */
+.edge-shade {
   position: absolute;
   inset: 0;
-  padding: var(--ring);
   border-radius: 20px;
   corner-shape: squircle;
-  background: conic-gradient(
-    from var(--edge-angle),
-    var(--e1),
-    var(--e2) 25%,
-    var(--e3) 50%,
-    var(--e2) 75%,
-    var(--e1)
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
+  box-shadow:
+    inset 0 0 26px 6px oklch(0% 0 none / 0.55),
+    inset 0 0 80px 18px oklch(0% 0 none / 0.26);
 }
 
-/* The line itself: two and a half dp, barely softened. */
-.edge-core {
-  --ring: 2.5px;
-
-  filter: blur(0.75px);
-  opacity: 0.95;
-}
-
-/* Its halo, close in. */
-.edge-halo {
-  --ring: 7px;
-
-  filter: blur(9px);
-  opacity: calc(0.55 + var(--edge-pulse, 0) * 0.3);
-}
-
-/* The bloom: the light reaching about 30 dp in, faint, breathing with the beat. */
-.edge-bloom {
-  --ring: 16px;
-
-  filter: blur(26px);
-  opacity: calc(0.32 + var(--edge-pulse, 0) * 0.28);
-}
-
-@keyframes edge-turn {
-  to {
-    --edge-angle: 360deg;
-  }
+/* The light, drawn at half resolution and softened a touch more. */
+.edge-light {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  filter: blur(2.5px) saturate(1.15);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .edge {
-    transition:
-      opacity 900ms var(--ease-out),
-      --e1 1200ms var(--ease-out),
-      --e2 1200ms var(--ease-out),
-      --e3 1200ms var(--ease-out);
+    transition: opacity 900ms var(--ease-out);
+  }
+}
+
+/* Music mode: while a song plays and the remote rests, the middle of the screen fades to black and only
+   the edge light stays, at full strength (app.js draws it brighter and deeper, breathing). The first
+   key only wakes the screen. */
+.music-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  background: oklch(0% 0 none);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.screen.music-mode .music-dim {
+  opacity: 1;
+}
+
+.screen.music-mode :is(.island, .toast) {
+  opacity: 0;
+}
+
+.screen.music-mode .edge-shade {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .music-dim {
+    transition: opacity 1400ms var(--ease-out);
   }
 
-  .edge[data-on] {
-    animation: edge-turn 24s linear infinite;
+  .screen.music-mode .music-dim {
+    transition-duration: 1800ms;
   }
 
-  /* Steady: no beat, and the colours drift slower still. */
-  .edge[data-on][data-mode="steady"] {
-    animation-duration: 40s;
+  .edge-shade {
+    transition: opacity 1400ms var(--ease-out);
   }
 }

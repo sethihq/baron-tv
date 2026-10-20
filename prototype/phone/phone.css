@@ -63,6 +63,8 @@
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
 
   --accent: oklch(73% 0.14 243);
+  /* Keyboard focus: the accent, quieted, so a ring marks the spot without glowing. */
+  --ring: oklch(73% 0.14 243 / 0.6);
 
   /* Prototype chrome around the phone, as on the TV prototype. */
   --page: oklch(11% 0 none);
@@ -228,8 +230,8 @@ img {
   corner-shape: squircle;
   background: oklch(17% 0 none);
   box-shadow:
-    inset 0 0 0 1px oklch(100% 0 none / 0.08),
-    0 30px 80px oklch(0% 0 none / 0.6);
+    inset 0 0 0 1px oklch(100% 0 none / 0.06),
+    0 16px 40px oklch(0% 0 none / 0.35);
 }
 
 /* ---- The phone screen ------------------------------------------------------------------------ */
@@ -401,7 +403,7 @@ img {
 }
 
 .tv-pick:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -463,7 +465,7 @@ img {
 }
 
 .pad:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--ring);
 }
 
 /* Four small chevrons say the pad has directions; each brightens when its step is sent. */
@@ -530,7 +532,7 @@ img {
   margin-block-start: -66px;
   margin-inline-start: -66px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, oklch(100% 0 none / 0.16), oklch(100% 0 none / 0.05) 55%, oklch(100% 0 none / 0));
+  background: radial-gradient(closest-side, oklch(100% 0 none / 0.09), oklch(100% 0 none / 0.03) 55%, oklch(100% 0 none / 0));
   opacity: 0;
   pointer-events: none;
   transition: opacity 220ms var(--ease-out);
@@ -550,7 +552,7 @@ img {
   margin-block-start: -46px;
   margin-inline-start: -46px;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 1.5px oklch(100% 0 none / 0.55);
+  box-shadow: inset 0 0 0 1px oklch(100% 0 none / 0.4);
   pointer-events: none;
 }
 
@@ -588,8 +590,8 @@ img {
 }
 
 .key:active .key-face {
-  scale: 0.94;
-  background: var(--veil-3);
+  scale: 0.95;
+  background: var(--veil-2);
 }
 
 .key:focus-visible {
@@ -598,7 +600,7 @@ img {
 
 .key:focus-visible .key-face,
 .rocker-btn:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -706,7 +708,7 @@ img {
 }
 
 .app-tile:focus-visible .app-card {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 3px;
 }
 
@@ -728,7 +730,7 @@ img {
   border-radius: 20px;
   corner-shape: squircle;
   background: var(--fill);
-  box-shadow: 0 24px 56px oklch(0% 0 none / 0.5);
+  box-shadow: 0 14px 32px oklch(0% 0 none / 0.32);
   transition:
     scale 520ms var(--ease-sheet),
     box-shadow 520ms var(--ease-sheet);
@@ -743,7 +745,7 @@ img {
 /* Paused, the cover settles back a little, as the music app on the phone does. */
 .view-playing[data-paused] .np-cover {
   scale: 0.86;
-  box-shadow: 0 12px 28px oklch(0% 0 none / 0.4);
+  box-shadow: 0 6px 16px oklch(0% 0 none / 0.24);
 }
 
 .np-meta {
@@ -831,17 +833,17 @@ img {
 }
 
 .np-btn:active {
-  scale: 0.92;
-  background: var(--veil-2);
+  scale: 0.94;
+  background: var(--veil);
 }
 
 .np-play:active {
-  scale: 0.94;
-  background: oklch(85% 0 none);
+  scale: 0.95;
+  background: oklch(88% 0 none);
 }
 
 .np-btn:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 3px;
 }
 
@@ -889,7 +891,7 @@ img {
 }
 
 .np-volume:focus-visible .vol-track {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 4px;
 }
 
@@ -971,7 +973,7 @@ img {
 }
 
 .tile:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -1070,16 +1072,16 @@ img {
 }
 
 .dock-handle:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
 
 /* The row being dragged floats above the others; its position follows the finger with no lag. */
 .dock-row.lifted {
   z-index: 2;
-  background: oklch(25% 0 none);
-  box-shadow: 0 12px 28px oklch(0% 0 none / 0.5);
-  scale: 1.02;
+  background: oklch(22% 0 none);
+  box-shadow: 0 6px 16px oklch(0% 0 none / 0.3);
+  scale: 1.015;
   transition:
     scale 200ms var(--ease-out),
     box-shadow 200ms var(--ease-out);
@@ -1126,12 +1128,12 @@ img {
 }
 
 .pick label:has(input:checked) {
-  background: oklch(44% 0 none);
+  background: oklch(40% 0 none);
   color: var(--text);
 }
 
 .pick label:has(input:focus-visible) {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 
@@ -1223,11 +1225,12 @@ img {
 }
 
 .tab[aria-selected="true"] {
-  color: var(--accent);
+  color: var(--text);
 }
 
 .tab[aria-selected="true"] .tab-icon {
-  background: oklch(73% 0.14 243 / 0.16);
+  background: oklch(100% 0 none / 0.08);
+  color: var(--accent);
 }
 
 .tab:active .tab-icon {
@@ -1239,7 +1242,7 @@ img {
 }
 
 .tab:focus-visible .tab-icon {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 

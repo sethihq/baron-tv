@@ -1,0 +1,469 @@
+/* Clock: Bento. The time, the date and the weather as a little bento of tiles in the top-right corner,
+   after the user's widget references but laid out our own way: a cream watch dial with an orange
+   second hand, the time under a greeting, a square that is the sky right now (its colour changes with
+   the weather and with night), and a line that reads like a sentence: the date, then what the weather
+   does next ("Drizzle from 2 pm", "Clear till late"). A black frame with a hairline holds the tiles,
+   like the island's black look. bento.js fills it from app.js's weather reading.
+
+   It is 89 tall and fills the width of whatever holds it: 232 in the sidebar layout's right-hand
+   column (sidebar.css places it), with the controls dock below it (the .bento-dock classes at the end
+   of this file). In the top bar layout it sits in the band's corner at 214, top-aligned with the round
+   buttons, and the posters give back the extra height so the app dock stays where it is. */
+
+.bento {
+  display: none;
+  inline-size: 100%;
+}
+
+.screen[data-clock="bento"] .top > .bento {
+  display: grid;
+}
+
+.screen:not([data-layout="sidebar"]) .top > .bento {
+  inline-size: 214px;
+}
+
+.screen[data-clock="bento"] :is(.clock, .weather, .watch) {
+  display: none;
+}
+
+/* The buttons lead the row at the top left, level with the bento's top. */
+.screen[data-clock="bento"] .top {
+  align-items: start;
+}
+
+.screen[data-clock="bento"] .inputs {
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+}
+
+/* In the corner the bento is 39 dp taller than the widget's badges, so the posters are 39 shorter: the
+   dock's top stays at y 427. In the sidebar layout the poster height is the layout's own. */
+.screen[data-clock="bento"]:not([data-layout="sidebar"]) .art {
+  block-size: var(--art-bento, 183px);
+}
+
+/* ---- Frame and tiles -------------------------------------------------------------------------------- */
+
+.bento {
+  --bt-pad: 5px;
+  --bt-r: 14px; /* the tiles; the frame is this plus the padding, so the corners nest */
+  --bt-tile: oklch(20% 0 none);
+  --bt-red: oklch(68% 0.2 25);
+  --bt-orange: oklch(72% 0.18 50);
+
+  grid-template-columns: 46px minmax(0, 1fr) 46px;
+  grid-template-rows: 46px 28px;
+  gap: var(--bt-pad);
+  padding: var(--bt-pad);
+  border-radius: calc(var(--bt-r) + var(--bt-pad));
+  background: oklch(8% 0 none);
+  box-shadow: inset 0 0 0 1px oklch(100% 0 none / 0.11);
+  color: var(--text);
+}
+
+.bt {
+  min-inline-size: 0;
+  border-radius: var(--bt-r);
+  background: var(--bt-tile);
+}
+
+/* ---- The dial: cream face, twelve dots, dark hands, an orange second hand ------------------------ */
+
+.bt-dial {
+  display: grid;
+  place-items: center;
+}
+
+.dial {
+  inline-size: 40px;
+  block-size: 40px;
+  overflow: visible;
+}
+
+.dial-face {
+  fill: oklch(94% 0.018 85);
+}
+
+.dial-dots circle {
+  fill: oklch(58% 0.01 85);
+}
+
+.dial-h,
+.dial-m,
+.dial-s {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  stroke-linecap: round;
+}
+
+.dial-h,
+.dial-m {
+  stroke: oklch(19% 0 none);
+}
+
+.dial-h {
+  stroke-width: 7;
+}
+
+.dial-m {
+  stroke-width: 4.5;
+}
+
+.dial-s {
+  stroke: var(--bt-orange);
+  stroke-width: 2.2;
+}
+
+.dial-cap {
+  fill: var(--bt-orange);
+}
+
+/* ---- The time ------------------------------------------------------------------------------------- */
+
+.bt-time {
+  display: grid;
+  align-content: center;
+  padding-inline: 8px 4px;
+}
+
+/* Never cut: if the full greeting doesn't fit, bento.js says it shorter ("Afternoon"). */
+.bt-greet {
+  overflow: clip;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.bt-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.bt-hm {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bt-ampm {
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---- The sky: the square is the colour of the sky right now --------------------------------------- */
+
+.bt-sky {
+  --sky-1: oklch(36% 0 none);
+  --sky-2: oklch(26% 0 none);
+  --sky-ink: var(--text);
+
+  display: grid;
+  align-content: space-between;
+  justify-items: start;
+  padding-block: 6px 5px;
+  padding-inline: 7px;
+  background: linear-gradient(150deg, var(--sky-1), var(--sky-2));
+  color: var(--sky-ink);
+}
+
+.bt-sky[data-sky="sun"] {
+  --sky-1: oklch(89% 0.14 92);
+  --sky-2: oklch(78% 0.16 60);
+  --sky-ink: oklch(27% 0.06 55);
+}
+
+.bt-sky[data-sky="partly"] {
+  --sky-1: oklch(85% 0.06 225);
+  --sky-2: oklch(70% 0.08 240);
+  --sky-ink: oklch(24% 0.04 245);
+}
+
+.bt-sky[data-sky="cloud"] {
+  --sky-1: oklch(68% 0.02 250);
+  --sky-2: oklch(54% 0.025 255);
+  --sky-ink: oklch(98% 0 none);
+}
+
+.bt-sky[data-sky="rain"] {
+  --sky-1: oklch(62% 0.09 228);
+  --sky-2: oklch(46% 0.1 245);
+  --sky-ink: oklch(98% 0 none);
+}
+
+.bt-sky[data-sky="storm"] {
+  --sky-1: oklch(50% 0.12 295);
+  --sky-2: oklch(35% 0.1 285);
+  --sky-ink: oklch(98% 0 none);
+}
+
+.bt-sky[data-sky="night"] {
+  --sky-1: oklch(43% 0.11 278);
+  --sky-2: oklch(27% 0.08 272);
+  --sky-ink: oklch(98% 0 none);
+}
+
+.bt-sky-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 15px;
+  block-size: 15px;
+}
+
+.bt-sky-icon .glyph {
+  inline-size: 15px;
+  block-size: 15px;
+}
+
+/* Meteocons draw inside a wide margin, so they render larger to match the glyph. */
+.bt-sky-icon img {
+  align-self: start;
+  justify-self: start;
+  inline-size: 22px;
+  block-size: 22px;
+  max-width: none;
+  margin-block-start: -4px;
+  margin-inline-start: -4px;
+}
+
+.bt-temp {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The line: the date, then what the weather does next ------------------------------------------- */
+
+.bt-line {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-inline: 10px;
+  overflow: clip;
+  color: var(--text-2);
+  font-size: var(--t-caption);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: var(--tr-caption);
+  white-space: nowrap;
+}
+
+.bt-line > * {
+  flex: none;
+}
+
+.bt-line[data-tight] {
+  font-size: 11px;
+}
+
+.bt-line b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The weekday in Apple's calendar red. */
+.bt-wday {
+  color: var(--bt-red);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.bt-sep {
+  opacity: 0.6;
+}
+
+.bt-line .glyph {
+  inline-size: 13px;
+  block-size: 13px;
+  color: var(--text);
+}
+
+.bt-line img {
+  inline-size: 22px;
+  block-size: 22px;
+  max-width: none;
+  margin-block: -6px;
+  margin-inline: -4px;
+}
+
+/* ---- Motion: the second hand ticks, nothing else moves ---------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .dial-s {
+    transition: rotate 160ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dial-s {
+    display: none;
+  }
+}
+
+/* ---- Controls dock: the TV's own controls in the same bento language ---------------------------------
+   A black frame with a hairline, like the widget, holding a label and a row of inputs, then a label
+   and a 2x2 of the TV's settings. Each tile reads like the widget's sky square: the glyph top left, the
+   label bottom left. When the dock is given more height than it needs (sidebar.css stretches it down the
+   column), the tile rows share it evenly, the 2x2 taking two parts to the inputs' one. In the 232
+   column the inputs are about 71 x 65 and the settings 108 x 63. Focus lifts a tile in place, as
+   everywhere on the TV. The markup app.js builds:
+
+   <div class="bento-dock">
+     <p class="bento-dock-label">Inputs</p>
+     <div class="bento-dock-row">
+       <button class="bento-tile" type="button"><span class="glyph" data-icon="plugs-connected"></span><span class="bento-tile-label">HDMI 1</span></button>
+       <button class="bento-tile" type="button" data-idle>...HDMI 2</button>
+       <button class="bento-tile" type="button" data-idle>...AV</button>
+     </div>
+     <p class="bento-dock-label">TV</p>
+     <div class="bento-dock-grid"> Wi-Fi, Picture, Sound and Settings tiles </div>
+   </div>
+
+   data-idle dims an input with nothing plugged in; data-live adds a green dot to one that's connected.
+   data-cols="4" on the grid lays its tiles out as one row of four, centred. */
+
+.bento-dock {
+  --bd-pad: 5px;
+  --bd-r: 14px; /* the tiles; the frame is this plus the padding, so the corners nest */
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 2fr);
+  padding: 0 var(--bd-pad) var(--bd-pad);
+  border-radius: calc(var(--bd-r) + var(--bd-pad));
+  background: oklch(8% 0 none);
+  box-shadow: inset 0 0 0 1px oklch(100% 0 none / 0.11);
+  color: var(--text);
+}
+
+/* Lined up with the tiles' glyphs below it; a section's label sits closer to its own tiles than to
+   the section above. */
+.bento-dock-label {
+  padding-block: 12px 6px;
+  padding-inline: 9px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.bento-dock-label:not(:first-child) {
+  padding-block-start: 11px;
+}
+
+/* The inputs: however many there are, side by side. */
+.bento-dock-row {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-auto-rows: minmax(56px, 1fr);
+  gap: var(--bd-pad);
+}
+
+/* The TV's settings, two to a row. */
+.bento-dock-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(52px, 1fr);
+  gap: var(--bd-pad);
+}
+
+.bento-dock-grid[data-cols="4"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(62px, 1fr);
+}
+
+.bento-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: space-between;
+  min-inline-size: 0;
+  padding: 9px;
+  border-radius: var(--bd-r);
+  background: oklch(20% 0 none);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.bento-tile .glyph {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+/* Four to a row: too narrow to anchor left, so the glyph and label centre. */
+.bento-dock-grid[data-cols="4"] .bento-tile {
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding-inline: 2px;
+  font-size: 12px;
+}
+
+.bento-dock-grid[data-cols="4"] .bento-tile .glyph {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+/* An input with nothing plugged in. */
+.bento-tile[data-idle] {
+  color: var(--text-2);
+}
+
+.bento-tile[data-idle] > * {
+  opacity: 0.55;
+}
+
+/* An input with something plugged in: a small green dot in its corner. */
+.bento-tile[data-live]::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-end: 10px;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: oklch(78% 0.17 150);
+}
+
+/* Focus lifts the tile where it is: a touch larger, a lighter surface, a soft shadow. The outline
+   stays, transparent, for forced-colors mode. */
+.bento-tile:focus {
+  z-index: 1;
+  outline: 2px solid transparent;
+  scale: 1.06;
+  background: oklch(32% 0 none);
+  color: var(--text);
+  box-shadow: 0 8px 18px oklch(0% 0 none / 0.3);
+}
+
+.bento-tile[data-idle]:focus > * {
+  opacity: 0.8;
+}
+
+.bento-tile:active {
+  scale: 1.02;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bento-tile {
+    transition:
+      scale 240ms var(--ease-out),
+      box-shadow 240ms var(--ease-out),
+      background-color 240ms var(--ease-out);
+  }
+}

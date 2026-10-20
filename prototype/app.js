@@ -61,6 +61,7 @@ const controls = document.getElementById("controls");
 const rounds = [...document.querySelectorAll(".round")];
 const inputRows = [...document.querySelectorAll(".input-row")];
 const island = document.getElementById("island");
+const sideDock = document.getElementById("sideDock");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 const state = {
@@ -78,7 +79,18 @@ const clamp = (n, lo, hi) => Math.max(lo, Math.min(n, hi));
 const settings = () => Object.fromEntries(new FormData(controls));
 // The now-playing island, while it shows, joins the top row in screen order: right of the round
 // buttons with the clock widget (the buttons lead, top left), left of them with the classic clock.
-const topRow = () => (island.hidden ? rounds : screen.dataset.clock === "classic" ? [island, ...rounds] : [...rounds, island]);
+// In the sidebar layout the round buttons' jobs move into the side dock, so the island is the top row.
+const sidebar = () => screen.dataset.layout === "sidebar";
+const topRow = () =>
+  sidebar()
+    ? island.hidden
+      ? []
+      : [island]
+    : island.hidden
+      ? rounds
+      : screen.dataset.clock === "classic"
+        ? [island, ...rounds]
+        : [...rounds, island];
 const rowItems = (row) =>
   row === "buttons"
     ? topRow()
@@ -86,9 +98,11 @@ const rowItems = (row) =>
       ? [...postersEl.children]
       : row === "dock"
         ? [...dockEl.children]
-        : row === "inputs"
-          ? [...inputChips.children]
-          : [...shortcutChips.children];
+        : row === "side"
+          ? [...sideDock.querySelectorAll(".bento-tile")]
+          : row === "inputs"
+            ? [...inputChips.children]
+            : [...shortcutChips.children];
 
 function glyph(icon) {
   const span = document.createElement("span");
@@ -187,6 +201,47 @@ function chipFor(row, label, icon, onPress, idle) {
     onPress();
   });
   return chip;
+}
+
+// The sidebar's dock: the inputs on one row, the TV's settings under them, in the bento's tiles.
+function renderSideDock() {
+  const tile = (label, icon, onPress, idle) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "bento-tile";
+    if (idle) b.dataset.idle = "";
+    else if (icon === "plugs-connected") b.dataset.live = "";
+    const name = document.createElement("span");
+    name.className = "bento-tile-label";
+    name.textContent = label;
+    b.append(glyph(icon), name);
+    b.addEventListener("click", () => {
+      focusItem("side", rowItems("side").indexOf(b));
+      onPress();
+    });
+    return b;
+  };
+  const section = (label, cls, tiles) => {
+    const head = document.createElement("p");
+    head.className = "bento-dock-label";
+    head.textContent = label;
+    const row = document.createElement("div");
+    row.className = cls;
+    row.append(...tiles);
+    return [head, row];
+  };
+  sideDock.replaceChildren(
+    ...section(
+      "Inputs",
+      "bento-dock-row",
+      INPUTS.map((input) => tile(input.name, input.icon, () => toast(input.live ? `Switching to ${input.name}` : `Nothing is plugged into ${input.name}`), !input.live)),
+    ),
+    ...section(
+      "TV",
+      "bento-dock-grid",
+      SHORTCUTS.map((s) => tile(s.name, s.icon, () => toast(s.says))),
+    ),
+  );
 }
 
 function renderChips() {
@@ -381,7 +436,7 @@ function hideGlow() {
 // ctl: which island control takes focus if the island is the target (0 previous, 1 play, 2 next).
 function focusItem(row, i, ctl = 1) {
   const wasIsland = state.zone === "island";
-  if (row === "buttons" || row === "posters") state.page = 0;
+  if (row === "buttons" || row === "posters" || row === "side") state.page = 0;
   if (row === "inputs" || row === "shortcuts") state.page = 1;
   // The island only shows on page 1, so settle it before reading the top row.
   syncIsland();
@@ -420,10 +475,57 @@ function focusInputRow(i) {
   inputRows[state.input].focus({ preventScroll: true });
 }
 
+// Sidebar layout: focus goes to the nearest item in the pressed direction, as Android's FocusFinder
+// picks it: items in the same band (overlapping across the move) first, then the closest.
+function boxOf(el) {
+  const s = screen.getBoundingClientRect();
+  const z = s.width / 960;
+  const b = el.getBoundingClientRect();
+  return { l: (b.left - s.left) / z, t: (b.top - s.top) / z, r: (b.right - s.left) / z, b: (b.bottom - s.top) / z };
+}
+
+function nearestToward(fromEl, key) {
+  const a = boxOf(fromEl);
+  const pool = [...topRow(), ...rowItems("posters"), ...rowItems("dock"), ...rowItems("side")];
+  let best = null;
+  let bestScore = Infinity;
+  for (const el of pool) {
+    if (el === fromEl || !el.offsetParent) continue;
+    const b = boxOf(el);
+    const across = key === "ArrowLeft" || key === "ArrowRight";
+    const gap = { ArrowRight: b.l - a.r, ArrowLeft: a.l - b.r, ArrowDown: b.t - a.b, ArrowUp: a.t - b.b }[key];
+    if (gap < -6) continue;
+    const off = across ? Math.max(0, Math.max(a.t, b.t) - Math.min(a.b, b.b)) : Math.max(0, Math.max(a.l, b.l) - Math.min(a.r, b.r));
+    const score = Math.max(0, gap) + off * 3;
+    if (score < bestScore) {
+      best = el;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+function focusEl(el, ctl = 1) {
+  for (const row of ["buttons", "posters", "dock", "side"]) {
+    const i = rowItems(row).indexOf(el);
+    if (i >= 0) return focusItem(row, i, ctl);
+  }
+}
+
 function move(key) {
   if (state.zone === "inputs") {
     if (key === "ArrowUp") focusInputRow(state.input - 1);
     if (key === "ArrowDown") focusInputRow(state.input + 1);
+    return;
+  }
+  if (sidebar()) {
+    if (state.zone === "island") {
+      if (key === "ArrowLeft" && np.ctl > 0) return focusCtl(np.ctl - 1);
+      if (key === "ArrowRight" && np.ctl < islCtls.length - 1) return focusCtl(np.ctl + 1);
+    }
+    const from = state.zone === "island" ? island : rowItems(state.row)[state.index[state.row]];
+    const to = from && nearestToward(from, key);
+    if (to) focusEl(to, key === "ArrowLeft" ? islCtls.length - 1 : key === "ArrowRight" ? 0 : 1);
     return;
   }
   // Inside the open island: Left and Right walk previous, play and next, then on to its neighbours.
@@ -855,7 +957,11 @@ function stopSaver() {
 
 function armIdle() {
   clearTimeout(idleTimer);
-  if (!saver.on) idleTimer = setTimeout(startSaver, Number(settings().saver || 600) * 1000);
+  if (saver.on || musicMode.on) return;
+  const v = settings();
+  // While music plays, the screen dims to its edge light instead of starting the DVD screensaver.
+  if (musicPlaying() && v.musicdim !== "off") idleTimer = setTimeout(enterMusicMode, Number(v.musicdim || 8) * 1000);
+  else idleTimer = setTimeout(startSaver, Number(v.saver || 600) * 1000);
 }
 
 // While the screensaver is up, the first key or click only wakes it, as a remote does on the TV.
@@ -863,10 +969,11 @@ function armIdle() {
 addEventListener(
   "keydown",
   (event) => {
-    if (saver.on) {
+    if (saver.on || musicMode.on) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      stopSaver();
+      if (saver.on) stopSaver();
+      else exitMusicMode();
     } else {
       armIdle();
     }
@@ -877,10 +984,11 @@ addEventListener(
 addEventListener(
   "pointerdown",
   (event) => {
-    if (saver.on) {
+    if (saver.on || musicMode.on) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      stopSaver();
+      if (saver.on) stopSaver();
+      else exitMusicMode();
     } else {
       armIdle();
     }
@@ -890,7 +998,7 @@ addEventListener(
 
 let lastMoveArm = 0;
 addEventListener("pointermove", () => {
-  if (saver.on || performance.now() - lastMoveArm < 500) return;
+  if (saver.on || musicMode.on || performance.now() - lastMoveArm < 500) return;
   lastMoveArm = performance.now();
   armIdle();
 });
@@ -947,6 +1055,7 @@ async function loadCovers() {
         if (!hit) return;
         song.cover = hit.artworkUrl100.replace("100x100bb", "300x300bb");
         if (hit.trackTimeMillis) song.ms = hit.trackTimeMillis;
+        if (hit.previewUrl) song.preview = hit.previewUrl;
       } catch {
         // Offline: the drawn cover stays.
       }
@@ -960,16 +1069,19 @@ const mmss = (ms) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
+// While a preview plays, the island shows its real time; otherwise the demo clock's.
 function paintProgress(jump) {
-  const song = SONGS[np.i];
+  const live = previewing();
+  const at = live ? ear.audio.currentTime * 1000 : np.at;
+  const ms = live ? ear.audio.duration * 1000 : SONGS[np.i].ms;
   if (jump) islFill.style.transition = "none";
-  islFill.style.scale = `${Math.min(1, np.at / song.ms)} 1`;
+  islFill.style.scale = `${Math.min(1, at / ms)} 1`;
   if (jump) {
     islFill.getBoundingClientRect();
     islFill.style.transition = "";
   }
-  document.getElementById("islAt").textContent = mmss(np.at);
-  document.getElementById("islLeft").textContent = `-${mmss(song.ms - np.at)}`;
+  document.getElementById("islAt").textContent = mmss(at);
+  document.getElementById("islLeft").textContent = `-${mmss(ms - at)}`;
 }
 
 // The pill is as wide as what it shows, so a new song resizes it with the same morph. It hangs on the
@@ -977,8 +1089,14 @@ function paintProgress(jump) {
 function sizeIsland() {
   if (island.hidden) return;
   island.style.setProperty("--wc", `${islCompact.offsetWidth}px`);
-  const button = rectIn(rounds[0]);
-  island.style.setProperty("--isl-top", `${Math.round(button.y + button.h / 2 - 17)}px`);
+  if (sidebar()) {
+    const shelf = rectIn(document.querySelector(".shelf"));
+    island.style.setProperty("--isl-x", `${Math.round(shelf.x + shelf.w / 2)}px`);
+    island.style.setProperty("--isl-top", "32px");
+  } else {
+    const button = rectIn(rounds[0]);
+    island.style.setProperty("--isl-top", `${Math.round(button.y + button.h / 2 - 17)}px`);
+  }
 }
 
 function showSong() {
@@ -989,6 +1107,7 @@ function showSong() {
   document.getElementById("islArtist").textContent = song.artist;
   sizeIsland();
   paintProgress(true);
+  syncSound();
 }
 
 // The bars take the cover's colour, lifted to read on black; with the island in focus, so does the glow.
@@ -1072,8 +1191,9 @@ islCtls.forEach((ctl, i) => {
     if (ctl.dataset.act === "toggle") setPlaying(!isPlaying());
     else if (ctl.dataset.act === "next") changeSong(1);
     // Previous restarts the song after its first few seconds, as players do.
-    else if (np.at > 3000) {
+    else if ((previewing() ? ear.audio.currentTime * 1000 : np.at) > 3000) {
       np.at = 0;
+      if (previewing()) ear.audio.currentTime = 0;
       paintProgress(true);
     } else changeSong(-1);
   });
@@ -1085,6 +1205,11 @@ island.addEventListener("click", () => {
 
 function tickSong() {
   if (!isPlaying()) return;
+  // A playing preview keeps its own time, and moves on when it ends.
+  if (previewing()) {
+    paintProgress(false);
+    return;
+  }
   np.at += 1000;
   if (np.at >= SONGS[np.i].ms) changeSong(1);
   else paintProgress(false);
@@ -1097,13 +1222,27 @@ document.getElementById("songNext").addEventListener("click", () => {
 
 // ---- Edge glow while music plays ----------------------------------------------------------------------
 
-// After the Mac rim-light apps (Lumn, Open Glow, Rimshot): two colours from the cover flow round the
-// edges and swell on the beat. Music only: on the TV the launcher would check the playing stream's
-// AudioAttributes content type (MUSIC, not MOVIE), so trailers and intros stay dark. The prototype has
-// no audio, so each demo song gets its felt tempo, with the first and third beats swelling more.
+// After the Mac rim-light apps (Lumn, Open Glow, Rimshot), Apple's Siri glow and the user's reference of
+// glowing recap cards: vivid light round the screen's edges, lightest right at the edge and deepening
+// into saturated colour as it fades into the black middle. It is never a straight band: its depth
+// rolls along the edge like a slow tide and pools in the corners, each kick sends a swell of light out
+// from the bottom edge both ways (the highs send smaller ones from the top), the bass deepens it and
+// the highs make it sparkle. The hues spread round the cover's main colour, so they never clash. A
+// soft inner shadow under it gives depth. Music only: on the TV the launcher would check the playing
+// stream's AudioAttributes (MUSIC, not MOVIE), so a trailer or a film's intro stays dark.
+//
+// Drawn on a canvas at half resolution (the light is soft, so a quarter of the pixels will do): soft
+// dabs of light along the rounded edge, added together. No line is drawn at the edge itself: the user
+// read it as a hard outline. The TV port would draw the same with one pre-blurred dab bitmap, tinted,
+// instead of gradients.
+
 const edge = document.getElementById("edge");
+const edgeLight = edge.querySelector(".edge-light");
+const lightCtx = edgeLight.getContext("2d");
+const EW = edgeLight.width;
+const EH = edgeLight.height;
 const EDGE_BPM = [86, 94, 104, 103, 90];
-const edgeBeat = { raf: 0, pulse: 0, next: 0, count: 0, last: 0 };
+const DABS = 220;
 const paletteCache = new Map();
 
 // The cover's two colours: its most vivid one, then the most vivid one at least 40 degrees round the
@@ -1139,45 +1278,376 @@ function coverColors(img) {
 
 // Three neighbouring shades of the cover's main colour, so the rim never clashes: the colour itself,
 // one a little round the wheel each way, the far one lighter. A grey cover gives a soft white.
-function setEdgeColors() {
-  if (!islArt.complete || !islArt.naturalWidth) return;
-  const [, c, h0] = toOklch(coverColors(islArt)[0]);
-  const h = h0 > 75 && h0 < 120 ? 68 : h0;
-  const chroma = c < 0.03 ? 0 : Math.min(Math.max(c * 1.2, 0.12), 0.18);
-  const tone = (l, k, dh) => `oklch(${l}% ${(chroma * k).toFixed(3)} ${((h + dh + 360) % 360).toFixed(1)})`;
-  edge.style.setProperty("--e1", tone(80, 1, 0));
-  edge.style.setProperty("--e2", tone(74, 1.05, -28));
-  edge.style.setProperty("--e3", tone(86, 0.75, 32));
+
+const light = {
+  raf: 0,
+  mode: "beat",
+  sync: "song",
+  next: 0,
+  count: 0,
+  bass: 0.3,
+  high: 0,
+  swells: [],
+  // Three OKLCH colours, easing towards the cover's.
+  now: [
+    [62, 0.2, 300],
+    [56, 0.22, 255],
+    [70, 0.16, 345],
+  ],
+  goal: null,
+};
+light.goal = light.now.map((c) => [...c]);
+
+// Points round the screen's rounded edge, evenly spaced, clockwise from the top centre (so the bottom
+// centre is halfway). They sit a few pixels outside the screen, so what shows of each dab of light is
+// already soft: the very edge never reads as a line. Corners are flagged so the light can pool there.
+const rim = (() => {
+  const o = 3; // how far outside the edge the light sources sit, at half resolution
+  const r = 10 + o; // the screen's 20 dp corner, at half resolution, pushed out with them
+  const W = EW + 2 * o;
+  const H = EH + 2 * o;
+  const w = W - 2 * r;
+  const h = H - 2 * r;
+  const q = (Math.PI / 2) * r;
+  const total = 2 * w + 2 * h + 4 * q;
+  const pt = (x, y, corner) => ({ x: x - o, y: y - o, corner });
+  const arc = (cx, cy, a) => pt(cx + r * Math.cos(a), cy + r * Math.sin(a), true);
+  const at = (d) => {
+    if (d < w) return pt(r + d, 0, false);
+    d -= w;
+    if (d < q) return arc(W - r, r, -Math.PI / 2 + d / r);
+    d -= q;
+    if (d < h) return pt(W, r + d, false);
+    d -= h;
+    if (d < q) return arc(W - r, H - r, d / r);
+    d -= q;
+    if (d < w) return pt(W - r - d, H, false);
+    d -= w;
+    if (d < q) return arc(r, H - r, Math.PI / 2 + d / r);
+    d -= q;
+    if (d < h) return pt(0, H - r - d, false);
+    d -= h;
+    return arc(r, r, Math.PI + d / r);
+  };
+  return Array.from({ length: DABS }, (_, i) => at(((i / DABS) * total + w / 2) % total));
+})();
+
+const mix = (a, b, k) => a + (b - a) * k;
+const mixHue = (a, b, k) => (a + ((((b - a + 540) % 360) - 180) * k) + 360) % 360;
+
+// The colour u of the way round the loop main, second, third, second; lift moves it towards white.
+function lightColor(u, alpha, lift = 0) {
+  const loop = [0, 1, 2, 1];
+  const x = (((u % 1) + 1) % 1) * 4;
+  const i = Math.floor(x);
+  const f = x - i;
+  const s = f * f * (3 - 2 * f);
+  const a = light.now[loop[i]];
+  const b = light.now[loop[(i + 1) % 4]];
+  const l = mix(mix(a[0], b[0], s), 97, lift);
+  const c = mix(a[1], b[1], s) * (1 - lift * 0.6);
+  return `oklch(${l.toFixed(1)}% ${c.toFixed(3)} ${mixHue(a[2], b[2], s).toFixed(1)} / ${alpha.toFixed(3)})`;
 }
 
-function stepBeat(now) {
-  const period = 60000 / EDGE_BPM[np.i % EDGE_BPM.length];
-  if (now >= edgeBeat.next) {
-    edgeBeat.pulse = edgeBeat.count % 2 === 0 ? 1 : 0.55;
-    edgeBeat.count = (edgeBeat.count + 1) % 4;
-    edgeBeat.next = now + period;
-  }
-  edgeBeat.pulse *= Math.exp(-(now - edgeBeat.last) / 190);
-  edgeBeat.last = now;
-  edge.style.setProperty("--edge-pulse", edgeBeat.pulse.toFixed(3));
-  edgeBeat.raf = requestAnimationFrame(stepBeat);
+// The cover's main colour, and two more spread round the wheel from it, vivid on black. A grey cover
+// gives a cool silver.
+function setEdgeColors() {
+  if (!islArt.complete || !islArt.naturalWidth) return;
+  const [, c, h] = toOklch(coverColors(islArt)[0]);
+  const k = c < 0.03 ? 0.15 : 1;
+  // Dark yellows read as olive on black, so any hue that lands there leans to amber.
+  const hue = (x) => {
+    const y = (x + 360) % 360;
+    return y > 75 && y < 120 ? 68 : y;
+  };
+  light.goal = [
+    [62, 0.2 * k, hue(h)],
+    [56, 0.22 * k, hue(h + 305)],
+    [70, 0.16 * k, hue(h + 45)],
+  ];
 }
+
+function drawLight(now) {
+  const time = now / 1000;
+  for (let i = 0; i < 3; i++) {
+    const [a, b] = [light.now[i], light.goal[i]];
+    light.now[i] = [mix(a[0], b[0], 0.04), mix(a[1], b[1], 0.04), mixHue(a[2], b[2], 0.04)];
+  }
+  light.swells = light.swells.filter((s) => now - s.born < 2600);
+  // Music mode eases the light up to full: deeper, brighter, breathing slowly with the song.
+  light.fullK = (light.fullK || 0) + ((light.full || 0) - (light.fullK || 0)) * 0.03;
+  const breath = 1 + (0.05 + light.fullK * 0.15) * Math.sin((time * 2 * Math.PI) / 5.5);
+  lightCtx.clearRect(0, 0, EW, EH);
+  lightCtx.globalCompositeOperation = "lighter";
+  const deep = 1 + light.bass * 0.5;
+  const turn = time / 50;
+  for (let i = 0; i < DABS; i++) {
+    const p = rim[i];
+    const t = i / DABS;
+    // The tide: three slow waves running round at different speeds, so the light's inner edge rolls.
+    const tide =
+      0.5 * Math.sin(2 * Math.PI * 3 * t + time * 0.5) +
+      0.3 * Math.sin(2 * Math.PI * 5 * t - time * 0.75 + 1.3) +
+      0.2 * Math.sin(2 * Math.PI * 8 * t + time * 1.2 + 0.4);
+    let swell = 0;
+    for (const s of light.swells) {
+      const age = (now - s.born) / 1000;
+      const amp = s.amp * Math.exp(-age / 0.85);
+      const reach = age * 0.3; // a third of the way round each second, both ways
+      for (const c of [s.at + reach, s.at - reach]) {
+        let d = Math.abs(t - (((c % 1) + 1) % 1));
+        d = Math.min(d, 1 - d);
+        swell += amp * Math.exp(-(d * d) / 0.0018);
+      }
+    }
+    const w = (14 * (1 + tide * 0.45) * deep * (p.corner ? 1.3 : 1) + 14 * swell) * (1 + light.fullK * 0.7) * breath;
+    const sparkle = 1 + light.high * 0.4 * Math.sin(i * 12.9898 + time * 21);
+    const alpha = Math.min(0.3 + light.fullK * 0.14, (0.085 + swell * 0.09) * sparkle * (1 + light.fullK * 0.6) * breath);
+    const u = t + turn;
+    const g = lightCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, w);
+    g.addColorStop(0, lightColor(u, alpha, 0.25));
+    g.addColorStop(0.3, lightColor(u, alpha * 0.85));
+    g.addColorStop(0.7, lightColor(u, alpha * 0.28));
+    g.addColorStop(1, lightColor(u, 0));
+    lightCtx.fillStyle = g;
+    lightCtx.beginPath();
+    lightCtx.arc(p.x, p.y, w, 0, Math.PI * 2);
+    lightCtx.fill();
+  }
+  lightCtx.globalCompositeOperation = "source-over";
+}
+
+// ---- The beat, from real sound --------------------------------------------------------------------------
+
+// Glow follows: Song plays the track's 30 s Apple Music preview and listens to it, Mic listens to the
+// room (music playing anywhere, such as Spotify on this Mac), Tempo fakes it from each song's felt
+// tempo. Listening is an FFT, as the Mac rim-light apps do it: a kick is a jump in the 40 to 150 Hz
+// band above its recent average (spectral flux against an adaptive threshold), and the highs' own
+// jumps, 4 to 10 kHz, send the small swells from the top. On the TV, android.media.audiofx.Visualizer on
+// the output mix gives the same spectrum of whatever the TV is playing.
+const ear = {
+  ctx: null,
+  analyser: null,
+  audio: null,
+  song: null,
+  mic: null,
+  micSrc: null,
+  micAsk: null,
+  micOn: false,
+  bins: null,
+  prev: null,
+  low: [],
+  high: [],
+  lastKick: 0,
+  lastHat: 0,
+  unlocked: false,
+};
+
+function earGraph() {
+  if (ear.ctx) return true;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return false;
+  ear.ctx = new Ctx();
+  ear.analyser = ear.ctx.createAnalyser();
+  ear.analyser.fftSize = 2048;
+  ear.analyser.smoothingTimeConstant = 0.2;
+  ear.bins = new Uint8Array(ear.analyser.frequencyBinCount);
+  ear.prev = new Uint8Array(ear.analyser.frequencyBinCount);
+  ear.audio = new Audio();
+  ear.audio.crossOrigin = "anonymous";
+  ear.audio.preload = "auto";
+  ear.audio.volume = 0.7;
+  ear.audio.addEventListener("ended", () => changeSong(1));
+  ear.song = ear.ctx.createMediaElementSource(ear.audio);
+  ear.song.connect(ear.ctx.destination);
+  return true;
+}
+
+function listenTo(source) {
+  for (const node of [ear.song, ear.micSrc]) {
+    if (!node) continue;
+    try {
+      node.disconnect(ear.analyser);
+    } catch {
+      // It wasn't connected.
+    }
+  }
+  if (source === "song") ear.song.connect(ear.analyser);
+  if (source === "mic" && ear.micSrc) ear.micSrc.connect(ear.analyser);
+  ear.micOn = source === "mic" && !!ear.micSrc;
+}
+
+function openMic() {
+  ear.micAsk ||= navigator.mediaDevices
+    .getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
+    .then((stream) => {
+      ear.mic = stream;
+      ear.micSrc = ear.ctx.createMediaStreamSource(stream);
+      return true;
+    })
+    .catch(() => {
+      ear.micAsk = null;
+      toast("The microphone isn't allowed, so the glow keeps the song's tempo");
+      return false;
+    });
+  return ear.micAsk;
+}
+
+// Browsers only let a page make sound after the viewer's first key or click.
+function unlockEar() {
+  if (ear.unlocked || !earGraph()) return;
+  ear.unlocked = true;
+  ear.ctx.resume();
+  syncSound();
+}
+addEventListener("keydown", unlockEar, true);
+addEventListener("pointerdown", unlockEar, true);
+
+const previewing = () => !!ear.audio && !ear.audio.paused && ear.audio.duration > 0 && ear.audio.dataset.i === String(np.i);
+const hearing = () => (light.sync === "song" ? previewing() : light.sync === "mic" && ear.micOn);
+
+// What should be sounding, and what the ear listens to, after any change.
+function syncSound() {
+  const v = settings();
+  const music = v.spotify === "playing" && v.audio !== "video" && state.view === "new";
+  if (ear.audio) {
+    const song = SONGS[np.i];
+    if (v.sync === "song" && music && ear.unlocked && song.preview) {
+      if (ear.audio.dataset.i !== String(np.i)) {
+        ear.audio.src = song.preview;
+        ear.audio.dataset.i = String(np.i);
+      }
+      if (ear.audio.paused) ear.audio.play().catch(() => {});
+    } else if (!ear.audio.paused) ear.audio.pause();
+  }
+  if (!ear.analyser) return;
+  if (v.sync === "mic" && ear.unlocked) openMic().then((ok) => listenTo(ok ? "mic" : null));
+  else listenTo(v.sync === "song" ? "song" : null);
+}
+
+function onset(hist, x, floor) {
+  hist.push(x);
+  if (hist.length > 45) hist.shift();
+  const mean = hist.reduce((s, v) => s + v, 0) / hist.length;
+  const sd = Math.sqrt(hist.reduce((s, v) => s + (v - mean) ** 2, 0) / hist.length);
+  return x > Math.max(floor, mean + 1.6 * sd) ? x - mean : 0;
+}
+
+function hear(now) {
+  ear.analyser.getByteFrequencyData(ear.bins);
+  const hz = ear.ctx.sampleRate / ear.analyser.fftSize;
+  const band = (lo, hi) => {
+    const a = Math.max(1, Math.round(lo / hz));
+    const b = Math.min(ear.bins.length - 1, Math.round(hi / hz));
+    let flux = 0;
+    let level = 0;
+    for (let i = a; i <= b; i++) {
+      const d = ear.bins[i] - ear.prev[i];
+      if (d > 0) flux += d;
+      level += ear.bins[i];
+    }
+    const n = (b - a + 1) * 255;
+    return [flux / n, level / n];
+  };
+  const [lowFlux, low] = band(40, 150);
+  const [highFlux, high] = band(4000, 10000);
+  ear.prev.set(ear.bins);
+  const kick = onset(ear.low, lowFlux, 0.035);
+  if (kick && now - ear.lastKick > 240) {
+    ear.lastKick = now;
+    light.swells.push({ at: 0.5, born: now, amp: Math.min(1, 0.55 + kick * 5) });
+  }
+  const hat = onset(ear.high, highFlux, 0.02);
+  if (hat && now - ear.lastHat > 420 && now - ear.lastKick > 120) {
+    ear.lastHat = now;
+    light.swells.push({ at: 0, born: now, amp: 0.35 });
+  }
+  light.bass += (clamp((low - 0.45) / 0.4, 0, 1) - light.bass) * 0.2;
+  light.high += (clamp((high - 0.25) / 0.45, 0, 1) - light.high) * 0.25;
+  if (light.swells.length > 10) light.swells.shift();
+}
+
+// Without sound to hear: each song's felt tempo, the first and third beats from the bottom.
+function tempo(now) {
+  if (now >= light.next) {
+    light.next = now + 60000 / EDGE_BPM[np.i % EDGE_BPM.length];
+    light.swells.push(light.count % 2 === 0 ? { at: 0.5, born: now, amp: 0.9 } : { at: 0, born: now, amp: 0.35 });
+    light.count = (light.count + 1) % 4;
+  }
+  light.bass = 0.3 + 0.1 * Math.sin(now / 900);
+  light.high = 0.15;
+}
+
+function stepLight(now) {
+  if (light.mode === "beat") {
+    if (light.sync !== "tempo" && hearing()) hear(now);
+    else tempo(now);
+  } else {
+    light.bass += (0.25 - light.bass) * 0.05;
+    light.high *= 0.9;
+  }
+  drawLight(now);
+  light.raf = requestAnimationFrame(stepLight);
+}
+
+// ---- Music mode -----------------------------------------------------------------------------------------
+
+// While a song plays and the remote rests, the middle of the screen fades to black and only the edge
+// light stays, at full strength and breathing with the song. Music only, as the light is.
+const musicMode = { on: false };
+
+function musicPlaying() {
+  const v = settings();
+  return v.spotify === "playing" && v.audio !== "video" && v.edge !== "off" && state.view === "new";
+}
+
+function enterMusicMode() {
+  if (musicMode.on || saver.on || !musicPlaying()) return;
+  if (state.zone === "island") focusItem("dock", state.index.dock);
+  if (!inputs.hidden) closeInputs();
+  musicMode.on = true;
+  screen.classList.add("music-mode");
+  light.full = 1;
+  syncEdge();
+}
+
+function exitMusicMode() {
+  if (!musicMode.on) return;
+  musicMode.on = false;
+  screen.classList.remove("music-mode");
+  light.full = 0;
+  syncEdge();
+  armIdle();
+}
+
+document.getElementById("musicNow").addEventListener("click", () => {
+  if (!musicPlaying()) setPlaying(true);
+  // After this click's own wake handling, so the click doesn't end it at once.
+  setTimeout(enterMusicMode, 0);
+});
 
 function syncEdge() {
   const v = settings();
   const on = v.edge !== "off" && v.spotify === "playing" && v.audio !== "video" && state.view === "new";
   edge.toggleAttribute("data-on", on);
-  edge.dataset.mode = v.edge || "beat";
   edge.classList.toggle("over-saver", saver.on);
-  const beating = on && v.edge === "beat" && !reduceMotion.matches;
-  if (beating && !edgeBeat.raf) {
-    edgeBeat.last = edgeBeat.next = performance.now();
-    edgeBeat.raf = requestAnimationFrame(stepBeat);
-  } else if (!beating && edgeBeat.raf) {
-    cancelAnimationFrame(edgeBeat.raf);
-    edgeBeat.raf = 0;
-    edge.style.setProperty("--edge-pulse", "0");
+  light.mode = v.edge || "beat";
+  light.sync = v.sync || "song";
+  if (musicMode.on && !on) {
+    musicMode.on = false;
+    screen.classList.remove("music-mode");
+    light.full = 0;
   }
+  const moving = on && !reduceMotion.matches;
+  if (moving && !light.raf) {
+    light.next = performance.now();
+    light.raf = requestAnimationFrame(stepLight);
+  } else if (!moving && light.raf) {
+    cancelAnimationFrame(light.raf);
+    light.raf = 0;
+  }
+  if (on && reduceMotion.matches) drawLight(0);
+  syncSound();
 }
 
 islArt.addEventListener("load", setEdgeColors);
@@ -1209,6 +1679,7 @@ function apply() {
   nowShot.hidden = v.view !== "now";
   screen.dataset.font = v.font;
   screen.dataset.clock = v.clock || "widget";
+  screen.dataset.layout = v.layout || "sidebar";
   if (dockEl.dataset.tiles !== v.tiles) {
     dockEl.dataset.tiles = v.tiles;
     renderDock();
@@ -1248,6 +1719,7 @@ addEventListener("resize", fit);
 renderDock();
 renderPosters(PLACEHOLDERS);
 renderChips();
+renderSideDock();
 SONGS.forEach((song, i) => (song.cover = drawnCover(i)));
 showSong();
 apply();

@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="glow.css">
   <link rel="stylesheet" href="island.css">
   <link rel="stylesheet" href="watch.css">
+  <link rel="stylesheet" href="bento.css">
+  <link rel="stylesheet" href="sidebar.css">
   <link rel="stylesheet" href="edge.css">
 </head>
 <body>
@@ -63,7 +65,34 @@
                 <p class="watch-clock"><span class="watch-hm" id="watchTime">10:00</span><span class="watch-ampm" id="watchAmpm">am</span></p>
               </div>
             </div>
+            <!-- Clock: Bento. The time, the date and the weather as a little bento of tiles: a watch dial,
+                 the time under a greeting, the sky right now in its own colour, and a line with the date
+                 and what the weather does next. bento.js fills it in. -->
+            <div class="bento" id="bento" role="group" aria-label="Time, date and weather">
+              <div class="bt bt-dial" aria-hidden="true">
+                <svg class="dial" viewBox="0 0 100 100">
+                  <circle class="dial-face" cx="50" cy="50" r="49"/>
+                  <g class="dial-dots"></g>
+                  <line class="dial-h" x1="50" y1="50" x2="50" y2="27"/>
+                  <line class="dial-m" x1="50" y1="50" x2="50" y2="15"/>
+                  <line class="dial-s" x1="50" y1="61" x2="50" y2="12"/>
+                  <circle class="dial-cap" cx="50" cy="50" r="4.2"/>
+                </svg>
+              </div>
+              <div class="bt bt-time">
+                <p class="bt-greet" id="btGreet">Good morning</p>
+                <p class="bt-clock"><span class="bt-hm" id="btTime">10:00</span><span class="bt-ampm" id="btAmpm">am</span></p>
+              </div>
+              <div class="bt bt-sky" id="btSky" role="img" data-sky="none">
+                <span class="bt-sky-icon" id="btSkyIcon" aria-hidden="true"></span>
+                <span class="bt-temp" id="btTemp" aria-hidden="true">--°</span>
+              </div>
+              <p class="bt bt-line" id="btLine"></p>
+            </div>
           </div>
+
+          <!-- Layout: Sidebar. Inputs and the TV's settings as a dock under the bento, down the right. -->
+          <div class="side-dock bento-dock" id="sideDock" role="group" aria-label="Inputs and settings"></div>
 
           <section class="shelf" aria-labelledby="shelfTitle">
             <p class="shelf-head">
@@ -130,9 +159,12 @@
           </div>
         </div>
 
-        <!-- Edge glow while music plays: the cover's two colours flowing round the edges, swelling on
-             the beat. Never for video. -->
-        <div class="edge" id="edge" aria-hidden="true"><i class="edge-bloom"></i><i class="edge-rim"></i></div>
+        <!-- Music mode: everything in the middle fades to black under the edge light. -->
+        <div class="music-dim" aria-hidden="true"></div>
+
+        <!-- Edge glow while music plays: light round the edges in shades of the cover's colour, rolling
+             like a tide and swelling with the music; an inner shadow under it for depth. Never for video. -->
+        <div class="edge" id="edge" aria-hidden="true"><i class="edge-shade"></i><canvas class="edge-light" width="480" height="270"></canvas></div>
 
         <p class="toast" id="toast" role="status"></p>
 
@@ -165,9 +197,17 @@
       <div class="ctl-group" role="group" aria-labelledby="g-look">
         <p class="group-title" id="g-look">Look</p>
         <div class="ctl">
+          <span class="ctl-label" id="l-layout">Layout</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-layout">
+            <label><input type="radio" name="layout" value="sidebar" checked>Sidebar</label>
+            <label><input type="radio" name="layout" value="topbar">Top bar</label>
+          </div>
+        </div>
+        <div class="ctl">
           <span class="ctl-label" id="l-clock">Clock</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-clock">
-            <label><input type="radio" name="clock" value="widget" checked>Widget</label>
+            <label><input type="radio" name="clock" value="bento" checked>Bento</label>
+            <label><input type="radio" name="clock" value="widget">Widget</label>
             <label><input type="radio" name="clock" value="classic">Classic</label>
           </div>
         </div>
@@ -238,6 +278,26 @@
           </div>
         </div>
         <div class="ctl">
+          <span class="ctl-label" id="l-sync">Glow follows</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-sync">
+            <label><input type="radio" name="sync" value="song" checked>Song</label>
+            <label><input type="radio" name="sync" value="mic">Mic</label>
+            <label><input type="radio" name="sync" value="tempo">Tempo</label>
+          </div>
+          <p class="ctl-note">Song plays each track's 30 s Apple Music preview and listens to it. Mic listens to music in the room, such as Spotify on this Mac.</p>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-musicdim">Music mode after</span>
+          <div class="ctl-row">
+            <div class="seg" role="radiogroup" aria-labelledby="l-musicdim">
+              <label><input type="radio" name="musicdim" value="8" checked>8 sec</label>
+              <label><input type="radio" name="musicdim" value="30">30 sec</label>
+              <label><input type="radio" name="musicdim" value="off">Off</label>
+            </div>
+            <button class="ctl-btn" type="button" id="musicNow">Show now</button>
+          </div>
+        </div>
+        <div class="ctl">
           <span class="ctl-label" id="l-edge">Edge glow</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-edge">
             <label><input type="radio" name="edge" value="beat" checked>Beat</label>
@@ -275,5 +335,6 @@
   </aside>
 
   <script src="app.js"></script>
+  <script src="bento.js"></script>
 </body>
 </html>
