@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The side dock's words, as the prototype writes them (prototype/app.js, renderSideDock and its views). -->
+<resources>
+    <string name="side_inputs">Inputs</string>
+    <string name="side_tv">TV</string>
+    <string name="side_wifi">Wi-Fi</string>
+    <string name="side_picture">Picture</string>
+    <string name="side_sound">Sound</string>
+    <string name="side_settings">Settings</string>
+    <string name="side_back">Back</string>
+    <string name="side_volume">Volume</string>
+
+    <string name="side_other_networks">Other networks</string>
+    <!-- When nothing is connected there's no "other": just the networks. -->
+    <string name="side_networks">Networks</string>
+    <string name="side_connected">Connected</string>
+    <string name="side_connecting">Connecting…</string>
+    <string name="side_wifi_off">Wi-Fi is off. Apps that need the internet won\'t load until it\'s back on.</string>
+    <string name="side_looking">Looking for networks…</string>
+    <string name="side_none_nearby">No other networks nearby.</string>
+
+    <!-- Toasts. -->
+    <string name="side_wifi_on_toast">Wi-Fi on</string>
+    <string name="side_wifi_off_toast">Wi-Fi off</string>
+    <string name="side_connected_to">Connected to %1$s</string>
+    <string name="side_connecting_to">Connecting to %1$s</string>
+    <string name="side_could_not_join">Couldn\'t connect to %1$s</string>
+    <string name="side_not_available">Not available on this TV</string>
+</resources>
