@@ -161,6 +161,8 @@
 
         <!-- Music mode: everything in the middle fades to black under the edge light. -->
         <div class="music-dim" aria-hidden="true"></div>
+        <!-- The beat bot: robot eyes that dance to the song in the middle of music mode. -->
+        <canvas class="bot" id="bot" width="640" height="360" aria-hidden="true"></canvas>
 
         <!-- Edge glow while music plays: light round the edges in shades of the cover's colour, rolling
              like a tide and swelling with the music; an inner shadow under it for depth. Never for video. -->
@@ -295,6 +297,13 @@
               <label><input type="radio" name="musicdim" value="off">Off</label>
             </div>
             <button class="ctl-btn" type="button" id="musicNow">Show now</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-label" id="l-bot">Beat bot</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-bot">
+            <label><input type="radio" name="bot" value="on" checked>On</label>
+            <label><input type="radio" name="bot" value="off">Off</label>
           </div>
         </div>
         <div class="ctl">

@@ -1722,8 +1722,9 @@ function onset(hist, x, floor) {
   return x > Math.max(floor, mean + 1.6 * sd) ? x - mean : 0;
 }
 
-// A kick's swell, from the bottom centre.
+// A kick's swell, from the bottom centre; the bot dances to it too.
 function kickSwell(now, amp) {
+  botKick(now, amp);
   return { at: 0.5, born: now, amp };
 }
 
@@ -1754,6 +1755,7 @@ function hear(now) {
   const hat = onset(ear.high, highFlux, 0.02);
   if (hat && now - ear.lastHat > 420 && now - ear.lastKick > 120) {
     ear.lastHat = now;
+    botHat();
     light.swells.push({ at: 0, born: now, amp: 0.35 });
   }
   light.bass += (clamp((low - 0.45) / 0.4, 0, 1) - light.bass) * 0.2;
@@ -1781,6 +1783,7 @@ function stepLight(now) {
     light.high *= 0.9;
   }
   drawLight(now);
+  if (musicMode.on && botCanvas.hasAttribute("data-on")) drawBot(now);
   light.raf = requestAnimationFrame(stepLight);
 }
 
@@ -1820,11 +1823,143 @@ document.getElementById("musicNow").addEventListener("click", () => {
   setTimeout(enterMusicMode, 0);
 });
 
+// ---- The beat bot -----------------------------------------------------------------------------------------
+
+// Robot eyes that dance to the song in the middle of music mode ("the ESP32 bot face, cutely dancing on
+// the song"), in the spirit of FluxGarage RoboEyes (GPL-3.0, so none of its code is used: this is drawn
+// from scratch). Two glowing rounded eyes and a small smile. Each kick squashes them and bounces them, and
+// swings the head the other way, so it sways with the beat; big hits make happy squints; the highs make
+// the eyes flicker; between beats it blinks and glances around. Springs carry every move, so it settles
+// softly instead of snapping.
+const botCanvas = document.getElementById("bot");
+const botCtx = botCanvas.getContext("2d");
+const bot = {
+  gx: 0,
+  gy: 0,
+  tx: 0,
+  ty: 0,
+  nextLook: 0,
+  blink: 0,
+  blinkAt: 0,
+  nextBlink: 0,
+  squash: 0,
+  squashV: 0,
+  hop: 0,
+  hopV: 0,
+  tilt: 0,
+  tiltV: 0,
+  tiltGoal: 0,
+  side: 1,
+  happy: 0,
+  happyUntil: 0,
+  happyNext: 0,
+  jitter: 0,
+  last: 0,
+};
+
+function botKick(now, amp) {
+  bot.squashV -= 7 * amp;
+  bot.hopV -= 70 * amp;
+  bot.side = -bot.side;
+  bot.tiltGoal = bot.side * (3 + 5 * amp);
+  // The biggest hits, at most every five seconds, get a happy squint.
+  if (amp > 0.95 && now > bot.happyNext) {
+    bot.happyUntil = now + 1300;
+    bot.happyNext = now + 5000;
+  }
+}
+
+function botHat() {
+  bot.jitter = 1;
+}
+
+// A damped spring: returns the new [value, velocity] towards the goal.
+function spring(x, v, goal, k, c, dt) {
+  const a = -k * (x - goal) - c * v;
+  v += a * dt;
+  return [x + v * dt, v];
+}
+
+function drawBot(now) {
+  const dt = Math.min(0.05, (now - (bot.last || now)) / 1000);
+  bot.last = now;
+  // Glances: a new spot every couple of seconds; blinks: every two to six seconds.
+  if (now > bot.nextLook) {
+    bot.tx = (Math.random() * 2 - 1) * 16;
+    bot.ty = (Math.random() * 2 - 1) * 8;
+    bot.nextLook = now + 1400 + Math.random() * 2600;
+  }
+  if (now > bot.nextBlink) {
+    bot.blinkAt = now;
+    bot.nextBlink = now + 2000 + Math.random() * 4000;
+  }
+  const b = (now - bot.blinkAt) / 1000;
+  bot.blink = b < 0.09 ? b / 0.09 : b < 0.22 ? 1 - (b - 0.09) / 0.13 : 0;
+  bot.gx += (bot.tx - bot.gx) * Math.min(1, dt * 7);
+  bot.gy += (bot.ty - bot.gy) * Math.min(1, dt * 7);
+  [bot.squash, bot.squashV] = spring(bot.squash, bot.squashV, 0, 210, 13, dt);
+  [bot.hop, bot.hopV] = spring(bot.hop, bot.hopV, 0, 170, 12, dt);
+  [bot.tilt, bot.tiltV] = spring(bot.tilt, bot.tiltV, bot.tiltGoal, 60, 9, dt);
+  bot.tiltGoal *= 1 - Math.min(1, dt * 0.6);
+  bot.happy += ((now < bot.happyUntil ? 1 : 0) - bot.happy) * Math.min(1, dt * 9);
+  bot.jitter *= 1 - Math.min(1, dt * 12);
+
+  const [, , hue] = light.now[0];
+  const ctx = botCtx;
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  ctx.clearRect(0, 0, 320, 180);
+  ctx.translate(160, 92 + bot.hop * 0.12);
+  ctx.rotate((bot.tilt * Math.PI) / 180);
+  ctx.fillStyle = `oklch(95% 0.05 ${hue.toFixed(1)})`;
+  ctx.shadowColor = `oklch(72% 0.19 ${hue.toFixed(1)} / 0.85)`;
+  ctx.shadowBlur = 26;
+  const squash = clamp(bot.squash, -0.6, 0.6);
+  const w = 66 * (1 - squash * 0.14);
+  const fullH = 76 * (1 + squash * 0.24);
+  const h = Math.max(4, fullH * (1 - bot.blink * 0.94));
+  const flick = Math.sin(now / 18) * bot.jitter * 2;
+  for (const side of [-1, 1]) {
+    const x = side * 52 + bot.gx + flick;
+    const y = bot.gy * (1 + squash * 0.2);
+    // Open: a rounded rectangle, fading as a happy squint takes over.
+    if (bot.happy < 0.98) {
+      ctx.globalAlpha = 1 - bot.happy;
+      ctx.beginPath();
+      ctx.roundRect(x - w / 2, y - h / 2, w, h, Math.min(24, h / 2));
+      ctx.fill();
+    }
+    // Happy: an arch like ^, stroked thick with round ends.
+    if (bot.happy > 0.02) {
+      ctx.globalAlpha = bot.happy;
+      ctx.strokeStyle = ctx.fillStyle;
+      ctx.lineWidth = 15;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.36, y + 10);
+      ctx.quadraticCurveTo(x, y - 30, x + w * 0.36, y + 10);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // The smile, wider on a happy beat.
+  ctx.shadowBlur = 14;
+  ctx.strokeStyle = `oklch(95% 0.05 ${hue.toFixed(1)} / 0.9)`;
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = "round";
+  const sw = 11 + bot.happy * 7;
+  const sy = 50 + bot.gy * 0.5;
+  ctx.beginPath();
+  ctx.moveTo(bot.gx * 0.5 - sw, sy);
+  ctx.quadraticCurveTo(bot.gx * 0.5, sy + 7 + bot.happy * 5, bot.gx * 0.5 + sw, sy);
+  ctx.stroke();
+}
+
 function syncEdge() {
   const v = settings();
   const on = v.edge !== "off" && v.spotify === "playing" && v.audio !== "video" && state.view === "new";
   edge.toggleAttribute("data-on", on);
   edge.classList.toggle("over-saver", saver.on);
+  botCanvas.toggleAttribute("data-on", v.bot !== "off");
   light.mode = v.edge || "beat";
   light.sync = v.sync || "song";
   if (musicMode.on && !on) {

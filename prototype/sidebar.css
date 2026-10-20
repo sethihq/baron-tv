@@ -63,20 +63,24 @@
   min-block-size: 0;
 }
 
+/* The posters share one set of rows (art, title, details), so every piece of art is the same height
+   ("size height should be equal") and the titles share a line, whether or not a poster has details. */
 .screen[data-layout="sidebar"] .posters {
   flex: 1;
   min-block-size: 0;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  row-gap: 0;
   align-items: stretch;
 }
 
 .screen[data-layout="sidebar"] .poster {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
   min-block-size: 0;
 }
 
 .screen[data-layout="sidebar"] .art {
-  flex: 1;
   block-size: auto;
   min-block-size: 0;
 }

@@ -93,3 +93,33 @@
     transition: opacity 1400ms var(--ease-out);
   }
 }
+
+/* The beat bot: robot eyes in the middle of music mode, in the spirit of the ESP32 desk-bot faces
+   (FluxGarage RoboEyes and friends) but drawn here from scratch. app.js draws them on the canvas: they
+   squash and bounce on each kick, sway side to side with the beat, squint happily on big hits, and blink
+   and glance around between. */
+.bot {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  z-index: 27;
+  inline-size: 320px;
+  block-size: 180px;
+  translate: -50% -50%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.screen.music-mode .bot[data-on] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bot {
+    transition: opacity 900ms var(--ease-out);
+  }
+
+  .screen.music-mode .bot[data-on] {
+    transition: opacity 1200ms var(--ease-out) 500ms;
+  }
+}

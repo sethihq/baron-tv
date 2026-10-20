@@ -330,6 +330,16 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   chevron returns. Demo data; on the TV, `WifiManager` scan results (location permission is granted by the
   install script) and Bluetooth discovery would fill them. Focus moves to the nearest item in the pressed direction (FocusFinder
   style: same band first, then closest), since these aren't simple rows any more.
+- **Beat bot** ("there's this ESP32 bot face, open source; in the centre, cutely dancing on the song"):
+  robot eyes in the middle of music mode, a panel switch (Beat bot On / Off). The reference is FluxGarage
+  RoboEyes (GPL-3.0), so none of its code is used: two glowing rounded eyes and a small smile drawn from
+  scratch on a canvas, in a light tint of the edge light's main colour. Each kick squashes and bounces the
+  eyes and swings the head the other way, so it sways with the beat; the biggest hits (at most every 5 s)
+  turn the eyes into happy arches (^ ^) with a wider smile; the highs flicker them; between beats it
+  blinks and glances around. Springs carry every move.
+- **Shelf in the sidebar** ("size height should be equal"): the posters share one set of rows (art,
+  title, details) through CSS subgrid, so all three pieces of art are the same height and the titles share
+  a line whether or not a poster has details.
 - **Clock: Bento** (default; Widget and Classic stay), `bento.css` and `bento.js` (the user sent four
   widget references, "cute widgets like this but don't want to copy"): a black frame with a hairline
   holding a cream watch dial with an orange second hand, the greeting over a chunky time, a square in the
