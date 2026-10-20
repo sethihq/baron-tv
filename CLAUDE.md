@@ -490,7 +490,21 @@ slots, `core/Tokens.kt` colours converted from OKLCH).
   at full brightness and sinks to 25% 160 ms later (at most one command per lamp every 90 ms; a command
   answers in about 20 to 40 ms), and puts each back (scene, colour or white, brightness) when music mode
   ends. A lamp that's off stays off.
-- **Still to check on the TV:** that the Visualizer hears the beat over Spotify (no "Can't hear the TV"
+- **Bridge, all of `home/BRIDGE.md`** (`input/RemoteBridge.kt`, `bridge/`): volume (read, step, set),
+  inputs and switching (the side dock's broadcast), apps and launching, the dock order (re-lays the home's
+  dock live), what's playing (the front app, `isMusicActive`, and a title and artist read off the music
+  app's screen when it can be: `canRetrieveWindowContent`, walked only on request, `bridge/NowScreen.kt`),
+  media keys (`dispatchMediaKeyEvent`), shortcuts. The home's own volume bar (`volume/`): the side dock's
+  Sound view in an accessibility overlay at the dock's place, 2 s after the last change, shown for bridge
+  changes and for the remote's volume and mute keys, which the accessibility service takes over (flags
+  without the system UI) so CVTE's pop-up shouldn't show. Caveat from the AOSP 9 source: the framework may
+  hand Vol+ and Vol- to the window manager before any accessibility service sees them, in which case CVTE's
+  pop-up still shows for those two (check `logcat -s BaronVolume`); Mute is taken over either way.
+- **Still to check on the TV** (it was off when the tabs and bridge landed): reinstall the home, then the
+  bridge endpoints with curl, the remote's volume keys and the bar, `/now` with Spotify in front (its
+  screen may read only as a web view, then title and artist stay empty), `/media` in Spotify (if it has no
+  session, fall back to keys 85/87/88 through 5511), `/source`, `/dock?order=`; the phone's D-pad edges and
+  tabs on a real phone. Also: that the Visualizer hears the beat over Spotify (no "Can't hear the TV"
   warning under logcat tag `BaronMusic` so far) and music mode's frame times; input switching from the
   tiles; which Picture candidate opens (`side/PictureSettings.kt`). Spotify's TV app posts no media
   notification while it's in front, so `SessionTokens` has nothing to read from it.
@@ -537,11 +551,22 @@ launcher (sideloaded, never published).
   each press answers quickly; the timeouts on the real Wi-Fi; every key. Input (178) is likely ignored:
   injected keys skip the accessibility service that turns Input into CVTE's source panel (see "Keys").
   After a TV reboot the server sleeps until opened once, so the app ends in "TV not found" until then.
-- **The home's bridge** (port 5512, see "New home screen"): every press also nudges `GET /wake` (at most
-  once a second, on its own thread, so a missing bridge never slows a key), and Input asks `GET /input`
-  to open the input list, falling back to keycode 178 when there's no bridge (the old launcher).
-- **Next:** more on the bridge for apps, now playing, inputs, volume and the dock order; then the Apps,
-  Playing and TV tabs.
+- **The home's bridge** (port 5512, the API in `home/BRIDGE.md`): every press also nudges `GET /wake` (at
+  most once a second, on its own thread, so a missing bridge never slows a key), and Input asks
+  `GET /input` to open the input list, falling back to keycode 178 when there's no bridge (the old
+  launcher). `tv/HttpTvBridge.kt` is the client for everything else; with no bridge, launching falls back
+  to CloudWalker's `/play?packageName=` and volume to keycodes.
+- **Tabs (2026-10-20, four agents in parallel)** after "the D-pad doesn't control the TV properly", "the
+  prototype's other sections aren't there", "volume shows the TV's native UI": the shell (`ui/RemoteApp.kt`)
+  draws the shared header (name and state) over the chosen tab and the prototype's tab bar (Remote, Apps,
+  Playing, TV), remembering the last tab. Remote (`ui/RemoteTab.kt`): the pad is a D-pad as well as a swipe
+  pad, since its edge carets looked like buttons but every tap was OK: a tap within 72 dp of an edge sends
+  that direction (the middle is OK), holding an edge repeats (first at 420 ms, then every 160 ms, the volume
+  keys' clock), swipes as before; volume and mute go through the bridge so the TV shows the home's own bar.
+  Apps: the TV's apps as covers, tap to open. Playing: what `/now` gives (the app, playing or not, a title
+  and artist only when the TV can read them), previous / play-pause / next, a volume slider that never
+  jumps; it polls only while on screen. TV: inputs (tap switches), Picture / Sound / Settings shortcuts, and
+  the dock order by dragging, saved on the TV at once.
 
 ## Next steps
 
