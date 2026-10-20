@@ -109,6 +109,8 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
 - Backup of the stock state: `backup/20261019-151014/` (package lists, getprop, settings, Home and
   keyboard, meminfo) and `backup/dumpsys/` (per-package dumps). Committed on purpose, since this repo is
   private. `tools/backup.sh` takes a fresh one.
+- 2026-10-20: a home screen redesign is under way in `prototype/` (see "Home screen redesign"). The TV
+  itself hasn't changed since the tuning above.
 - Work happens on two Macs; this file is how they hand over.
 
 ## How this firmware behaves
@@ -161,6 +163,86 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
 - The boot video path (`persist.sys.bootvideo.path`) points into `com.cvte.ad.spider`'s files; the TV
   boots fine with that package removed.
 
+## Home screen redesign (prototype, 2026-10-20)
+
+A clickable web prototype of the new home screen lives in `prototype/`. The user reviews every UI change
+there first: **nothing goes to the TV until they approve it in the prototype.** Plain HTML, CSS and JS,
+no build step:
+
+```bash
+uv run --no-project python -I -m http.server 4321 --bind 127.0.0.1 --directory prototype
+open http://localhost:4321
+```
+
+The canvas is 960x540, so one CSS pixel is one dp in the launcher (the TV draws it at 1.33x on its
+1280x720 output). Arrow keys are the D-pad, Enter is OK, Esc is Back. The toolbar above the TV switches
+View (New, or Now: a screenshot of the current TV home), Font, Icons, Weather icons and the screensaver
+delay, and has a Show now button for the screensaver.
+
+What the user has decided, in order:
+
+- **Dark only**, on black, after trying light.
+- **Font: Open Runde** (rounded Inter, SIL OFL, `assets/fonts/open-runde/`). It has no Light, so the big
+  numbers are Regular. Outfit (the installed launcher's font) and Timeless (only when installed on the
+  Mac; its licence for embedding in an app is unchecked) are there to compare.
+- **Icons: Phosphor** (MIT, `assets/icons/phosphor/<regular|duotone|fill>/`) for the buttons, chips and
+  weather glyph. Weather can also use **Meteocons** flat (MIT, animated), whose pale clouds suit black.
+- **Layout from the user's two reference photos** of a custom Apple TV style launcher:
+  - Page 1: greeting, clock and date on the left; round Inputs, Wi-Fi and Settings buttons on the right
+    with live Bengaluru weather under them; a "Trending on your apps" shelf (one wide backdrop and two
+    posters, each with a title and a "Series · Drama · Prime Video" line); the dock.
+  - Page 2, reached with Down from the dock, which scrolls the dock to the top: Inputs (HDMI 1, HDMI 2
+    and AV as tiles, dimmed when nothing is plugged in), Shortcuts (Wi-Fi, Picture, Sound, Settings) and
+    a Bengaluru weather card (now, the next 8 hours, high and low, sunrise and sunset).
+  - The reference's crypto and currency rates card was built, then **removed** at the user's request.
+- **Dock order:** Prime Video, Netflix, YouTube, JioHotstar, Spotify, then App Store and Media Center (7
+  tiles). Netflix can't run on this TV (see "How this firmware behaves"): its tile is drawn from the
+  Netflix mark (`assets/apps/netflix-banner.svg`), and on the TV it could only switch to an HDMI stick.
+- **Focus:** the focused item lifts where it is (dock tiles 1.08x, posters 1.035x, chips 1.06x and a
+  shade lighter, each with a soft shadow) over 240 ms, ease-out, no bounce. The user rejected the
+  installed launcher's travelling white glass highlight here ("going here and there", "not smooth"):
+  don't bring it back. The round buttons and the Inputs menu fill with the one accent, sky blue
+  `#51b3f9` (white on it fails WCAG contrast; flagged, the user's call).
+- **Trays:** the dock band, buttons, chips and weather card are a translucent white veil (7.5 to 10%)
+  with no edge line, so the glow tints them.
+- **Glow:** behind everything, in the colour of the focused artwork, picked the way the launcher's
+  `AppAdapter.vividColor` does it, then set in OKLCH at 62% lightness with chroma capped at 0.16, and
+  yellows leaned to amber (hue 68) so they don't go olive. Hidden on the buttons and on page 2. The user
+  hasn't said whether to keep it.
+- **Screensaver:** the old DVD logo (our own drawing, not an official file) bouncing on black, a new
+  colour at every bounce and a small pulse on an exact corner hit. It starts after 10 minutes without
+  input, and the first key only wakes it.
+
+Data, fetched by the page the way the launcher would:
+
+- Weather: Open-Meteo, no key, Bengaluru at 12.9716, 77.5946, every 30 minutes.
+- Shelf: TMDB discover for region IN on the Prime Video and Hotstar providers, by popularity, every 3
+  hours, cached in localStorage. It needs the user's free TMDB key or v4 read token in
+  `prototype/local/tmdb-key.txt` (gitignored, so create it on each Mac); without it the shelf shows
+  placeholders. A poster can only open its app, not the exact title.
+- App banners in `assets/apps/` were pulled from the APKs on the TV.
+
+Open questions for the user:
+
+1. The TMDB key (not given yet).
+2. Keep App Store and Media Center in the dock, or move them to page 2 so the dock is the five apps?
+3. Keep the colour glow, make it one fixed colour, or remove it?
+4. The Netflix tile on the real TV: drop it, or point it at an HDMI stick once there is one?
+
+Porting it to the TV once approved (`launcher/`, Java):
+
+- Rebuild the layout as page 1 and page 2, with the prototype's focus model (rows top to bottom; Up and
+  Down go to the nearest item in the next row).
+- Open Runde from the release's `desktop/` OTFs (v1.0.1, GitHub `lauridskern/open-runde`) into
+  `res/font`; Phosphor SVGs as VectorDrawables.
+- Weather and TMDB need the `INTERNET` permission, the launcher's first network use. Keep the TMDB key
+  out of git (`local.properties`, read into `BuildConfig`).
+- The screensaver as a new `DreamService` next to `ClockDream`, then on the TV:
+  `settings put secure screensaver_components com.gathin.tvhome/.<Dream>`,
+  `settings put secure screensaver_enabled 1` and `settings put system screen_off_timeout 600000`.
+  Check that the CVTE firmware actually runs dreams.
+- Mind the 512 MB: three posters at most, TMDB sizes w342 and w780, no blur, no video.
+
 ## Next steps
 
 ### To finish this round
@@ -175,9 +257,10 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
 
 - **Netflix:** a streaming stick on HDMI (Fire TV Stick or Chromecast with Google TV), reached with the
   Inputs menu or the Input key. Nothing on this TV itself can run Netflix (see above).
-- **Dock:** JioHotstar in place of the App Store (`dock_apps` in `config.xml`, then reinstall). Offered,
-  no answer yet.
-- **Clock screensaver** (see README).
+- **Dock order:** set in the prototype (see "Home screen redesign"). The TV keeps its old order until the
+  redesign is installed.
+- **Screensaver:** the DVD one in the prototype (see "Home screen redesign"); the README's Clock
+  screensaver is the fallback.
 - **A more custom launcher.** The user is a visual designer and wants more customisation. The home screen
   is already our own app, so almost anything can change:
   - Look: layout, colours, wallpaper, fonts, tile shapes, custom icons and banners, the clock and greeting.
@@ -188,8 +271,8 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
     and hidden apps.
   - Limits: 512 MB rules out video backgrounds, heavy blur and 3D, so keep it light. Rows of content from
     inside other apps ("continue watching" from YouTube or Prime) aren't available on this TV.
-  - Workflow: the user designs in Figma or sends references, we build it and install it in minutes. On
-    2026-10-19 the user said a design for a light UI refresh is coming: build from that when it arrives.
+  - Workflow: the user sends references, we build them into the localhost prototype, the user approves
+    there, then we port to the launcher. See "Home screen redesign".
 - **Not possible:** Google's Android TV or any other Android build. There's none for this board, a wrong
   file can brick it, and Google's services need more memory than the TV has.
 
@@ -201,6 +284,7 @@ It doesn't touch Private DNS or the App Store compile: undo those as shown under
 
 ## Working rules
 
+- UI changes go to the `prototype/` first. Nothing reaches the TV until the user approves it there.
 - Work on the real TV and verify each change with key injection and a screenshot. Ask the user before
   removing anything that isn't already in the list, and before anything that changes what's on screen
   while they might be recording.
