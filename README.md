@@ -5,6 +5,8 @@ that runs CloudWalker's Cloud TV OS on a CVTE board with 512 MB of RAM. It start
 [cleanyourtv](https://github.com/Gathin23/cleanyourtv) and grew into a home screen of its own, designed
 first as a clickable web prototype and then built for the TV.
 
+![Baron Home on the TV: a bento clock with the weather, new episodes on the installed apps, the inputs and TV controls on the right, and the app dock with YouTube focused](docs/baron/home.jpg)
+
 ## What's in it
 
 | Folder | What it is |

@@ -1,8 +1,11 @@
-# Baron TV (private fork of tv-vibehack)
+# Baron TV: notes for working on this repo
 
-Private working copy of [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack) (MIT) for one
-TV: a Baron 32" "Cloud TV". Goal: strip the CloudWalker and CVTE ads and bloat, replace the home screen
-with the tv-vibehack launcher, then post a before/after video.
+Working notes for the agent and the people building Baron Home, a fork of
+[Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv) (MIT, formerly tv-vibehack) for one TV: a
+Baron 32" "Cloud TV". It began as stripping the CloudWalker and CVTE ads and bloat and replacing the home
+screen with the tv-vibehack launcher, and grew into Baron Home and its phone app. The repo is public since
+2026-10-21: keep personal details (addresses, network names, device identifiers) out of it. README.md is the
+public introduction; this file is the working log and handoff.
 
 Upstream's `README.md` and `PROMPT.md` describe the general method. This file is the state of this TV
 and what's left to do. Upstream is now called cleanyourtv; v2.1.0 (`042fd69`) was merged in on
@@ -106,9 +109,9 @@ network: allow it. `launcher/build-and-install.sh` finds the Homebrew JDK and SD
   Spotify, Cloud TV App Store. Asked for Netflix and JioHotstar: JioHotstar is in, Netflix can't be
   (see below). Asked about installing Google's Android TV and about more launcher customisation: see
   "Suggestions" under Next steps.
-- Backup of the stock state: `backup/20261019-151014/` (package lists, getprop, settings, Home and
-  keyboard, meminfo) and `backup/dumpsys/` (per-package dumps). Committed on purpose, since this repo is
-  private. `tools/backup.sh` takes a fresh one.
+- Backup of the stock state: `tools/backup.sh` writes package lists, getprop, settings, Home and keyboard
+  and meminfo to `backup/<timestamp>/`, which is gitignored: TV dumps hold device identifiers, so they
+  stay on the machine that took them (the first one, from 2026-10-19, is kept outside git).
 - 2026-10-20: a home screen redesign is under way in `prototype/` (see "Home screen redesign"). The TV
   itself hasn't changed since the tuning above.
 - Work happens on two Macs; this file is how they hand over.
