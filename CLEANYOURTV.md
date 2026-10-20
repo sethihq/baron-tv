@@ -1,7 +1,7 @@
 # Clean Your TV
 
-> **This copy** is a private working fork for a Baron 32" Cloud TV (CloudWalker OS on a CVTE board).
-> Its state and next steps are in [CLAUDE.md](CLAUDE.md); the rest of this README is upstream's.
+> This is cleanyourtv's README as it was when Baron Home forked from it. The current project is
+> [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv); Baron Home's own README is [README.md](README.md).
 
 **Your TV, minus the ads.** Website: [cleanyour.tv](https://cleanyour.tv). This repo was called tv-vibehack until 19 October 2026; old links still work.
 
