@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The remote's keys (Input, and the volume keys for the home's own bar), the notifications that carry a
+     music app's session, the app in front, and, read only when the phone asks what's playing, the music
+     app's screen (canRetrieveWindowContent; view ids for native players). -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeNotificationStateChanged|typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagRequestFilterKeyEvents"
+    android:accessibilityFlags="flagRequestFilterKeyEvents|flagReportViewIds"
     android:canRequestFilterKeyEvents="true"
+    android:canRetrieveWindowContent="true"
     android:description="@string/input_key_service_description" />

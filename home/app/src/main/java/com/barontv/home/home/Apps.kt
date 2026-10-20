@@ -1,9 +1,14 @@
 package com.barontv.home.home
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
 import com.barontv.home.R
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** An app in the dock: its package, its name, and the cover drawn for it ([cover] 0 for its own banner). */
 data class DockApp(val packageName: String, val label: String, val cover: Int)
@@ -40,20 +45,31 @@ object DockApps {
     /** CloudWalker's helper screens (All Apps, search, the stock launcher...) never get a tile. */
     fun hidden(packageName: String): Boolean = packageName.startsWith("tv.cloudwalker.") || packageName in HIDDEN
 
+    private val PINNED_NAMES = PINNED.map { it.packageName }.toSet()
+
+    /** One of the user's own dock apps, drawn with its cover (the rest show their own banners). */
+    fun isPinned(packageName: String): Boolean = packageName in PINNED_NAMES
+
     /**
      * The dock's order from what's installed: [found] is every app with a TV launcher entry as
-     * (package, name). Pure, so it's tested without a TV.
+     * (package, name). [saved] is the order the user set from the phone (DockOrder): those apps lead, in
+     * that order, and the rest follow in the usual order; a saved app that's gone or hidden is skipped.
+     * Pure, so it's tested without a TV.
      */
-    fun order(found: List<Pair<String, String>>): List<DockApp> {
+    fun order(found: List<Pair<String, String>>, saved: List<String> = emptyList()): List<DockApp> {
         val installed = found.associate { it }
         val pinned = PINNED.filter { it.packageName in installed }
-        val pinnedNames = PINNED.map { it.packageName }.toSet()
         val others = found
-            .filter { (pkg, _) -> pkg !in pinnedNames && !hidden(pkg) }
+            .filter { (pkg, _) -> pkg !in PINNED_NAMES && !hidden(pkg) }
             .distinctBy { it.first }
             .sortedBy { it.second.lowercase() }
             .map { (pkg, label) -> DockApp(pkg, label, 0) }
-        return pinned + others
+        val usual = pinned + others
+        if (saved.isEmpty()) return usual
+        val byPackage = usual.associateBy { it.packageName }
+        val first = saved.distinct().mapNotNull { byPackage[it] }
+        val firstNames = first.map { it.packageName }.toSet()
+        return first + usual.filter { it.packageName !in firstNames }
     }
 
     /**
@@ -77,4 +93,56 @@ object DockApps {
         }
         return found
     }
+}
+
+/**
+ * The dock order the user set from the phone (the bridge's /dock?order=), kept in the app's preferences
+ * where the home screen reads it. The bridge and the home screen share one process, so a new order is
+ * passed straight on and the dock re-lays itself at once. The bridge saves off the main thread; listeners
+ * hear about it on the main thread.
+ */
+object DockOrder {
+    private const val PREFS = "dock"
+    private const val KEY = "order"
+
+    // Made on first use: the order's sums are tested on the JVM, where there's no main looper.
+    private val main by lazy { Handler(Looper.getMainLooper()) }
+    private val listeners = CopyOnWriteArrayList<() -> Unit>()
+
+    /** The saved order, first to last; empty means the usual order. */
+    fun load(context: Context): List<String> = load(prefs(context))
+
+    fun load(prefs: SharedPreferences): List<String> = decode(prefs.getString(KEY, null))
+
+    /** Saves [order] (empty goes back to the usual order) and tells the home screen; false if it couldn't be written. */
+    fun save(context: Context, order: List<String>): Boolean {
+        val ok = save(prefs(context), order)
+        if (ok) main.post { for (l in listeners) l() }
+        return ok
+    }
+
+    /** Written at once (commit, not apply), so the phone's "ok" means it's on disk. */
+    fun save(prefs: SharedPreferences, order: List<String>): Boolean {
+        val clean = decode(encode(order))
+        val edit = prefs.edit()
+        if (clean.isEmpty()) edit.remove(KEY) else edit.putString(KEY, encode(clean))
+        return edit.commit()
+    }
+
+    /** Package names never hold a comma, so the order is kept as one line. */
+    fun encode(order: List<String>): String = order.joinToString(",") { it.trim() }
+
+    fun decode(saved: String?): List<String> =
+        saved?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }?.distinct().orEmpty()
+
+    /** [listener] runs on the main thread whenever a new order is saved. */
+    fun addListener(listener: () -> Unit) {
+        listeners += listener
+    }
+
+    fun removeListener(listener: () -> Unit) {
+        listeners -= listener
+    }
+
+    private fun prefs(context: Context): SharedPreferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 }

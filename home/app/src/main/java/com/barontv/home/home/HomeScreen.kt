@@ -96,6 +96,7 @@ class HomeScreen(
         }
         if (Build.VERSION.SDK_INT >= 33) context.registerReceiver(packageReceiver, packages, Context.RECEIVER_EXPORTED)
         else context.registerReceiver(packageReceiver, packages)
+        DockOrder.addListener(dockOrderListener)
         connectivity?.registerDefaultNetworkCallback(networkCallback)
         loadWeather()
         loadShelf()
@@ -126,6 +127,7 @@ class HomeScreen(
         scope.cancel()
         root.viewTreeObserver.removeOnGlobalFocusChangeListener(focusListener)
         NowPlayingHub.removeListener(nowPlayingListener)
+        DockOrder.removeListener(dockOrderListener)
         if (live) {
             try {
                 context.unregisterReceiver(packageReceiver)
@@ -400,10 +402,14 @@ class HomeScreen(
     /** The covers' size for [count] apps in the dock slot (px). */
     fun coverSize(count: Int): Pair<Int, Int> = dock.tileSize(dockSlot.layoutParams.width, count)
 
+    // A new order from the phone (the bridge runs in this process): the dock re-lays itself at once.
+    private val dockOrderListener: () -> Unit = { loadApps() }
+
     private fun loadApps() {
         val pm = context.packageManager
         val apps = try {
-            DockApps.order(DockApps.installed(pm))
+            // The saved order is one short preference, read once per process and then kept in memory.
+            DockApps.order(DockApps.installed(pm), DockOrder.load(context))
         } catch (e: RuntimeException) {
             // The package manager died with the system: keep the dock as it is.
             return
