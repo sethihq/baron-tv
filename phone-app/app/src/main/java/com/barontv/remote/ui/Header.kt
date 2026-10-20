@@ -63,18 +63,27 @@ private val HeaderShape = RoundedCornerShape(16.dp)
 
 /**
  * Which TV, and whether the phone can reach it: the TV's name over a status line with a dot, centred,
- * as the prototype's header. The four states stay calm and keep the same shape, so nothing jumps:
+ * as the prototype's header. It sits over every tab. The four states stay calm and keep the same shape,
+ * so nothing jumps:
  *
  * - Connected: a green dot and "Connected". A tap on the name shows the TV's address there for a
  *   moment (its address changes at every boot, which is worth seeing now and then).
  * - Searching: "Looking for the TV", with a grey dot that softly pulses.
- * - NotFound and NoWifi: "TV not found" and "Not on Wi-Fi", with a still grey dot. What to do about it
- *   sits in the touch pad below, where it is easy to reach.
+ * - NotFound and NoWifi: "TV not found" and "Not on Wi-Fi", with a still grey dot. The Remote tab's pad
+ *   says what to do about it, with a button; from any tab a tap here does the same: [onRetry] looks for
+ *   the TV again, [onOpenWifiSettings] opens the phone's Wi-Fi settings.
  *
  * The prototype's chevron is gone: it promised a TV picker, and there's only ever one TV.
  */
 @Composable
-internal fun Header(state: TvState, reduceMotion: Boolean, haptics: Haptics, modifier: Modifier = Modifier) {
+internal fun Header(
+    state: TvState,
+    reduceMotion: Boolean,
+    haptics: Haptics,
+    modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null,
+    onOpenWifiSettings: (() -> Unit)? = null,
+) {
     val connected = state as? TvState.Connected
     // Each tap restarts the moment, so a second tap keeps the address up.
     var taps by remember { mutableIntStateOf(0) }
@@ -87,12 +96,19 @@ internal fun Header(state: TvState, reduceMotion: Boolean, haptics: Haptics, mod
         }
     }
     val showAddress = connected != null && revealing
+    // What a tap does in each state, and what TalkBack calls it.
+    val tap: Pair<String, () -> Unit>? = when (state) {
+        is TvState.Connected -> "show its address" to { taps++ }
+        TvState.NotFound -> onRetry?.let { "look for it again" to it }
+        TvState.NoWifi -> onOpenWifiSettings?.let { "open Wi-Fi settings" to it }
+        TvState.Searching -> null
+    }
 
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val focused by interaction.collectIsFocusedAsState()
     val fill by animateColorAsState(
-        if (pressed && connected != null) Palette.Veil else Color.Transparent,
+        if (pressed && tap != null) Palette.Veil else Color.Transparent,
         tween(160, easing = Motion.EaseOut),
         label = "header fill",
     )
@@ -110,15 +126,15 @@ internal fun Header(state: TvState, reduceMotion: Boolean, haptics: Haptics, mod
                 .clip(HeaderShape)
                 .background(fill)
                 .then(
-                    if (connected != null) {
+                    if (tap != null) {
                         Modifier.clickable(
                             interactionSource = interaction,
                             indication = null,
                             role = Role.Button,
-                            onClickLabel = "show its address",
+                            onClickLabel = tap.first,
                         ) {
                             haptics.tap()
-                            taps++
+                            tap.second()
                         }
                     } else {
                         Modifier
