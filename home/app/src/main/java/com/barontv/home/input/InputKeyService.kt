@@ -1,16 +1,22 @@
 package com.barontv.home.input
 
 import android.accessibilityservice.AccessibilityService
+import android.app.Notification
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import com.barontv.home.media.SessionTokens
 
 /**
  * The remote's Input key opens CVTE's source panel, from any app. CVTE remotes send KEYCODE_TV_INPUT
  * (scan code 79), which the firmware only ever answered with a broadcast to the stock launcher, blocked
  * on Android 9; this service catches it instead. Every other key passes through untouched. Moved here
  * from the old launcher's InputKeyService, which it replaces (one of the two is enabled at a time).
+ *
+ * It also sees every notification posted, which is how the home screen learns what's playing on this TV:
+ * low-RAM Android has no notification access, but a music app's notification carries its media session's
+ * token (see SessionTokens).
  */
 class InputKeyService : AccessibilityService() {
     override fun onKeyEvent(event: KeyEvent): Boolean {
@@ -25,7 +31,17 @@ class InputKeyService : AccessibilityService() {
         return true
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event?.eventType != AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) return
+        val notification = event.parcelableData as? Notification ?: return
+        val pkg = event.packageName?.toString() ?: return
+        SessionTokens.onNotification(this, pkg, notification)
+    }
+
+    override fun onDestroy() {
+        SessionTokens.release()
+        super.onDestroy()
+    }
 
     override fun onInterrupt() {}
 

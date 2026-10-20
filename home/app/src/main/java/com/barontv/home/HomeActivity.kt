@@ -32,6 +32,7 @@ class HomeActivity : Activity(), HomeHost {
     private lateinit var saver: SaverOverlay
     private var resumed = false
     private var musicCovered = false
+    private var saverOnResume = false
 
     // The prototype is drawn on a 960 x 540 dp screen. The TV reports 1280 x 720 at 160 dpi, which would
     // make everything a quarter too small; at 213 dpi it is exactly 960 x 540 dp.
@@ -75,9 +76,10 @@ class HomeActivity : Activity(), HomeHost {
 
     // For checking the screensaver without waiting 10 minutes:
     // am start -n com.barontv.home/.HomeActivity --ez show_saver true
+    // (A new intent arrives between onPause and onResume, so it's shown once the screen is back in front.)
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent.getBooleanExtra(EXTRA_SHOW_SAVER, false)) saver.showNow()
+        if (intent.getBooleanExtra(EXTRA_SHOW_SAVER, false)) saverOnResume = true
     }
 
     override fun onResume() {
@@ -86,6 +88,10 @@ class HomeActivity : Activity(), HomeHost {
         home.resume()
         musicMode.setForeground(true)
         saver.setForeground(true)
+        if (saverOnResume) {
+            saverOnResume = false
+            saver.showNow()
+        }
     }
 
     override fun onPause() {

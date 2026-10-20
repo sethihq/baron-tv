@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">Baron Home</string>
     <string name="dream_name">Baron screensaver</string>
-    <string name="input_key_service_description">Opens the TV\'s input list when you press Input on the remote.</string>
+    <string name="input_key_service_description">Opens the TV\'s input list when you press Input on the remote, and shows what\'s playing on the home screen.</string>
 </resources>
