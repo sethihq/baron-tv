@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Black from the first frame, no title, no window animation flash: the home screen draws everything. -->
+    <style name="Theme.BaronHome" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:colorAccent">#FFEBEBEB</item>
+    </style>
+</resources>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Sidebar layout, at the prototype's own positions (960 x 540 dp; HomeActivity sets 213 dpi, which
+     makes the TV's 1280 x 720 exactly that). Each slot is filled in code by its part:
+     glow behind everything, bento top left, the shelf under it, the side dock on the right, the app dock
+     along the bottom, the island over the top, music mode over everything, the toast on top. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    android:clipChildren="false">
+
+    <FrameLayout
+        android:id="@+id/glowSlot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <FrameLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false">
+
+        <FrameLayout
+            android:id="@+id/bentoSlot"
+            android:layout_width="232dp"
+            android:layout_height="89dp"
+            android:layout_marginStart="56dp"
+            android:layout_marginTop="32dp"
+            android:clipChildren="false" />
+
+        <FrameLayout
+            android:id="@+id/shelfSlot"
+            android:layout_width="592dp"
+            android:layout_height="270.6dp"
+            android:layout_marginStart="56dp"
+            android:layout_marginTop="133dp"
+            android:clipChildren="false" />
+
+        <FrameLayout
+            android:id="@+id/sideDockSlot"
+            android:layout_width="232dp"
+            android:layout_height="371.6dp"
+            android:layout_marginStart="672dp"
+            android:layout_marginTop="32dp"
+            android:clipChildren="false" />
+
+        <FrameLayout
+            android:id="@+id/dockSlot"
+            android:layout_width="848dp"
+            android:layout_height="84.4dp"
+            android:layout_marginStart="56dp"
+            android:layout_marginTop="423.6dp"
+            android:clipChildren="false" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/islandSlot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false" />
+
+    <FrameLayout
+        android:id="@+id/musicSlot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <FrameLayout
+        android:id="@+id/toastSlot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</FrameLayout>
