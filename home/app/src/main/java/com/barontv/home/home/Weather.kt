@@ -1,5 +1,7 @@
 package com.barontv.home.home
 
+import com.barontv.home.BuildConfig
+
 import com.barontv.home.R
 import org.json.JSONException
 import org.json.JSONObject
@@ -29,7 +31,7 @@ enum class Sky { NONE, SUN, PARTLY, CLOUD, RAIN, STORM, NIGHT }
 data class WeatherNext(val icon: String, val words: List<Pair<String, Boolean>>)
 
 /**
- * Open-Meteo's forecast for Bengaluru, kept as the hourly series it sends, so the reading for any hour
+ * Open-Meteo's forecast for the place set at build time, kept as the hourly series it sends, so the reading for any hour
  * it covers can be worked out again later: after a reboot the cached forecast still shows the right hour
  * at once, and between refreshes "what's next" moves on with the clock.
  */
@@ -46,7 +48,7 @@ class Forecast(
     private val dailyMax: DoubleArray,
     private val dailyMin: DoubleArray,
 ) {
-    /** The reading for [hour] ("2026-10-20T17", Bengaluru time), or null if the forecast doesn't reach it. */
+    /** The reading for [hour] ("2026-10-20T17", local time), or null if the forecast doesn't reach it. */
     fun readingAt(hour: String): WeatherReading? {
         val at = times.indexOfFirst { it.startsWith(hour) }
         if (at < 0) return null
@@ -106,8 +108,10 @@ class Forecast(
 
 /** The weather words and pictures, ported from the prototype's describe(), bento.js and app.js. */
 object Weather {
-    const val LATITUDE = 12.9716
-    const val LONGITUDE = 77.5946
+    /** The place, from the build (Bengaluru unless local.properties sets your own, see app/build.gradle.kts). */
+    const val LATITUDE = BuildConfig.WEATHER_LAT
+    const val LONGITUDE = BuildConfig.WEATHER_LON
+    const val PLACE = BuildConfig.WEATHER_PLACE
     val ZONE: TimeZone = TimeZone.getTimeZone("Asia/Kolkata")
 
     /** Every 30 minutes, as the prototype. */
@@ -151,7 +155,7 @@ object Weather {
         return "${if (h % 12 == 0) 12 else h % 12} ${if (h < 12) "am" else "pm"}"
     }
 
-    /** The hour [millis] falls in, Bengaluru time, as Open-Meteo labels it ("2026-10-20T17"). */
+    /** The hour [millis] falls in, local time, as Open-Meteo labels it ("2026-10-20T17"). */
     fun hourKey(millis: Long): String =
         SimpleDateFormat("yyyy-MM-dd'T'HH", Locale.US).apply { timeZone = ZONE }.format(millis)
 

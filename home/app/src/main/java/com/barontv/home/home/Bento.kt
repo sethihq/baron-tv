@@ -378,7 +378,7 @@ class LineTileView(context: Context) : BentoTile(context) {
 
     private fun build(next: WeatherNext?, tight: Int): List<Run> {
         val list = mutableListOf(Run(weekday, wdayPaint), Run(date.toString(), strong[tight]), Run("·", sep[tight]))
-        if (next == null) list += Run("Bengaluru", plain[tight])
+        if (next == null) list += Run(Weather.PLACE, plain[tight])
         else for ((text, isStrong) in next.words) list += Run(text, if (isStrong) strong[tight] else plain[tight])
         return list
     }

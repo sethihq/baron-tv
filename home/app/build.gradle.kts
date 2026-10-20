@@ -6,7 +6,8 @@ plugins {
     id("app.cash.paparazzi")
 }
 
-// Secrets stay out of git: local.properties (gitignored) may set tmdb.key=<TMDB v3 API key>.
+// Secrets and your own place stay out of git: local.properties (gitignored) may set
+// tmdb.key=<TMDB v3 API key>, and weather.lat, weather.lon and weather.place.
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -27,6 +28,11 @@ android {
         versionName = "1.0-0-baronhome-lite-com"
         // Empty: the shelf uses TVmaze, which needs no key.
         buildConfigField("String", "TMDB_KEY", "\"${localProps.getProperty("tmdb.key", "")}\"")
+        // Where the weather is for, and the name shown when there's no forecast line. Bengaluru unless
+        // local.properties sets weather.lat, weather.lon and weather.place for your own place.
+        buildConfigField("double", "WEATHER_LAT", localProps.getProperty("weather.lat", "12.9716"))
+        buildConfigField("double", "WEATHER_LON", localProps.getProperty("weather.lon", "77.5946"))
+        buildConfigField("String", "WEATHER_PLACE", "\"${localProps.getProperty("weather.place", "Bengaluru")}\"")
     }
 
     buildFeatures {

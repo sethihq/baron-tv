@@ -5,7 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import java.io.IOException
 
-/** Open-Meteo's forecast as the bento reads it; the fixture is Bengaluru's, saved at 6.15 pm on 20 October. */
+/** Open-Meteo's forecast as the bento reads it; the fixture is a Bengaluru forecast, saved at 6.15 pm on 20 October. */
 class WeatherTest {
     private val forecast = Forecast.parse(javaClass.getResource("/home/open-meteo.json")!!.readText())
 
@@ -90,7 +90,7 @@ class WeatherTest {
     }
 
     @Test
-    fun hourKeyIsBengaluruTime() {
+    fun hourKeyIsLocalTime() {
         // 12.45 UTC is 6.15 pm in India.
         assertEquals("2026-10-20T18", Weather.hourKey(1_792_500_300_000L))
     }
