@@ -89,7 +89,7 @@
       const icon = weatherIcon({ ...r, ph: next.icon });
       parts.push(icon, ...next.words.map(([text, strong]) => el(strong ? "b" : "span", "", text)));
     } else {
-      parts.push(el("span", "", "Bengaluru"));
+      parts.push(el("span", "", PLACE.name));
     }
     line.replaceChildren(...parts);
     line.removeAttribute("data-tight");

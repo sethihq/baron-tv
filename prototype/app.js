@@ -1,5 +1,5 @@
 // Baron TV home prototype. Page 1: clock, round controls, what's trending on your apps, the dock.
-// Page 2, under the dock: inputs, shortcuts and the Bengaluru weather. Arrow keys are the D-pad,
+// Page 2, under the dock: inputs, shortcuts and the local weather. Arrow keys are the D-pad,
 // Enter or a click is OK, Esc or Backspace is Back. Nothing here talks to the TV; the weather comes
 // from Open-Meteo and the shelf from TMDB, as the launcher would fetch them.
 
@@ -40,7 +40,9 @@ const PAGE2_DOCK_TOP = 34;
 
 const FALLBACK_GLOW = [68, 68, 68];
 
-const BENGALURU = { latitude: 12.9716, longitude: 77.5946 };
+// The weather's place: Bengaluru unless the gitignored local/place.json names your own, as
+// {"name": "...", "latitude": ..., "longitude": ...}. The TV build takes it from local.properties.
+const PLACE = { name: "Bengaluru", latitude: 12.9716, longitude: 77.5946 };
 const WEATHER_EVERY_MS = 30 * 60 * 1000;
 const RETRY_MS = 60 * 1000;
 const TMDB_KEY_FILE = "local/tmdb-key.txt";
@@ -971,10 +973,25 @@ const hourLabel = (iso) => {
   return `${h % 12 || 12} ${h < 12 ? "am" : "pm"}`;
 };
 
+let placeLoaded = false;
+
+async function loadPlace() {
+  if (placeLoaded) return;
+  placeLoaded = true;
+  try {
+    const res = await fetch("local/place.json", { cache: "no-store" });
+    if (res.ok) Object.assign(PLACE, await res.json());
+  } catch {
+    // No local place: Bengaluru.
+  }
+  document.getElementById("wxPlace").textContent = PLACE.name;
+}
+
 async function loadWeather() {
+  await loadPlace();
   const params = new URLSearchParams({
-    latitude: BENGALURU.latitude,
-    longitude: BENGALURU.longitude,
+    latitude: PLACE.latitude,
+    longitude: PLACE.longitude,
     current: "temperature_2m,weather_code,is_day",
     hourly: "temperature_2m,weather_code,is_day",
     daily: "temperature_2m_max,temperature_2m_min,sunrise,sunset",
@@ -1011,7 +1028,7 @@ function renderWeather() {
   if (!reading) return;
   document.getElementById("wxIcon").replaceChildren(weatherIcon(reading));
   document.getElementById("wxTemp").textContent = `${reading.temp}°`;
-  document.getElementById("wxText").textContent = `${reading.text} in Bengaluru`;
+  document.getElementById("wxText").textContent = `${reading.text} in ${PLACE.name}`;
   document.getElementById("weather").hidden = false;
 
   const gauge = document.getElementById("cxTemp");
