@@ -289,8 +289,10 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   and saturating inward, flowing round every 50 s. (A five-colour loop that drifted round the wheel with
   every kick was tried and dropped: "too many colours, I liked the earlier one".) It sits behind the UI
   like a backlight, under the content layer ("it's coming on top of the tiles"); music mode brings it
-  forward over the dimming. Its depth rolls along the edge like a slow tide and pools in
-  the corners; a soft inner shadow under it gives depth.
+  forward over the dimming. On the home screen it rises from the bottom, where the cover-coloured glow
+  has always been ("it should be at the bottom like earlier"): full along the bottom edge, fading up the
+  sides, nothing across the top; music mode lights the whole rim. Its depth rolls along the edge like a
+  slow tide and pools in the corners; a soft inner shadow under it gives depth.
   **Synced to the real music** ("edge lighting should be syncing with music"): panel Glow follows Song /
   Mic / Tempo. Song plays each track's 30 s Apple Music preview (`previewUrl` from the iTunes search, open
   CORS) and listens with a Web Audio FFT; Mic listens to the room (getUserMedia); Tempo fakes it. Kicks
@@ -329,12 +331,14 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   over "Connected"); the rest sit under "Other networks" in one grouped card split by hairlines, each with
   its lock and a signal icon that is always the full fan with the arcs it doesn't reach dimmed, so they
   line up. Choosing one moves it into the card, "Connecting…" with a breathing grey badge, then
-  "Connected". Sound has a Control Centre volume slider (the level fills it white, the glyph and number
-  flip dark over the fill; Left and Right in fives, the speaker glyph mutes at 0), then "Play sound on" in
-  the same grouped card: TV speakers, Bluetooth devices nearby, a soundbar on HDMI ARC, the one in use
-  ticked green. Focus is colour only everywhere, except the switch, whose colour is its state, so it
-  gets a ring. Back or the chevron returns. Demo data; on the TV, `WifiManager` scan results (location permission is granted by the
-  install script) and Bluetooth discovery would fill them. Focus moves to the nearest item in the pressed direction (FocusFinder
+  "Connected". Sound is the box itself turned into one tall volume bar ("only the sound bar should be
+  there, the bento box itself should turn into the sound bar"): no header and no list of outputs (they
+  were dropped), the level fills the box from the bottom in white, the glyph at the top, "Volume" and a
+  big number at the bottom, flipping dark where the fill covers them; Up and Down in fives, a click or
+  drag on the Mac, the glyph mutes at 0. Focus is colour only everywhere, except the switch, whose
+  colour is its state, so it gets a ring. Back or the chevron returns, and leaving a view (Left, to the
+  shelf) closes it. Demo networks; on the TV, `WifiManager` scan results (location permission is granted
+  by the install script) would fill them, and the bar would drive `AudioManager.setStreamVolume`. Focus moves to the nearest item in the pressed direction (FocusFinder
   style: same band first, then closest), since these aren't simple rows any more.
 - **Beat bot** ("there's this ESP32 bot face, open source; in the centre, cutely dancing on the song"):
   robot eyes in the middle of music mode, a panel switch (Beat bot On / Off). The reference is FluxGarage
@@ -363,9 +367,9 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   late"), computed from the coming hours.
 - **Selected states** ("drop shadows on selected states too strong", then "selected state big, remove,
   only colour change is fine", then "getting too big on selected state"): focus is colour only
-  everywhere, nothing grows, lifts, casts a shadow or moves. Posters and app tiles get a 2 dp white ring
-  3 dp outside the art (their pictures hide any change of surface; a poster with no art also turns
-  lighter, and its title brightens); dock tiles, chips and the Wi-Fi and Sound rows turn lighter. A
+  everywhere, nothing grows, lifts, casts a shadow or moves. Posters and app tiles get a fine ring, 1 dp
+  of 60% white 2 dp outside the art ("white stroke too stark, subtle, less stroke"; their pictures hide
+  any change of surface; a poster with no art also turns lighter, and its title brightens); dock tiles, chips and the Wi-Fi and Sound rows turn lighter. A
   press dips to 0.97 for a moment, as the round buttons do. Port: a focus ring drawable, no scale
   animators on focus.
 - **Phone app polish** ("selected glow and drop shadow too strong, should be subtle; also use haptics"):

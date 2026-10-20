@@ -350,60 +350,68 @@
   opacity: 0.26;
 }
 
-/* An output: its icon, the name over where it is, the tick on the one in use. */
-.sv-out {
-  min-block-size: 46px;
+/* Sound: the box itself is the volume bar, inset by the box's padding so its corners nest, as the
+   tiles' do. The level fills it from the bottom in white; Up and Down move it in fives. */
+.side-view[data-view="sound"] {
+  padding: var(--bd-pad, 5px);
 }
 
-.sv-out > .glyph:first-child {
-  color: var(--text-2);
-}
-
-.sv-out[data-on] > .glyph:first-child {
-  color: var(--text);
-}
-
-.sv-out .glyph[data-icon="check"] {
-  inline-size: 15px;
-  block-size: 15px;
-  color: oklch(78% 0.15 150);
-}
-
-/* The volume: Left and Right move it in fives. */
-.sv-volume {
+.sv-level {
   position: relative;
-  flex: none;
-  min-block-size: 44px;
+  flex: 1;
+  min-block-size: 0;
   padding: 0;
   overflow: clip;
-  border-radius: 14px;
+  border-radius: var(--bd-r, 14px);
   background: oklch(20% 0 none);
+  cursor: ns-resize;
+  touch-action: none;
 }
 
-.sv-volume:focus {
-  background: oklch(30% 0 none);
+.sv-level:focus {
+  background: oklch(25% 0 none);
 }
 
-.sv-vol {
+/* The glyph at the top as on the tiles, the number at the bottom with its caption over it. */
+.sv-lv {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-inline: 14px;
+  flex-direction: column;
+  align-items: start;
+  padding: 12px;
+  color: var(--text);
 }
 
-.sv-vol-fill {
-  background: oklch(95% 0 none);
-  color: oklch(16% 0 none);
-  clip-path: inset(0 calc(100% - var(--v, 35) * 1%) 0 0);
+.sv-level .sv-lv .glyph {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+.sv-lv-caption {
+  margin-block-start: auto;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .sv-val {
-  opacity: 0.7;
-  font-size: var(--t-caption);
+  font-size: 34px;
   font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
+}
+
+.sv-lv-fill {
+  background: oklch(95% 0 none);
+  color: oklch(16% 0 none);
+  clip-path: inset(calc(100% - var(--v, 35) * 1%) 0 0 0);
+}
+
+.sv-lv-fill .sv-lv-caption {
+  color: oklch(16% 0 none / 0.6);
 }
 
 /* Wi-Fi off: a quiet line where the networks were. */
@@ -439,8 +447,8 @@
     transition: translate 220ms var(--ease-out);
   }
 
-  .sv-vol-fill {
-    transition: clip-path 160ms var(--ease-out);
+  .sv-lv-fill {
+    transition: clip-path 180ms var(--ease-out);
   }
 
   /* Joining a network: the badge breathes until it's connected. */

@@ -320,6 +320,8 @@ svg {
   --panel: oklch(27.5% 0 none);
   --text: oklch(94% 0 none);
   --text-2: oklch(71% 0 none);
+  /* The focus ring on art: fine and soft, not stark white. */
+  --focus-ring: oklch(100% 0 none / 0.6);
   --font: "Open Runde", system-ui, sans-serif;
   --w-light: 400;
   --track-big: -0.035em;
@@ -697,16 +699,17 @@ svg {
 }
 
 /* Focus changes colour only: nothing grows, lifts or moves ("selected state, only colour change", then
-   "getting too big on selected state"). A white ring round the art, since a poster's picture hides any
-   change of surface; a lighter surface where there's no art yet; the title brightens. The ring is an
-   outline, transparent at rest, so it also shows in forced-colors mode. */
+   "getting too big on selected state"). A fine, soft white ring round the art ("too stark, subtle, less
+   stroke"), since a poster's picture hides any change of surface; a lighter surface where there's no
+   art yet; the title brightens. The ring is an outline, transparent at rest, so it also shows in
+   forced-colors mode. */
 .art {
-  outline: 2px solid transparent;
-  outline-offset: 3px;
+  outline: 1px solid transparent;
+  outline-offset: 2px;
 }
 
 .poster:focus .art {
-  outline-color: oklch(96% 0 none);
+  outline-color: var(--focus-ring);
   background: oklch(29% 0.004 286);
   color: var(--text);
 }
@@ -759,8 +762,8 @@ svg {
    focus ring waits outside it, transparent. */
 .card {
   position: relative;
-  outline: 2px solid transparent;
-  outline-offset: 3px;
+  outline: 1px solid transparent;
+  outline-offset: 2px;
 }
 
 .card::after {
@@ -772,9 +775,9 @@ svg {
   pointer-events: none;
 }
 
-/* Like the posters: a white ring, no growing, no shadow. A press dips a touch, as the buttons do. */
+/* Like the posters: the fine ring, no growing, no shadow. A press dips a touch, as the buttons do. */
 .tile:focus .card {
-  outline-color: oklch(96% 0 none);
+  outline-color: var(--focus-ring);
 }
 
 .tile:active .card,

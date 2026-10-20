@@ -205,8 +205,9 @@ function chipFor(row, label, icon, onPress, idle) {
 
 // The side dock's views: its tiles, or the Wi-Fi or Sound view that replaces them ("when Wi-Fi is
 // clicked the whole panel should turn into the Wi-Fi devices nearby, same for Sound"), as a Control
-// Centre module opens. Demo data; on the TV the launcher would list WifiManager's scan results and
-// Bluetooth audio devices found nearby.
+// Centre module opens. Sound is the box itself turned into one volume bar ("only the sound bar should
+// be there, the bento box itself should turn into the sound bar"). Demo networks; on the TV the
+// launcher would list WifiManager's scan results.
 const NETWORKS = [
   { name: "Home 5G", bars: "wifi-high", locked: true, on: true },
   { name: "Home 2.4G", bars: "wifi-high", locked: true },
@@ -214,12 +215,6 @@ const NETWORKS = [
   { name: "Airtel_Xstream_4521", bars: "wifi-medium", locked: true },
   { name: "ACT-Fibernet-77", bars: "wifi-low", locked: true },
   { name: "Cafe Guest", bars: "wifi-low", locked: false },
-];
-const OUTPUTS = [
-  { name: "TV speakers", icon: "television", note: "This TV", on: true },
-  { name: "boAt Rockerz 450", icon: "headphones", note: "Bluetooth, nearby" },
-  { name: "JBL Flip 5", icon: "speaker-simple-high", note: "Bluetooth, nearby" },
-  { name: "Soundbar", icon: "speaker-high", note: "HDMI ARC" },
 ];
 const side = { view: "home", from: "", volume: 35, wifi: true, joining: "" };
 
@@ -339,47 +334,66 @@ function drawWifiView(view) {
   view.replaceChildren(head, hero, svLabel("Other networks"), svGroup(others));
 }
 
+// Sound: the whole box becomes one tall volume bar, filling from the bottom in white as Control Centre's
+// does. Up and Down move it in fives; on the Mac, a click or a drag sets it. Its glyph and number sit
+// twice, light on the dark bar and dark on the white fill (clipped to the level), so they read on
+// either, even split across the fill's edge.
 function drawSoundView(view) {
-  // The volume as Control Centre draws it: the level fills the bar in white. The glyph and number sit
-  // twice, light on the bar and dark on the fill (clipped to the level), so they read on either.
-  const vol = document.createElement("div");
-  vol.className = "sv-item sv-volume";
-  vol.tabIndex = -1;
-  vol.setAttribute("role", "slider");
-  vol.setAttribute("aria-label", "Volume");
-  vol.setAttribute("aria-valuemin", "0");
-  vol.setAttribute("aria-valuemax", "100");
-  for (const cls of ["sv-vol", "sv-vol sv-vol-fill"]) {
-    const row = document.createElement("span");
-    row.className = cls;
+  const bar = document.createElement("div");
+  bar.className = "sv-item sv-level";
+  bar.tabIndex = -1;
+  bar.setAttribute("role", "slider");
+  bar.setAttribute("aria-label", "Volume");
+  bar.setAttribute("aria-orientation", "vertical");
+  bar.setAttribute("aria-valuemin", "0");
+  bar.setAttribute("aria-valuemax", "100");
+  for (const cls of ["sv-lv", "sv-lv sv-lv-fill"]) {
+    const layer = document.createElement("span");
+    layer.className = cls;
+    const caption = document.createElement("span");
+    caption.className = "sv-lv-caption";
+    caption.textContent = "Volume";
     const val = document.createElement("span");
     val.className = "sv-val";
-    row.append(glyph("speaker-simple-low"), val);
-    vol.append(row);
+    layer.append(glyph("speaker-simple-low"), caption, val);
+    bar.append(layer);
   }
-  const outputs = OUTPUTS.map((o) =>
-    svRow("sv-out", glyph(o.icon), o.name, o.note, o.on ? [glyph("check")] : [], o.on, () => {
-      if (o.on) return;
-      OUTPUTS.forEach((x) => (x.on = x === o));
-      toast(`Sound now plays on ${o.name}`);
-      redrawSideView();
-    }),
-  );
-  view.replaceChildren(svHead("Sound"), vol, svLabel("Play sound on"), svGroup(outputs));
+  const fromPointer = (event) => {
+    const r = bar.getBoundingClientRect();
+    setVolume(Math.round(((r.bottom - event.clientY) / r.height) * 20) * 5);
+  };
+  bar.addEventListener("pointerdown", (event) => {
+    focusItem("side", sideItems().indexOf(bar));
+    bar.setPointerCapture(event.pointerId);
+    fromPointer(event);
+  });
+  bar.addEventListener("pointermove", (event) => {
+    if (event.buttons) fromPointer(event);
+  });
+  view.replaceChildren(bar);
   setVolume(side.volume);
 }
 
 function setVolume(v) {
   side.volume = clamp(v, 0, 100);
-  const vol = sideDock.querySelector(".sv-volume");
-  if (!vol) return;
-  vol.setAttribute("aria-valuenow", String(side.volume));
-  vol.style.setProperty("--v", side.volume);
+  const bar = sideDock.querySelector(".sv-level");
+  if (!bar) return;
+  bar.setAttribute("aria-valuenow", String(side.volume));
+  bar.style.setProperty("--v", side.volume);
   const icon = side.volume === 0 ? "speaker-simple-x" : side.volume < 50 ? "speaker-simple-low" : "speaker-simple-high";
-  for (const g of vol.querySelectorAll(".glyph")) g.dataset.icon = icon;
-  for (const n of vol.querySelectorAll(".sv-val")) n.textContent = String(side.volume);
+  for (const g of bar.querySelectorAll(".glyph")) g.dataset.icon = icon;
+  for (const n of bar.querySelectorAll(".sv-val")) n.textContent = String(side.volume);
   paintGlyphs();
 }
+
+// Leaving a view (Left, back to the shelf) closes it, as Control Centre's modules close when you look
+// away; Back closes it too, and returns focus to its tile.
+screen.addEventListener("focusin", (event) => {
+  if (side.view === "home") return;
+  if (event.target.closest(".side-view")) return;
+  side.view = "home";
+  sideDock.dataset.view = "home";
+});
 
 // Redraws the open view; focus stays on the same row, or goes to the one a selector names.
 function redrawSideView(focus) {
@@ -735,8 +749,8 @@ function focusEl(el, ctl = 1) {
 }
 
 function move(key) {
-  if (document.activeElement?.classList.contains("sv-volume") && (key === "ArrowLeft" || key === "ArrowRight")) {
-    setVolume(side.volume + (key === "ArrowRight" ? 5 : -5));
+  if (document.activeElement?.classList.contains("sv-level") && (key === "ArrowUp" || key === "ArrowDown")) {
+    setVolume(side.volume + (key === "ArrowUp" ? 5 : -5));
     return;
   }
   if (state.zone === "inputs") {
@@ -1638,9 +1652,15 @@ function drawLight(now) {
         swell += amp * Math.exp(-(d * d) / 0.0018);
       }
     }
-    const w = (14 * (1 + tide * 0.45) * deep * (p.corner ? 1.3 : 1) + 14 * swell) * (1 + light.fullK * 0.7) * breath;
+    // On the home screen the light rises from the bottom, where the glow has always been ("it should be
+    // at the bottom like earlier"): full along the bottom edge, fading up the sides, none across the top.
+    // Music mode lights the whole rim.
+    const rise = clamp((p.y / EH - 0.15) / 0.85, 0, 1);
+    const lit = mix(rise * rise * (3 - 2 * rise), 1, light.fullK);
+    if (lit < 0.01) continue;
+    const w = (14 * (1 + tide * 0.45) * deep * (p.corner ? 1.3 : 1) + 14 * swell) * (1 + light.fullK * 0.7) * breath * (0.6 + 0.4 * lit);
     const sparkle = 1 + light.high * 0.4 * Math.sin(i * 12.9898 + time * 21);
-    const alpha = Math.min(0.3 + light.fullK * 0.14, (0.085 + swell * 0.09) * sparkle * (1 + light.fullK * 0.6) * breath);
+    const alpha = lit * Math.min(0.3 + light.fullK * 0.14, (0.085 + swell * 0.09) * sparkle * (1 + light.fullK * 0.6) * breath);
     const col = paletteAt(t + turn);
     const g = lightCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, w);
     g.addColorStop(0, colorOf(col, alpha, 0.25));
