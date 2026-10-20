@@ -293,7 +293,9 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   the cover's main colour, -55 and +45 degrees, vivid, any olive hue leaned to amber, lightest at the edge
   and saturating inward, flowing round every 50 s. (A five-colour loop that drifted round the wheel with
   every kick was tried and dropped: "too many colours, I liked the earlier one".) It shows only in
-  music mode (and over the screensaver), over the dimming: on the home screen the one light is the glow
+  music mode, over the dimming, and never with the screensaver ("the DVD player thing should never clash
+  when the glow is happening": while music plays, idle time goes to music mode, and starting the
+  screensaver ends music mode first): on the home screen the one light is the glow
   below the dock, as before the edge light existed ("the glow should be the bottom glow below the dock,
   how you made before"; a backlight version behind the UI, then a bottom-weighted one, came first). Its
   depth rolls along the edge like a slow tide and pools in the corners; a soft inner shadow under it

@@ -6,9 +6,10 @@
    under it gives the light depth, as if it came from the bezel. It only lights for music, never for
    video. app.js draws the light on the canvas and turns the whole thing on and off. */
 
-/* Only in music mode (and over the screensaver): on the home screen the one light is the glow below
-   the dock, as it was before the edge light ("the glow should be the bottom glow below the dock, how you
-   made before"). When it fades out it goes behind the UI, not over the tiles. */
+/* Only in music mode: on the home screen the one light is the glow below the dock, as it was before the
+   edge light ("the glow should be the bottom glow below the dock, how you made before"), and it never
+   shows with the screensaver ("the DVD player thing should never clash when the glow is happening").
+   When it fades out it goes behind the UI, not over the tiles. */
 .edge {
   position: absolute;
   inset: 0;
@@ -21,14 +22,8 @@
   z-index: 26;
 }
 
-.screen.music-mode .edge[data-on],
-.edge[data-on].over-saver {
+.screen.music-mode .edge[data-on] {
   opacity: 1;
-}
-
-/* Over the screensaver, music keeps its light. */
-.edge.over-saver {
-  z-index: 55;
 }
 
 /* Depth: the screen darkens softly towards its edges under the light. */

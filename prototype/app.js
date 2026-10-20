@@ -1140,8 +1140,12 @@ function randomSpot() {
   saver.y = Math.random() * (540 - SAVER_H);
 }
 
+// The screensaver and music mode never show together ("the DVD player thing should never clash when
+// the glow is happening"): while music plays, idle time goes to music mode (armIdle), and starting the
+// screensaver by hand ends music mode first.
 function startSaver() {
   if (saver.on || state.view !== "new") return;
+  exitMusicMode();
   if (state.zone === "island") focusItem("dock", state.index.dock);
   saver.on = true;
   clearTimeout(idleTimer);
@@ -2225,7 +2229,6 @@ function syncEdge() {
   const v = settings();
   const on = v.edge !== "off" && v.spotify === "playing" && v.audio !== "video" && state.view === "new";
   edge.toggleAttribute("data-on", on);
-  edge.classList.toggle("over-saver", saver.on);
   botCanvas.toggleAttribute("data-on", v.bot !== "off");
   light.mode = v.edge || "beat";
   light.sync = v.sync || "song";
