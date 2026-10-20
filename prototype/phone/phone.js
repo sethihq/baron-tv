@@ -104,8 +104,6 @@ const saved = load();
 const prefs = {
   tab: saved.tab || "remote",
   dock: Array.isArray(saved.dock) && saved.dock.length === APPS.length && APPS.every((a) => saved.dock.includes(a.name)) ? saved.dock : APPS.map((a) => a.name),
-  glow: saved.glow || "refined",
-  island: saved.island || "black",
 };
 
 function save() {
@@ -757,27 +755,10 @@ function endDrag(e) {
   setTimeout(() => moveApp(name, to, false), reduceMotion.matches ? 0 : 210);
 }
 
-// ---- TV: how the home screen looks ---------------------------------------------------------------------
+// ---- TV: the TV picker -------------------------------------------------------------------------------
 
-// On the TV: the launcher's server writes these into the theme's config.json.
-const GLOW_SAYS = { refined: "Refined glow on the TV", original: "Original glow on the TV", off: "Glow turned off on the TV" };
-const ISLAND_SAYS = { black: "Black island on the TV", grey: "Grey island on the TV" };
-
-function bindPick(id, key, says) {
-  const group = $(id);
-  const current = group.querySelector(`input[value="${prefs[key]}"]`);
-  if (current) current.checked = true;
-  group.addEventListener("change", (e) => {
-    prefs[key] = e.target.value;
-    save();
-    haptic("select", e.target.closest("label"));
-    say(says[e.target.value]);
-  });
-}
-
-bindPick("glowPick", "glow", GLOW_SAYS);
-bindPick("islandPick", "island", ISLAND_SAYS);
-
+// The glow and the island have one look each now (the Refined glow, a black island), so the home
+// screen's only setting here is the dock order.
 $("tvPick").addEventListener("click", () => {
   haptic("tap", $("tvPick"));
   say("This is the only TV on your Wi-Fi");

@@ -183,8 +183,7 @@ img {
   -webkit-user-select: none;
 }
 
-.seg input,
-.pick input {
+.seg input {
   position: absolute;
   inset: 0;
   margin: 0;
@@ -994,10 +993,6 @@ img {
   font-weight: 600;
 }
 
-.card-head-next {
-  margin-block-start: var(--s-5);
-}
-
 .card-sub {
   margin-block-start: 2px;
   color: var(--text-2);
@@ -1095,50 +1090,6 @@ img {
 .dock-row.lifted .dock-handle {
   cursor: grabbing;
   color: var(--text);
-}
-
-/* Segmented picker inside a card: Apple's dark style, a lighter thumb on the chosen option. */
-.pick {
-  display: grid;
-  grid-auto-columns: 1fr;
-  grid-auto-flow: column;
-  gap: 2px;
-  margin-block-start: var(--s-3);
-  padding: 3px;
-  border-radius: 13px;
-  corner-shape: squircle;
-  background: var(--veil);
-}
-
-.pick label {
-  position: relative;
-  display: grid;
-  place-items: center;
-  block-size: 38px;
-  border-radius: 10px;
-  corner-shape: squircle;
-  color: var(--text-2);
-  font: var(--t-body);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background-color 160ms var(--ease-out),
-    color 160ms var(--ease-out);
-}
-
-.pick label:has(input:checked) {
-  background: oklch(40% 0 none);
-  color: var(--text);
-}
-
-.pick label:has(input:focus-visible) {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
-}
-
-.pick label:active {
-  scale: 0.97;
 }
 
 .view-tv {

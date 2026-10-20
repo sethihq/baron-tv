@@ -259,7 +259,8 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   - Apps: the dock's seven apps in order; Netflix marked "Not on this TV".
   - Playing: cover, song, artist, progress, previous / play / next, a TV volume slider; the cover's
     colour glows behind the screen.
-  - TV: inputs and shortcuts, then Customise home: dock order by dragging, Glow and Island pickers.
+  - TV: inputs and shortcuts, then Customise home: dock order by dragging (the Glow and Island pickers
+    went when the TV settled on one look for each).
   Everything is simulated; each action says what the TV would do. A native build would be Kotlin with
   Jetpack Compose on the same tokens; find the TV despite its per-boot IP (subnet scan, or the launcher
   announcing itself over NSD); send keys to CloudWalker's port 5511 (`/input/?keycode=N`); and add a
