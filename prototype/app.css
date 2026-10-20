@@ -249,6 +249,31 @@ svg {
   --w-light: 400;
   --track-big: -0.035em;
 
+  /* Type scale, about half of tvOS's points since the canvas is 960x540. Each size comes with its
+     leading and tracking: tracking tightens as text grows, sits near 0 from 13 to 17, opens at 12. */
+  --t-display: 56px; /* the clock, page 2's temperature */
+  --t-sub: 17px; /* greeting, date, the weather line */
+  --t-body: 15px; /* titles under posters, card text, the toast */
+  --t-label: 13px; /* section labels, chips, poster details, hours */
+  --t-caption: 12px; /* credits */
+  --lh-text: 1.3;
+  --tr-sub: -0.012em;
+  --tr-body: -0.006em;
+  --tr-label: 0em;
+  --tr-caption: 0.012em;
+
+  /* Spacing on a 4 dp grid, and the safe area: tvOS keeps 60 pt top and bottom (30 here); the sides
+     sit at 56 so the shelf and dock line up under the clock. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --safe-block: 32px;
+  --safe-inline: 56px;
+
   position: relative;
   inline-size: 960px;
   block-size: 540px;
@@ -286,13 +311,20 @@ svg {
   background: radial-gradient(circle 595px at 32% 42%, var(--amb-1, transparent), var(--amb-2, transparent) 50%, transparent 100%);
 }
 
+/* Registered so it reads 0px until app.js sets it, which the page 2 query below relies on. */
+@property --page-scroll {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 /* Everything else scrolls as one layer: page 2 sits under the dock. */
 .content {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding-block: 28px;
-  padding-inline: 58px;
+  padding-block: var(--safe-block);
+  padding-inline: var(--safe-inline);
   translate: 0 var(--page-scroll, 0px);
 }
 
@@ -306,16 +338,18 @@ svg {
 }
 
 .greeting {
-  margin-block-end: 2px;
+  margin-block-end: var(--s-1);
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--t-sub);
   font-weight: 500;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-sub);
 }
 
 .time-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--s-2);
 }
 
 .time {
@@ -329,23 +363,25 @@ svg {
 .ampm,
 .date {
   color: var(--text-2);
-  font-size: 17px;
+  font-size: var(--t-sub);
   font-weight: 500;
+  letter-spacing: var(--tr-sub);
 }
 
 .date {
-  margin-inline-start: 14px;
+  margin-inline-start: var(--s-3);
 }
 
+/* 11 rather than 12 puts the weather line on the date's baseline across the screen (Open Runde). */
 .corner {
   display: grid;
   justify-items: end;
-  gap: 10px;
+  gap: calc(var(--s-3) - 1px);
 }
 
 .buttons {
   display: flex;
-  gap: 12px;
+  gap: var(--s-3);
 }
 
 .btn-wrap {
@@ -381,10 +417,12 @@ svg {
 .weather {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--t-sub);
   font-weight: 500;
+  letter-spacing: var(--tr-sub);
+  font-variant-numeric: tabular-nums;
 }
 
 .weather[hidden] {
@@ -462,8 +500,9 @@ svg {
   border-radius: 12px;
   corner-shape: squircle;
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--t-body);
   font-weight: 500;
+  letter-spacing: var(--tr-body);
 }
 
 .input-row small {
@@ -471,8 +510,9 @@ svg {
   align-items: center;
   gap: 6px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--t-label);
   font-weight: 500;
+  letter-spacing: var(--tr-label);
 }
 
 .input-row:focus small {
@@ -489,34 +529,42 @@ svg {
 /* ---- Page 1: trending shelf ------------------------------------------------------------------ */
 
 .shelf {
-  margin-block-start: 12px;
+  margin-block-start: var(--s-6);
 }
 
+/* Section labels sit a step quieter than what they label: smaller, semibold, secondary. */
 .shelf-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-block-end: 10px;
+  margin-block-end: var(--s-3);
   color: var(--text-2);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--t-label);
+  font-weight: 600;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-label);
 }
 
 .shelf-head small {
-  font-size: 11px;
+  font-size: var(--t-caption);
   font-weight: 500;
+  letter-spacing: var(--tr-caption);
   opacity: 0.7;
 }
 
+/* Every poster hangs from the same top line, so art, titles and details share their edges whatever
+   the other cards hold (a button stretched to the row would centre its content instead). */
 .posters {
   display: grid;
   grid-template-columns: 1fr 140px 140px;
-  gap: 20px;
+  align-items: start;
+  gap: var(--s-5);
 }
 
 .poster {
   position: relative;
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
 
 .poster:focus {
@@ -526,7 +574,7 @@ svg {
 .art {
   display: grid;
   place-items: center;
-  block-size: 206px;
+  block-size: 190px;
   overflow: clip;
   border-radius: 16px;
   background: var(--fill);
@@ -547,40 +595,62 @@ svg {
 
 .p-title {
   display: block;
-  margin-block-start: 10px;
+  margin-block-start: var(--s-3);
   overflow: clip;
-  color: var(--text);
-  font-size: 15px;
+  color: var(--text-2);
+  font-size: var(--t-body);
   font-weight: 500;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-body);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .p-meta {
   display: block;
-  margin-block-start: 3px;
+  margin-block-start: 2px;
   overflow: clip;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--t-label);
   font-weight: 500;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-label);
   white-space: nowrap;
   text-overflow: ellipsis;
+  opacity: 0.75;
 }
 
-/* Focus lifts the item where it is: a little larger, a soft shadow under it. Nothing travels. */
+/* Focus lifts the item where it is: larger, a deeper shadow, a lighter surface where there's no art
+   yet, and its title brightens and steps down to clear the lifted card, as tvOS does. Nothing travels. */
 .poster:focus .art {
-  scale: 1.035;
-  box-shadow: 0 14px 28px oklch(0% 0 none / 0.55);
+  scale: 1.05;
+  background: oklch(29% 0.004 286);
+  color: var(--text);
+  box-shadow: 0 18px 36px oklch(0% 0 none / 0.6);
+}
+
+.poster:focus .p-title,
+.poster:focus .p-meta {
+  translate: 0 5px;
+}
+
+.poster:focus .p-title {
+  color: var(--text);
+}
+
+.poster:focus .p-meta {
+  opacity: 1;
 }
 
 /* ---- The dock, as the installed launcher draws it ----------------------------------------------- */
 
+/* The band's radius is the tiles' 14 plus its 12 of padding, so the corners run concentric. */
 .dock {
   display: grid;
   grid-template-columns: repeat(var(--count, 6), 1fr);
-  gap: 14px;
-  margin-block-start: 12px;
-  padding: 14px;
+  gap: var(--s-3);
+  margin-block-start: var(--s-5);
+  padding: var(--s-3);
   border-radius: 26px;
   background: var(--band);
 }
@@ -620,23 +690,35 @@ svg {
 
 /* ---- Page 2: inputs and shortcuts ------------------------------------------------------------ */
 
+/* On page 2 the dock scrolls to the top edge; what's left of page 1 above it (the shelf's last line)
+   fades out, so no half-cut text sits at the top of the screen. */
+@container not style(--page-scroll: 0px) {
+  .top,
+  .shelf {
+    opacity: 0;
+  }
+}
+
+/* Far enough under the dock that page 1 never shows half a label at its bottom edge. */
 .extras {
   display: flex;
   justify-content: space-between;
   gap: 40px;
-  margin-block-start: 26px;
+  margin-block-start: var(--s-8);
 }
 
 .group-head {
-  margin-block-end: 10px;
+  margin-block-end: var(--s-3);
   color: var(--text-2);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--t-label);
+  font-weight: 600;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-label);
 }
 
 .chips {
   display: flex;
-  gap: 12px;
+  gap: var(--s-3);
 }
 
 .chip {
@@ -644,14 +726,16 @@ svg {
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 7px;
+  gap: var(--s-2);
   inline-size: 106px;
   block-size: 72px;
   border-radius: 16px;
   background: var(--chip);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--t-label);
   font-weight: 500;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-label);
 }
 
 .chip .glyph {
@@ -682,37 +766,41 @@ svg {
 /* ---- Page 2: the weather card ---------------------------------------------------------------- */
 
 .cards {
-  margin-block-start: 24px;
+  margin-block-start: var(--s-6);
 }
 
 .panel {
-  padding: 20px;
+  padding: var(--s-6);
   border-radius: 24px;
   background: var(--band);
 }
 
+/* The card's own title: the place, as Weather heads its cards. */
 .panel-head {
-  color: var(--text-2);
-  font-size: 15px;
-  font-weight: 500;
+  color: var(--text);
+  font-size: var(--t-body);
+  font-weight: 600;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-body);
 }
 
 .wx-card {
   display: grid;
   grid-template-columns: 230px 1fr;
-  gap: 28px;
+  gap: var(--s-8);
   min-block-size: 200px;
 }
 
 .wx-big {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-block-start: 10px;
-  font-size: 56px;
+  gap: var(--s-3);
+  margin-block-start: var(--s-3);
+  font-size: var(--t-display);
   font-weight: var(--w-light);
   line-height: 1;
   letter-spacing: var(--track-big);
+  font-variant-numeric: tabular-nums;
 }
 
 .wx-big-icon {
@@ -734,16 +822,21 @@ svg {
 }
 
 .wx-cond {
-  margin-block-start: 12px;
-  font-size: 18px;
+  margin-block-start: var(--s-3);
+  font-size: var(--t-sub);
   font-weight: 500;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-sub);
 }
 
 .wx-range {
-  margin-block-start: 4px;
+  margin-block-start: 2px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--t-label);
   font-weight: 500;
+  line-height: var(--lh-text);
+  letter-spacing: var(--tr-label);
+  font-variant-numeric: tabular-nums;
 }
 
 .wx-later {
@@ -761,13 +854,15 @@ svg {
 .wx-hours li {
   display: grid;
   justify-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 
 .wx-hour-time {
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--t-label);
   font-weight: 500;
+  letter-spacing: var(--tr-label);
+  font-variant-numeric: tabular-nums;
 }
 
 .wx-hour-icon {
@@ -783,22 +878,26 @@ svg {
 }
 
 .wx-hour-temp {
-  font-size: 16px;
+  font-size: var(--t-body);
   font-weight: 500;
+  letter-spacing: var(--tr-body);
+  font-variant-numeric: tabular-nums;
 }
 
 .wx-sun {
   display: flex;
-  gap: 24px;
+  gap: var(--s-6);
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--t-label);
   font-weight: 500;
+  letter-spacing: var(--tr-label);
+  font-variant-numeric: tabular-nums;
 }
 
 .wx-sun span {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 
 .wx-sun .glyph {
@@ -820,6 +919,19 @@ svg {
       background-color 240ms var(--ease-out);
   }
 
+  .p-title,
+  .p-meta {
+    transition:
+      translate 240ms var(--ease-out),
+      color 240ms var(--ease-out),
+      opacity 240ms var(--ease-out);
+  }
+
+  .top,
+  .shelf {
+    transition: opacity 240ms var(--ease-out);
+  }
+
   .round,
   .input-row,
   .seg label {
@@ -837,12 +949,13 @@ svg {
   inline-size: fit-content;
   margin-inline: auto;
   padding-block: 10px;
-  padding-inline: 18px;
+  padding-inline: var(--s-5);
   border-radius: 999px;
   background: var(--panel);
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--t-body);
   font-weight: 500;
+  letter-spacing: var(--tr-body);
   opacity: 0;
   pointer-events: none;
   transition: opacity 180ms var(--ease-out);

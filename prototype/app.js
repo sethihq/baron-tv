@@ -59,6 +59,7 @@ const frame = document.getElementById("frame");
 const controls = document.getElementById("controls");
 const rounds = [...document.querySelectorAll(".round")];
 const inputRows = [...document.querySelectorAll(".input-row")];
+const island = document.getElementById("island");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 const state = {
@@ -74,9 +75,12 @@ let reading = null;
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(n, hi));
 const settings = () => Object.fromEntries(new FormData(controls));
+// The now-playing island, while it shows, leads the top row, left of the round buttons.
 const rowItems = (row) =>
   row === "buttons"
-    ? rounds
+    ? island.hidden
+      ? rounds
+      : [island, ...rounds]
     : row === "posters"
       ? [...postersEl.children]
       : row === "dock"
@@ -91,11 +95,12 @@ function glyph(icon) {
   return span;
 }
 
-// Phosphor glyphs are CSS masks, so they take the text colour; the weight comes from the Icons control.
+// Phosphor glyphs are CSS masks, so they take the text colour; the weight comes from the Icons control,
+// unless a glyph asks for its own (media controls are always filled, as players draw them).
 function paintGlyphs() {
   const weight = settings().ui;
   for (const g of screen.querySelectorAll(".glyph")) {
-    g.style.setProperty("--src", `url("assets/icons/phosphor/${weight}/${g.dataset.icon}.svg")`);
+    g.style.setProperty("--src", `url("assets/icons/phosphor/${g.dataset.weight || weight}/${g.dataset.icon}.svg")`);
   }
 }
 
@@ -192,14 +197,17 @@ function renderChips() {
 
 // ---- Geometry ------------------------------------------------------------------------------------
 
-// An element's box in the content layer, before any focus scale.
+// An element's box in the content layer, before any focus scale. The island sits on the screen itself,
+// whose origin is the content layer's.
 function rectIn(el) {
   let x = 0;
   let y = 0;
-  for (let n = el; n && n !== content; n = n.offsetParent) {
+  for (let n = el; n && n !== content && n !== screen; n = n.offsetParent) {
     x += n.offsetLeft;
     y += n.offsetTop;
   }
+  // The island is centred with a translate, which offsets don't include.
+  if (el === island) x -= el.offsetWidth / 2;
   return { x, y, w: el.offsetWidth, h: el.offsetHeight };
 }
 
@@ -328,9 +336,19 @@ function setGlow(rgb) {
   const tone = `62% ${chroma.toFixed(3)} ${h.toFixed(1)}`;
   ambient.style.setProperty("--amb-1", `oklch(${tone} / 0.34)`);
   ambient.style.setProperty("--amb-2", `oklch(${tone} / 0.13)`);
+  // Refined (glow.css): a deeper, more saturated core behind the dock, and the far corner a step
+  // round the colour wheel so the screen has depth instead of one flat tint.
+  const deep = chroma ? Math.min(chroma * 1.15, 0.18) : 0;
+  ambient.style.setProperty("--g-core", `oklch(50% ${deep.toFixed(3)} ${h.toFixed(1)} / 0.6)`);
+  ambient.style.setProperty("--g-mid", `oklch(40% ${(deep * 0.9).toFixed(3)} ${h.toFixed(1)} / 0.26)`);
+  ambient.style.setProperty("--g-far", `oklch(46% ${(deep * 0.75).toFixed(3)} ${((h + 335) % 360).toFixed(1)} / 0.16)`);
 }
 
 function glowFor(el) {
+  if (settings().glow === "off") {
+    hideGlow();
+    return;
+  }
   const img = el.querySelector("img");
   const rgb = img && img.complete && img.naturalWidth ? vividColor(img) : FALLBACK_GLOW;
   if (!glowShown) {
@@ -338,10 +356,14 @@ function glowFor(el) {
     setGlow(rgb);
     fade(ambient, 1, 600);
   } else if (rgb.join(",") !== glowKey) {
-    fade(ambient, 0.35, 200, () => {
-      setGlow(rgb);
-      fade(ambient, 1, 500);
-    });
+    // The refined glow's colours are registered properties, so they morph on their own.
+    if (settings().glow === "refined") setGlow(rgb);
+    else {
+      fade(ambient, 0.35, 200, () => {
+        setGlow(rgb);
+        fade(ambient, 1, 500);
+      });
+    }
   }
 }
 
@@ -354,17 +376,26 @@ function hideGlow() {
 // ---- Focus -----------------------------------------------------------------------------------------
 
 function focusItem(row, i) {
+  const wasIsland = state.zone === "island";
+  if (row === "buttons" || row === "posters") state.page = 0;
+  if (row === "chips") state.page = 1;
+  // The island only shows on page 1, so settle it before reading the top row.
+  syncIsland();
   const items = rowItems(row);
   if (!items.length) return;
   const index = clamp(i, 0, items.length - 1);
   state.row = row;
   state.zone = "grid";
   state.index[row] = index;
-  if (row === "buttons" || row === "posters") state.page = 0;
-  if (row === "chips") state.page = 1;
   content.style.setProperty("--page-scroll", `${state.page ? -(dockEl.offsetTop - PAGE2_DOCK_TOP) : 0}px`);
   const el = items[index];
+  if (el === island) {
+    enterIsland(1);
+    glowFor(island);
+    return;
+  }
   el.focus({ preventScroll: true });
+  if (wasIsland) collapseIsland();
   if (row === "posters" || row === "dock") glowFor(el);
   else hideGlow();
 }
@@ -377,7 +408,7 @@ function openInputs() {
 
 function closeInputs() {
   inputs.hidden = true;
-  focusItem("buttons", 0);
+  focusItem("buttons", rowItems("buttons").indexOf(rounds[0]));
 }
 
 function focusInputRow(i) {
@@ -389,6 +420,16 @@ function move(key) {
   if (state.zone === "inputs") {
     if (key === "ArrowUp") focusInputRow(state.input - 1);
     if (key === "ArrowDown") focusInputRow(state.input + 1);
+    return;
+  }
+  // Inside the open island: Left and Right walk previous, play and next; past next is Inputs.
+  if (state.zone === "island") {
+    if (key === "ArrowLeft") focusCtl(np.ctl - 1);
+    if (key === "ArrowRight") {
+      if (np.ctl < islCtls.length - 1) focusCtl(np.ctl + 1);
+      else focusItem("buttons", rowItems("buttons").indexOf(rounds[0]));
+    }
+    if (key === "ArrowDown") focusItem("posters", nearestIn("posters", island));
     return;
   }
   const row = state.row;
@@ -413,7 +454,7 @@ rounds.forEach((button, i) => {
       else closeInputs();
       return;
     }
-    focusItem("buttons", i);
+    focusItem("buttons", rowItems("buttons").indexOf(button));
     toast(i === 1 ? "Opening Wi-Fi settings" : "Opening Settings");
   });
 });
@@ -436,7 +477,7 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "Escape" || event.key === "Backspace") {
     event.preventDefault();
     if (!inputs.hidden) closeInputs();
-    else if (state.page === 1) focusItem("dock", state.index.dock);
+    else if (state.zone === "island" || state.page === 1) focusItem("dock", state.index.dock);
   }
 });
 
@@ -756,9 +797,12 @@ function randomSpot() {
 
 function startSaver() {
   if (saver.on || state.view !== "new") return;
+  if (state.zone === "island") focusItem("dock", state.index.dock);
   saver.on = true;
   clearTimeout(idleTimer);
   if (!inputs.hidden) closeInputs();
+  collapseIsland();
+  syncIsland();
   randomSpot();
   saver.vx = Math.random() < 0.5 ? -SAVER_SPEED : SAVER_SPEED;
   saver.vy = Math.random() < 0.5 ? -SAVER_SPEED : SAVER_SPEED;
@@ -783,6 +827,7 @@ function stopSaver() {
   cancelAnimationFrame(saver.raf);
   clearInterval(saver.jump);
   saverEl.hidden = true;
+  syncIsland();
   armIdle();
 }
 
@@ -831,6 +876,202 @@ addEventListener("pointermove", () => {
 document.getElementById("saverNow").addEventListener("click", startSaver);
 controls.addEventListener("change", armIdle);
 
+// ---- Now playing on Spotify, Dynamic Island style -------------------------------------------------
+
+// On the TV the launcher reads Spotify's media session; the prototype plays this queue instead. Covers
+// and lengths come from Apple's public music search when the page loads, so none are stored; until
+// then, and offline, each song has a drawn cover.
+const SONGS = [
+  { title: "Blinding Lights", artist: "The Weeknd", q: "Blinding Lights The Weeknd", ms: 200000 },
+  { title: "Kesariya", artist: "Arijit Singh", q: "Kesariya Arijit Singh Brahmastra", ms: 268000 },
+  { title: "Espresso", artist: "Sabrina Carpenter", q: "Espresso Sabrina Carpenter", ms: 175000 },
+  { title: "Levitating", artist: "Dua Lipa", q: "Levitating Dua Lipa", ms: 203000 },
+  { title: "With You", artist: "AP Dhillon", q: "With You AP Dhillon", ms: 196000 },
+];
+const COVER_HUES = [350, 30, 210, 300, 160];
+const PEEK_MS = 4500; // how long a new song keeps the island open
+
+const islCompact = document.getElementById("islCompact");
+const islCtls = [...island.querySelectorAll(".isl-ctl")];
+const islToggle = document.getElementById("islToggle");
+const islFill = document.getElementById("islFill");
+const islArt = island.querySelector("img");
+const np = { i: 0, at: 0, ctl: 1, peek: 0, was: "" };
+
+const isPlaying = () => settings().spotify === "playing";
+
+function drawnCover(i) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 300;
+  canvas.height = 300;
+  const ctx = canvas.getContext("2d");
+  const hue = COVER_HUES[i % COVER_HUES.length];
+  const fill = ctx.createLinearGradient(0, 0, 300, 300);
+  fill.addColorStop(0, `hsl(${hue} 72% 58%)`);
+  fill.addColorStop(1, `hsl(${(hue + 40) % 360} 70% 24%)`);
+  ctx.fillStyle = fill;
+  ctx.fillRect(0, 0, 300, 300);
+  return canvas.toDataURL("image/png");
+}
+
+async function loadCovers() {
+  await Promise.all(
+    SONGS.map(async (song) => {
+      try {
+        const url = new URL("https://itunes.apple.com/search");
+        url.search = new URLSearchParams({ term: song.q, entity: "song", limit: "1", country: "in" });
+        const res = await fetch(url);
+        const hit = res.ok ? (await res.json()).results?.[0] : null;
+        if (!hit) return;
+        song.cover = hit.artworkUrl100.replace("100x100bb", "300x300bb");
+        if (hit.trackTimeMillis) song.ms = hit.trackTimeMillis;
+      } catch {
+        // Offline: the drawn cover stays.
+      }
+    }),
+  );
+  showSong();
+}
+
+const mmss = (ms) => {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+function paintProgress(jump) {
+  const song = SONGS[np.i];
+  if (jump) islFill.style.transition = "none";
+  islFill.style.scale = `${Math.min(1, np.at / song.ms)} 1`;
+  if (jump) {
+    islFill.getBoundingClientRect();
+    islFill.style.transition = "";
+  }
+  document.getElementById("islAt").textContent = mmss(np.at);
+  document.getElementById("islLeft").textContent = `-${mmss(song.ms - np.at)}`;
+}
+
+// The pill is as wide as what it shows, so a new song resizes it with the same morph. It hangs on the
+// round buttons' centre line, so it reads as part of the top row it belongs to.
+function sizeIsland() {
+  if (island.hidden) return;
+  island.style.setProperty("--wc", `${islCompact.offsetWidth}px`);
+  const button = rectIn(rounds[0]);
+  island.style.setProperty("--isl-top", `${Math.round(button.y + button.h / 2 - 17)}px`);
+}
+
+function showSong() {
+  const song = SONGS[np.i];
+  for (const img of island.querySelectorAll("img")) img.src = song.cover;
+  document.getElementById("islLine").textContent = song.title;
+  document.getElementById("islTitle").textContent = song.title;
+  document.getElementById("islArtist").textContent = song.artist;
+  sizeIsland();
+  paintProgress(true);
+}
+
+// The bars take the cover's colour, lifted to read on black; with the island in focus, so does the glow.
+islArt.addEventListener("load", () => {
+  const [, c, h0] = toOklch(vividColor(islArt));
+  const h = h0 > 75 && h0 < 120 ? 68 : h0;
+  island.style.setProperty("--isl-accent", c < 0.03 ? "oklch(92% 0 none)" : `oklch(80% ${Math.min(c, 0.17).toFixed(3)} ${h.toFixed(1)})`);
+  if (state.zone === "island") glowFor(island);
+});
+
+// Shown while Spotify is on, on page 1 and over the screensaver.
+function syncIsland() {
+  const v = settings();
+  const before = state.row === "buttons" && state.zone === "grid" ? rowItems("buttons")[state.index.buttons] : null;
+  const show = v.spotify !== "off" && state.view === "new" && (saver.on || state.page === 0);
+  island.hidden = !show;
+  island.toggleAttribute("data-playing", v.spotify === "playing");
+  island.dataset.look = v.island || "black";
+  island.classList.toggle("over-saver", saver.on);
+  const icon = islToggle.querySelector(".glyph");
+  icon.dataset.icon = v.spotify === "playing" ? "pause" : "play";
+  icon.style.setProperty("--src", `url("assets/icons/phosphor/fill/${icon.dataset.icon}.svg")`);
+  islToggle.setAttribute("aria-label", v.spotify === "playing" ? "Pause" : "Play");
+  sizeIsland();
+  if (before) state.index.buttons = Math.max(0, rowItems("buttons").indexOf(before));
+  if (!show && state.zone === "island") {
+    state.zone = "grid";
+    collapseIsland();
+    state.index.buttons = 0;
+    rounds[0].focus({ preventScroll: true });
+    hideGlow();
+  }
+}
+
+function enterIsland(ctl) {
+  state.zone = "island";
+  clearTimeout(np.peek);
+  island.dataset.size = "expanded";
+  focusCtl(ctl);
+}
+
+function focusCtl(i) {
+  np.ctl = clamp(i, 0, islCtls.length - 1);
+  islCtls[np.ctl].focus({ preventScroll: true });
+}
+
+function collapseIsland() {
+  clearTimeout(np.peek);
+  island.dataset.size = "compact";
+}
+
+// A new song opens the island for a moment, as the phone does; focus stays where it is.
+function peekIsland() {
+  if (island.hidden || saver.on || state.zone === "island") return;
+  island.dataset.size = "expanded";
+  clearTimeout(np.peek);
+  np.peek = setTimeout(() => {
+    if (state.zone !== "island") collapseIsland();
+  }, PEEK_MS);
+}
+
+function changeSong(step) {
+  np.i = (np.i + step + SONGS.length) % SONGS.length;
+  np.at = 0;
+  showSong();
+  peekIsland();
+}
+
+function setPlaying(on) {
+  controls.querySelector(`input[name="spotify"][value="${on ? "playing" : "paused"}"]`).checked = true;
+  save();
+  syncIsland();
+}
+
+islCtls.forEach((ctl, i) => {
+  ctl.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (state.zone !== "island") focusItem("buttons", 0);
+    focusCtl(i);
+    if (ctl.dataset.act === "toggle") setPlaying(!isPlaying());
+    else if (ctl.dataset.act === "next") changeSong(1);
+    // Previous restarts the song after its first few seconds, as players do.
+    else if (np.at > 3000) {
+      np.at = 0;
+      paintProgress(true);
+    } else changeSong(-1);
+  });
+});
+
+island.addEventListener("click", () => {
+  if (state.zone !== "island") focusItem("buttons", 0);
+});
+
+function tickSong() {
+  if (!isPlaying()) return;
+  np.at += 1000;
+  if (np.at >= SONGS[np.i].ms) changeSong(1);
+  else paintProgress(false);
+}
+
+document.getElementById("songNext").addEventListener("click", () => {
+  if (settings().spotify === "off") setPlaying(true);
+  changeSong(1);
+});
+
 // ---- Prototype controls ----------------------------------------------------------------------------
 
 const STORE_KEY = "baron-tv-prototype-v4";
@@ -857,8 +1098,14 @@ function apply() {
   screen.hidden = v.view !== "new";
   nowShot.hidden = v.view !== "now";
   screen.dataset.font = v.font;
+  ambient.dataset.glow = v.glow || "refined";
+  if (v.glow === "off") hideGlow();
   paintGlyphs();
   renderWeather();
+  syncIsland();
+  // Music starting opens the island for a moment.
+  if (np.was === "off" && v.spotify === "playing") setTimeout(peekIsland, 350);
+  np.was = v.spotify;
 }
 
 for (const [name, value] of Object.entries(load())) {
@@ -884,7 +1131,13 @@ addEventListener("resize", fit);
 renderDock();
 renderPosters(PLACEHOLDERS);
 renderChips();
+SONGS.forEach((song, i) => (song.cover = drawnCover(i)));
+showSong();
 apply();
+loadCovers();
+setInterval(tickSong, 1000);
+// Open Runde arrives after the first layout; size the pill again on the real font.
+document.fonts.ready.then(sizeIsland);
 tick();
 setInterval(tick, 15000);
 loadWeather();

@@ -1,0 +1,361 @@
+/* Now playing, Dynamic Island style. A pill hangs at the top centre while Spotify plays: cover, song,
+   and bars that move with the music in the cover's colour. It opens into a player (cover, song,
+   artist, progress, previous/play/next) while it has focus, and for a few seconds when the song
+   changes, then closes again. The shape morphs; the two layers inside cross-fade. On the TV it reads
+   Spotify's media session; here app.js plays a demo queue. */
+
+.island {
+  --isl-bg: oklch(0% 0 none);
+  --isl-accent: oklch(92% 0 none);
+  --isl-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --wc: 168px;
+
+  position: absolute;
+  inset-block-start: var(--isl-top, 33px);
+  inset-inline-start: 50%;
+  z-index: 30;
+  inline-size: var(--wc);
+  block-size: 34px;
+  translate: -50% 0;
+  overflow: clip;
+  border-radius: 17px;
+  background: var(--isl-bg);
+  color: var(--text);
+}
+
+.island[hidden] {
+  display: none;
+}
+
+/* Black on a black screen has no shape of its own, so a hairline draws the pill's edge. */
+.island[data-look="black"] {
+  box-shadow: inset 0 0 0 1px oklch(100% 0 none / 0.12);
+}
+
+.island[data-look="grey"] {
+  --isl-bg: oklch(21% 0 none);
+}
+
+/* Open, it's a layer over the clock and the weather: a shadow sets it above them. */
+.island[data-size="expanded"] {
+  inline-size: 420px;
+  block-size: 104px;
+  border-radius: 32px;
+  box-shadow: 0 18px 40px oklch(0% 0 none / 0.7);
+}
+
+.island[data-look="black"][data-size="expanded"] {
+  box-shadow:
+    inset 0 0 0 1px oklch(100% 0 none / 0.12),
+    0 18px 40px oklch(0% 0 none / 0.7);
+}
+
+/* Over the screensaver it stays, small: what's playing while the TV idles. */
+.island.over-saver {
+  z-index: 60;
+}
+
+/* ---- Compact: cover, song, bars ---------------------------------------------------------------- */
+
+.isl-compact {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  inline-size: max-content;
+  block-size: 34px;
+  padding-inline: 6px var(--s-3);
+  translate: -50% 0;
+  white-space: nowrap;
+}
+
+.isl-art {
+  flex: none;
+  display: block;
+  inline-size: 22px;
+  block-size: 22px;
+  overflow: clip;
+  border-radius: 6px;
+  background: var(--fill);
+}
+
+.isl-art img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.isl-line {
+  max-inline-size: 168px;
+  overflow: clip;
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--tr-label);
+  text-overflow: ellipsis;
+}
+
+.isl-bars {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  block-size: 15px;
+}
+
+.isl-bars i {
+  inline-size: 3px;
+  block-size: 100%;
+  border-radius: 2px;
+  background: var(--isl-accent);
+  scale: 1 0.22;
+}
+
+/* ---- Expanded: the player ------------------------------------------------------------------------ */
+
+.isl-full {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  inline-size: 420px;
+  block-size: 104px;
+  padding-inline: var(--s-4) var(--s-3);
+  translate: -50% 0;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.island[data-size="expanded"] .isl-compact {
+  opacity: 0;
+}
+
+.island[data-size="expanded"] .isl-full {
+  opacity: 1;
+  visibility: visible;
+}
+
+.isl-art-big {
+  inline-size: 72px;
+  block-size: 72px;
+  border-radius: 16px;
+}
+
+.isl-info {
+  flex: 1;
+  display: grid;
+}
+
+.isl-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-body);
+  font-weight: 600;
+  letter-spacing: var(--tr-body);
+}
+
+.isl-title span:first-child {
+  overflow: clip;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Where the music comes from, in Spotify's green. */
+.isl-src {
+  inline-size: 16px;
+  block-size: 16px;
+  color: oklch(74% 0.19 150);
+}
+
+.isl-artist {
+  margin-block-start: 2px;
+  overflow: clip;
+  color: var(--text-2);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--tr-label);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.isl-track {
+  display: block;
+  margin-block-start: var(--s-3);
+  block-size: 4px;
+  overflow: clip;
+  border-radius: 2px;
+  background: oklch(100% 0 none / 0.18);
+}
+
+.isl-fill {
+  display: block;
+  block-size: 100%;
+  background: var(--text);
+  transform-origin: left;
+  scale: 0 1;
+}
+
+.isl-times {
+  display: flex;
+  justify-content: space-between;
+  margin-block-start: var(--s-1);
+  color: var(--text-2);
+  font-size: var(--t-caption);
+  font-weight: 500;
+  letter-spacing: var(--tr-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.isl-ctls {
+  display: flex;
+  gap: 4px;
+}
+
+.isl-ctl {
+  display: grid;
+  place-items: center;
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: 50%;
+  color: var(--text);
+}
+
+.isl-ctl .glyph {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+.isl-ctl[data-act="toggle"] .glyph {
+  inline-size: 24px;
+  block-size: 24px;
+}
+
+/* Focus fills with the one accent, as the round buttons do. */
+.isl-ctl:focus {
+  outline: 2px solid transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.isl-ctl:active {
+  scale: 0.94;
+}
+
+/* As on the phone, what the open island lies over steps aside: the date and the weather line fade
+   while it's open and come back when it closes. */
+.screen:has(.island[data-size="expanded"]:not([hidden])) :is(.date, .weather) {
+  opacity: 0;
+}
+
+/* ---- Motion -------------------------------------------------------------------------------------- */
+
+@keyframes isl-eq {
+  from {
+    scale: 1 0.28;
+  }
+
+  to {
+    scale: 1 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .island {
+    transition:
+      inline-size 460ms var(--isl-ease),
+      block-size 460ms var(--isl-ease),
+      border-radius 460ms var(--isl-ease),
+      box-shadow 460ms var(--ease-out),
+      opacity 320ms var(--ease-out),
+      scale 420ms var(--isl-ease);
+  }
+
+  @starting-style {
+    .island {
+      opacity: 0;
+      scale: 0.6;
+    }
+  }
+
+  /* Closing: the player fades out first, then the pill's content comes back. */
+  .isl-compact {
+    transition: opacity 200ms var(--ease-out) 170ms;
+  }
+
+  .isl-full {
+    transition:
+      opacity 110ms var(--ease-out),
+      visibility 0s linear 110ms;
+  }
+
+  /* Opening: the pill's content goes at once, the player arrives as the shape settles. */
+  .island[data-size="expanded"] .isl-compact {
+    transition: opacity 90ms var(--ease-out);
+  }
+
+  .island[data-size="expanded"] .isl-full {
+    transition:
+      opacity 240ms var(--ease-out) 150ms,
+      visibility 0s;
+  }
+
+  .isl-bars i {
+    transition:
+      scale 260ms var(--ease-out),
+      background-color 500ms var(--ease-out);
+  }
+
+  .island[data-playing] .isl-bars i {
+    animation: isl-eq 820ms ease-in-out infinite alternate;
+  }
+
+  .island[data-playing] .isl-bars i:nth-child(2) {
+    animation-duration: 640ms;
+    animation-delay: -320ms;
+  }
+
+  .island[data-playing] .isl-bars i:nth-child(3) {
+    animation-duration: 960ms;
+    animation-delay: -150ms;
+  }
+
+  .island[data-playing] .isl-bars i:nth-child(4) {
+    animation-duration: 720ms;
+    animation-delay: -500ms;
+  }
+
+  .isl-fill {
+    transition: scale 1s linear;
+  }
+
+  .isl-ctl {
+    transition: scale 160ms var(--ease-out);
+  }
+
+  .date,
+  .weather {
+    transition: opacity 200ms var(--ease-out);
+  }
+}
+
+/* Reduced motion: the bars stand still at different heights while playing. */
+@media (prefers-reduced-motion: reduce) {
+  .island[data-playing] .isl-bars i:nth-child(1) {
+    scale: 1 0.55;
+  }
+
+  .island[data-playing] .isl-bars i:nth-child(2) {
+    scale: 1 0.9;
+  }
+
+  .island[data-playing] .isl-bars i:nth-child(3) {
+    scale: 1 0.7;
+  }
+
+  .island[data-playing] .isl-bars i:nth-child(4) {
+    scale: 1 0.4;
+  }
+}

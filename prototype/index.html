@@ -6,6 +6,8 @@
   <meta name="color-scheme" content="dark">
   <title>Baron TV Home</title>
   <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="glow.css">
+  <link rel="stylesheet" href="island.css">
 </head>
 <body>
   <header class="bar">
@@ -49,13 +51,37 @@
         </div>
         <button class="ctl-btn" type="button" id="saverNow">Show now</button>
       </div>
+      <div class="ctl">
+        <span class="ctl-label" id="l-spotify">Spotify</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-spotify">
+          <label><input type="radio" name="spotify" value="playing" checked>Playing</label>
+          <label><input type="radio" name="spotify" value="paused">Paused</label>
+          <label><input type="radio" name="spotify" value="off">Off</label>
+        </div>
+        <button class="ctl-btn" type="button" id="songNext">Next song</button>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label" id="l-island">Island</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-island">
+          <label><input type="radio" name="island" value="black" checked>Black</label>
+          <label><input type="radio" name="island" value="grey">Grey</label>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label" id="l-glow">Glow</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-glow">
+          <label><input type="radio" name="glow" value="refined" checked>Refined</label>
+          <label><input type="radio" name="glow" value="original">Original</label>
+          <label><input type="radio" name="glow" value="off">Off</label>
+        </div>
+      </div>
     </form>
   </header>
 
   <main class="stage">
     <div class="frame" id="frame">
       <section class="screen" id="screen" aria-label="TV home screen">
-        <div class="ambient" id="ambient" aria-hidden="true"></div>
+        <div class="ambient" id="ambient" data-glow="refined" aria-hidden="true"></div>
 
         <div class="content" id="content">
           <!-- Page 1: clock, controls, what's trending, the dock. -->
@@ -128,6 +154,30 @@
 
         </div>
 
+        <!-- Now playing on Spotify, Dynamic Island style: a pill at the top centre that opens into a
+             player while it has focus, and for a moment when the song changes. -->
+        <div class="island" id="island" hidden data-size="compact" data-look="black">
+          <div class="isl-compact" id="islCompact" aria-hidden="true">
+            <span class="isl-art"><img alt="" crossorigin="anonymous"></span>
+            <span class="isl-line" id="islLine"></span>
+            <span class="isl-bars"><i></i><i></i><i></i><i></i></span>
+          </div>
+          <div class="isl-full" id="islFull">
+            <span class="isl-art isl-art-big"><img alt="" crossorigin="anonymous"></span>
+            <div class="isl-info">
+              <p class="isl-title"><span id="islTitle"></span><span class="glyph isl-src" data-icon="spotify-logo" aria-hidden="true"></span></p>
+              <p class="isl-artist" id="islArtist"></p>
+              <span class="isl-track" aria-hidden="true"><span class="isl-fill" id="islFill"></span></span>
+              <p class="isl-times"><span id="islAt">0:00</span><span id="islLeft">-0:00</span></p>
+            </div>
+            <div class="isl-ctls">
+              <button class="isl-ctl" type="button" data-act="prev" aria-label="Previous song"><span class="glyph" data-icon="skip-back" data-weight="fill" aria-hidden="true"></span></button>
+              <button class="isl-ctl" type="button" data-act="toggle" aria-label="Pause" id="islToggle"><span class="glyph" data-icon="pause" data-weight="fill" aria-hidden="true"></span></button>
+              <button class="isl-ctl" type="button" data-act="next" aria-label="Next song"><span class="glyph" data-icon="skip-forward" data-weight="fill" aria-hidden="true"></span></button>
+            </div>
+          </div>
+        </div>
+
         <p class="toast" id="toast" role="status"></p>
 
         <!-- Idle screensaver: the old DVD logo bouncing off the edges, a new colour at every bounce. -->
@@ -143,7 +193,7 @@
     </div>
   </main>
 
-  <p class="hint">Arrow keys move, Enter opens, Esc goes back. Down from the dock opens page 2. The weather is live. Any key wakes the screensaver.</p>
+  <p class="hint">Arrow keys move, Enter opens, Esc goes back. Down from the dock opens page 2. Up from the shelf reaches the now-playing island. The weather is live. Any key wakes the screensaver.</p>
 
   <script src="app.js"></script>
 </body>

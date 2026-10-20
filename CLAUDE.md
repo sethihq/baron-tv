@@ -222,12 +222,53 @@ Data, fetched by the page the way the launcher would:
   placeholders. A poster can only open its app, not the exact title.
 - App banners in `assets/apps/` were pulled from the APKs on the TV.
 
+Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
+
+- **Now playing, Dynamic Island style** ("spotify now playing dynamic island style also on tv"),
+  `island.css` plus a section in `app.js`. A pill at the top centre, on the round buttons' centre line,
+  while Spotify plays: cover, song and four bars moving in the cover's colour (dots when paused). It
+  morphs open into a player (cover, song with Spotify's mark, artist, progress, times, previous / play /
+  next) while it has focus, and for 4.5 s when the song changes or music starts; the date and the weather
+  line fade while it's open, as an iPhone's status bar steps aside. It leads the top row: Up from the wide
+  poster reaches it, focus lands on play/pause, Left and Right walk the controls, Right past next goes to
+  Inputs, Esc goes to the dock. Hidden on page 2; stays, small, over the screensaver. Transport icons are
+  always Phosphor fill. Toolbar: Spotify Playing / Paused / Off, Next song, Island Black (hairline edge,
+  since black on black has no shape) / Grey. Demo queue; covers and lengths come from Apple's public
+  search (`itunes.apple.com/search`, open CORS) at run time, so none are stored, with drawn covers offline.
+- **Glow** ("these bg color glow should be more optimized"), `glow.css`: the new default "Refined" rises
+  from behind the dock, deeper and more saturated at its core, with a faint second tone in the top-left
+  corner; the colours are registered properties so they morph between apps instead of dimming through
+  black; a fine grain (overlay blend, invisible on black) stops banding on the 8-bit panel. Toolbar Glow
+  Refined / Original / Off.
+- **Typography and spacing** ("how apple does for its products"), in `app.css`: a type scale on `.screen`
+  (`--t-display` 56, `--t-sub` 17, `--t-body` 15, `--t-label` 13, `--t-caption` 12, with `--tr-*`
+  tracking and `--lh-text` 1.3), a 4 dp spacing scale (`--s-1` to `--s-8`), safe area 32 by 56. Section
+  labels are 13 semibold and quieter than content; gaps 24 (clock to shelf), 20 (shelf to dock), 32 (dock
+  to page 2); the date and the weather line share a baseline; page 2 fades the clock and shelf out.
+- **Shelf alignment** ("these things also are not aligned"): the small posters sat 10 dp low because a
+  `<button>` centres its content and the grid stretched them to the wide card's height; now
+  `align-items: start`. Focused posters lift to 1.05 with a deeper shadow so focus can't read as misalignment.
+- **Phone partner app** ("make a partner app for it for android, the ui should look good"): a prototype
+  is being built in `prototype/phone/` (http://localhost:4321/phone/): Remote, Apps, Now playing, TV.
+  Keys would go through CloudWalker's port 5511; apps, now playing, inputs and home settings through a
+  small LAN server the launcher would add.
+
+Porting the island: a `NotificationListenerService` (say `MediaListener`) gives the launcher
+`MediaSessionManager.getActiveSessions`; follow Spotify's `MediaController` (metadata title, artist,
+`METADATA_KEY_ALBUM_ART`, and `PlaybackState` position extrapolated from its update time and speed),
+send play / pause / next / previous with its transport controls. Grant over ADB with
+`cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.MediaListener`. **Unchecked on the
+TV** (it was off at midday on 2026-10-20): whether Spotify's TV app publishes a session while it plays,
+and whether that command exists on this Android 9 build. Check the island's top position for overscan
+on the real panel.
+
 Open questions for the user:
 
 1. The TMDB key (not given yet).
 2. Keep App Store and Media Center in the dock, or move them to page 2 so the dock is the five apps?
-3. Keep the colour glow, make it one fixed colour, or remove it?
+3. Glow: Refined, Original, or Off? (Asked as "keep, fixed colour or remove" before the refined one existed.)
 4. The Netflix tile on the real TV: drop it, or point it at an HDMI stick once there is one?
+5. Island: Black or Grey? Keep it over the screensaver?
 
 Porting it to the TV once approved (`launcher/`, Java):
 
