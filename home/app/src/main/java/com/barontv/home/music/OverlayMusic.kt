@@ -39,6 +39,11 @@ class OverlayMusic(private val context: Context) {
     private var lastKey = now()
     private var swallowUp = -1
     private var loggedDeaf = false
+    private val lamps = LampSync()
+
+    init {
+        engine.onKick = { lamps.kick(engine.light) }
+    }
 
     private val frame = Choreographer.FrameCallback { onFrame(it) }
     private val check = object : Runnable {
@@ -85,6 +90,7 @@ class OverlayMusic(private val context: Context) {
 
     fun release() {
         main.removeCallbacks(check)
+        lamps.stop()
         engine.off()
         ear.stop()
         finish()
@@ -117,6 +123,7 @@ class OverlayMusic(private val context: Context) {
         engine.still = !ValueAnimator.areAnimatorsEnabled()
         val t = now()
         engine.enter(t)
+        lamps.start()
         if (engine.still) {
             engine.frame(t)
             v.render(false)
@@ -133,6 +140,7 @@ class OverlayMusic(private val context: Context) {
     private fun exit() {
         if (!engine.on) return
         engine.exit(now())
+        lamps.stop()
         ear.stop()
         engine.hearing = false
         if (engine.settled) finish() else loop()

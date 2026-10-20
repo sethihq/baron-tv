@@ -49,8 +49,11 @@ class MusicMode(private val activity: Activity, private val layer: FrameLayout) 
     private val frame = Choreographer.FrameCallback { onFrame(it) }
     private val nowPlaying: (NowPlaying?) -> Unit = { onNowPlaying(it) }
 
+    private val lamps = LampSync()
+
     init {
         NowPlayingHub.addListener(nowPlaying)
+        engine.onKick = { lamps.kick(engine.light) }
     }
 
     val isOn: Boolean get() = engine.on
@@ -116,6 +119,7 @@ class MusicMode(private val activity: Activity, private val layer: FrameLayout) 
         engine.still = !ValueAnimator.areAnimatorsEnabled()
         val now = clock()
         engine.enter(now)
+        lamps.start()
         if (engine.still) {
             engine.frame(now)
             hideBehind()
@@ -147,6 +151,7 @@ class MusicMode(private val activity: Activity, private val layer: FrameLayout) 
     }
 
     private fun afterShow() {
+        lamps.stop()
         showBehind()
         activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         ear.stop()

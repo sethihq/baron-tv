@@ -126,9 +126,13 @@ internal class MusicEngine(random: Random) : BeatListener {
         light.high = 0.15f
     }
 
+    /** Told of each kick while music mode shows (the lamps flash on it). */
+    var onKick: (() -> Unit)? = null
+
     override fun kick(now: Double, amp: Double) {
         bot.kick(now, amp)
         light.swell(0.5f, now, amp.toFloat())
+        if (on) onKick?.invoke()
     }
 
     override fun hat(now: Double) {
