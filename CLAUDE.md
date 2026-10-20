@@ -232,8 +232,9 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   line fade while it's open, as an iPhone's status bar steps aside. It leads the top row: Up from the wide
   poster reaches it, focus lands on play/pause, Left and Right walk the controls, Right past next goes to
   Inputs, Esc goes to the dock. Hidden on page 2; stays, small, over the screensaver. Transport icons are
-  always Phosphor fill. Toolbar: Spotify Playing / Paused / Off, Next song, Island Black (hairline edge,
-  since black on black has no shape) / Grey. Demo queue; covers and lengths come from Apple's public
+  always Phosphor fill. Toolbar: Spotify Playing / Paused / Off, Next song. Always black, with a
+  hairline edge since black on black has no shape ("the island should always be black"; the Grey option
+  is gone). Demo queue; covers and lengths come from Apple's public
   search (`itunes.apple.com/search`, open CORS) at run time, so none are stored, with drawn covers offline.
 - **Glow** ("these bg color glow should be more optimized"), `glow.css`: the new default "Refined" rises
   from behind the dock, deeper and more saturated at its core, with a faint second tone in the top-left
@@ -271,8 +272,10 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   widget, space saving"), `watch.css`, the default (Look > Clock: Widget, or Classic to compare): a
   calendar badge (weekday in Apple's calendar red), a temperature gauge (a 270 degree arc from today's
   low to its high, a dot at now, the temperature inside, the sky's glyph in the gap) and the time with
-  the greeting over it, top right. The round buttons move to the top left, so the top band reads
-  controls, now playing, time and weather; the open island no longer overlaps anything (400 wide). The
+  the greeting over it. Every clock (Bento, Widget, Classic) now leads the top band at the left and the
+  round buttons sit at the right ("the clock on the left, HDMI and the others on the right, the same for
+  all of them"), as in the sidebar layout; with the bento or the widget the island is centred in the gap
+  between them, with Classic it keeps the screen's centre and the date steps aside. The
   height saved goes to the posters (222 tall, from 190), so the dock doesn't move.
 - **Page 2** ("the whole panel on the right, HDMI and other things on the left"): inputs and shortcuts
   stack down the left, the weather panel takes the right column, its place name level with "Inputs",
@@ -308,8 +311,9 @@ Added on the second Mac, 2026-10-20 afternoon (the user's asks in quotes):
   (`AudioManager.getActivePlaybackConfigurations`); the spectrum from `android.media.audiofx.Visualizer`
   on the output mix (RECORD_AUDIO through `pm grant`); draw with one pre-blurred dab bitmap, tinted, at
   half resolution; over other apps it needs an overlay window (SYSTEM_ALERT_WINDOW through `appops`).
-- **App tiles** ("tiles not united, logos not well designed, I want the covers real TVs use"), the default
-  Look > Tiles: Covers, `assets/apps/covers/*.svg` (Banners shows the APK banners to compare): each
+- **App tiles** ("tiles not united, logos not well designed, I want the covers real TVs use"), always
+  covers now ("tiles should always be covers"; the Banners option is gone, and the phone app uses the
+  same covers), `assets/apps/covers/*.svg`: each
   brand's TV banner colour full-bleed, every mark centred at one optical size (at most 62% wide and 40%
   tall, with small per-mark corrections), a shared 6% top sheen, a white 10% hairline round every tile so
   black ones keep their edge. Netflix shows its red wordmark. Logos: Prime Video 2024, Netflix, YouTube
@@ -393,12 +397,10 @@ Open questions for the user:
 2. Keep App Store and Media Center in the dock, or move them to page 2 so the dock is the five apps?
 3. Glow: Refined, Original, or Off? (Asked as "keep, fixed colour or remove" before the refined one existed.)
 4. The Netflix tile on the real TV: drop it, or point it at an HDMI stick once there is one?
-5. Island: Black or Grey? Keep it over the screensaver?
+5. Island (always black now): keep it over the screensaver?
 6. Edge glow (second version): keep it? Beat or Steady?
-7. Clock: the widget, or back to the classic big clock?
-8. Tiles: the new covers, or the APK banners?
-9. Layout: the sidebar, or the top bar? Clock: Bento, Widget or Classic?
-10. Music mode: 8 s, 30 s or off? Glow follows the song, the mic, or a fixed tempo?
+7. Layout: the sidebar, or the top bar? Clock: Bento, Widget or Classic? (Tiles are settled: covers.)
+8. Music mode: 8 s, 30 s or off? Glow follows the song, the mic, or a fixed tempo?
 
 Porting it to the TV once approved (`launcher/`, Java):
 

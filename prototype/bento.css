@@ -1,14 +1,15 @@
-/* Clock: Bento. The time, the date and the weather as a little bento of tiles in the top-right corner,
+/* Clock: Bento. The time, the date and the weather as a little bento of tiles in the top-left corner,
    after the user's widget references but laid out our own way: a cream watch dial with an orange
    second hand, the time under a greeting, a square that is the sky right now (its colour changes with
    the weather and with night), and a line that reads like a sentence: the date, then what the weather
    does next ("Drizzle from 2 pm", "Clear till late"). A black frame with a hairline holds the tiles,
    like the island's black look. bento.js fills it from app.js's weather reading.
 
-   It is 89 tall and fills the width of whatever holds it: 232 in the sidebar layout's right-hand
-   column (sidebar.css places it), with the controls dock below it (the .bento-dock classes at the end
-   of this file). In the top bar layout it sits in the band's corner at 214, top-aligned with the round
-   buttons, and the posters give back the extra height so the app dock stays where it is. */
+   It is 89 tall and fills the width of whatever holds it: 232 in the sidebar layout's left-hand
+   column (sidebar.css places it), with the shelf below it and the controls dock on the right (the
+   .bento-dock classes at the end of this file). In the top bar layout it leads the band at 214,
+   top-aligned with the round buttons at the right, and the posters give back the extra height so the
+   app dock stays where it is. */
 
 .bento {
   display: none;
@@ -27,14 +28,9 @@
   display: none;
 }
 
-/* The buttons lead the row at the top left, level with the bento's top. */
+/* The buttons sit at the right, level with the bento's top. */
 .screen[data-clock="bento"] .top {
   align-items: start;
-}
-
-.screen[data-clock="bento"] .inputs {
-  inset-inline-start: 0;
-  inset-inline-end: auto;
 }
 
 /* In the corner the bento is 39 dp taller than the widget's badges, so the posters are 39 shorter: the

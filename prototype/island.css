@@ -12,7 +12,7 @@
 
   position: absolute;
   inset-block-start: var(--isl-top, 33px);
-  inset-inline-start: 50%;
+  inset-inline-start: var(--isl-x, 50%);
   z-index: 30;
   inline-size: var(--wc);
   block-size: 34px;
@@ -27,13 +27,10 @@
   display: none;
 }
 
-/* Black on a black screen has no shape of its own, so a hairline draws the pill's edge. */
+/* Always black ("the island should always be black"). Black on a black screen has no shape of its
+   own, so a hairline draws the pill's edge. */
 .island[data-look="black"] {
   box-shadow: inset 0 0 0 1px oklch(100% 0 none / 0.12);
-}
-
-.island[data-look="grey"] {
-  --isl-bg: oklch(21% 0 none);
 }
 
 /* Open, it's a layer over the clock and the weather: a shadow sets it above them. */

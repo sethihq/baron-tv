@@ -3,17 +3,18 @@
 // Enter or a click is OK, Esc or Backspace is Back. Nothing here talks to the TV; the weather comes
 // from Open-Meteo and the shelf from TMDB, as the launcher would fetch them.
 
-// Dock order as the user set it, then the TV's own apps. Tiles: Covers (the default) is one matching
-// set drawn from each brand's official mark on its TV banner colour, every mark at the same optical
-// size; Banners is what each APK on the TV ships. Netflix isn't on this TV, so its tile is drawn.
+// Dock order as the user set it, then the TV's own apps. The tiles are always covers ("tiles should
+// always be covers"): one matching set drawn from each brand's official mark on its TV banner colour,
+// every mark at the same optical size. (The banners each APK ships stay in assets/apps, unused.)
+// Netflix isn't on this TV, so its tile is drawn.
 const APPS = [
-  { name: "Prime Video", cover: "primevideo", banner: "assets/apps/primevideo-banner.png" },
-  { name: "Netflix", cover: "netflix", banner: "assets/apps/netflix-banner.svg" },
-  { name: "YouTube", cover: "youtube", banner: "assets/apps/youtube-banner.png" },
-  { name: "JioHotstar", cover: "jiohotstar", banner: "assets/apps/jiohotstar-banner.png" },
-  { name: "Spotify", cover: "spotify", banner: "assets/apps/spotify-banner.png" },
-  { name: "App Store", cover: "appstore", banner: "assets/apps/appstore-banner.png" },
-  { name: "Media Center", cover: "media", banner: "assets/apps/media-banner.png" },
+  { name: "Prime Video", cover: "primevideo" },
+  { name: "Netflix", cover: "netflix" },
+  { name: "YouTube", cover: "youtube" },
+  { name: "JioHotstar", cover: "jiohotstar" },
+  { name: "Spotify", cover: "spotify" },
+  { name: "App Store", cover: "appstore" },
+  { name: "Media Center", cover: "media" },
 ];
 const INPUTS = [
   { name: "HDMI 1", icon: "plugs-connected", live: true },
@@ -77,9 +78,9 @@ let reading = null;
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(n, hi));
 const settings = () => Object.fromEntries(new FormData(controls));
-// The now-playing island, while it shows, joins the top row in screen order: right of the round
-// buttons with the clock widget (the buttons lead, top left), left of them with the classic clock.
-// In the sidebar layout the round buttons' jobs move into the side dock, so the island is the top row.
+// The now-playing island, while it shows, joins the top row in screen order: left of the round
+// buttons, which sit at the right for every clock (the clock leads, top left). In the sidebar layout
+// the round buttons' jobs move into the side dock, so the island is the top row.
 const sidebar = () => screen.dataset.layout === "sidebar";
 const topRow = () =>
   sidebar()
@@ -88,9 +89,7 @@ const topRow = () =>
       : [island]
     : island.hidden
       ? rounds
-      : screen.dataset.clock === "classic"
-        ? [island, ...rounds]
-        : [...rounds, island];
+      : [island, ...rounds];
 const rowItems = (row) =>
   row === "buttons"
     ? topRow()
@@ -136,7 +135,7 @@ function renderDock() {
       const img = new Image();
       img.alt = "";
       img.decoding = "async";
-      img.src = settings().tiles === "banners" ? app.banner : `assets/apps/covers/${app.cover}.svg`;
+      img.src = `assets/apps/covers/${app.cover}.svg`;
       card.append(img);
       tile.append(card);
       tile.addEventListener("click", () => {
@@ -1339,6 +1338,14 @@ function sizeIsland() {
   } else {
     const button = rectIn(rounds[0]);
     island.style.setProperty("--isl-top", `${Math.round(button.y + button.h / 2 - 17)}px`);
+    // With the bento or the widget, centred in the gap between it (left) and the buttons (right); the
+    // classic clock is wide, so there it keeps the screen's centre and the date steps aside.
+    const clock = { bento: "#bento", widget: ".watch" }[screen.dataset.clock];
+    if (clock) {
+      const left = rectIn(document.querySelector(clock));
+      const right = rectIn(document.querySelector(".buttons"));
+      island.style.setProperty("--isl-x", `${Math.round((left.x + left.w + right.x) / 2)}px`);
+    } else island.style.removeProperty("--isl-x");
   }
 }
 
@@ -1368,7 +1375,7 @@ function syncIsland() {
   const show = v.spotify !== "off" && state.view === "new" && (saver.on || state.page === 0);
   island.hidden = !show;
   island.toggleAttribute("data-playing", v.spotify === "playing");
-  island.dataset.look = v.island || "black";
+  island.dataset.look = "black";
   island.classList.toggle("over-saver", saver.on);
   const icon = islToggle.querySelector(".glyph");
   icon.dataset.icon = v.spotify === "playing" ? "pause" : "play";
@@ -2297,10 +2304,6 @@ function apply() {
   screen.dataset.font = v.font;
   screen.dataset.clock = v.clock || "widget";
   screen.dataset.layout = v.layout || "sidebar";
-  if (dockEl.dataset.tiles !== v.tiles) {
-    dockEl.dataset.tiles = v.tiles;
-    renderDock();
-  }
   ambient.dataset.glow = v.glow || "refined";
   if (v.glow === "off") hideGlow();
   paintGlyphs();
@@ -2351,7 +2354,7 @@ setInterval(loadWeather, WEATHER_EVERY_MS);
 loadTrending();
 setInterval(loadTrending, TMDB_EVERY_MS);
 fit();
-// Start on YouTube in the dock once its banner is in, so the glow starts in its red.
+// Start on YouTube in the dock once its cover is in, so the glow starts in its red.
 const firstBanner = dockEl.querySelector("img");
 if (firstBanner.complete) focusItem("dock", 0);
 else firstBanner.addEventListener("load", () => focusItem("dock", 0), { once: true });

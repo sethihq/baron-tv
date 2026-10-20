@@ -408,11 +408,18 @@ svg {
 
 /* ---- Page 1: top bar ------------------------------------------------------------------------- */
 
+/* Every clock (Bento, Widget, Classic) leads the band at the left and the round buttons sit at the
+   right ("the clock on the left, HDMI and the others on the right, the same for all of them"), as in
+   the sidebar layout. */
 .top {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 24px;
+}
+
+.top > .corner {
+  order: 1;
 }
 
 .greeting {

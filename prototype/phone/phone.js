@@ -29,15 +29,16 @@ const KEYS = {
   playpause: { code: 85, says: "Play/Pause" },
 };
 
-// The TV's dock order as the user set it on the TV prototype. Netflix can't run on this TV.
+// The TV's dock order as the user set it on the TV prototype, with the same covers as the TV's tiles
+// ("tiles should always be covers"). Netflix can't run on this TV.
 const APPS = [
-  { name: "Prime Video", banner: "../assets/apps/primevideo-banner.png", pkg: "com.amazon.amazonvideo.livingroom" },
-  { name: "Netflix", banner: "../assets/apps/netflix-banner.svg", pkg: "", note: "Not on this TV" },
-  { name: "YouTube", banner: "../assets/apps/youtube-banner.png", pkg: "com.google.android.youtube.tv" },
-  { name: "JioHotstar", banner: "../assets/apps/jiohotstar-banner.png", pkg: "in.startv.hotstar" },
-  { name: "Spotify", banner: "../assets/apps/spotify-banner.png", pkg: "com.spotify.tv.android" },
-  { name: "App Store", banner: "../assets/apps/appstore-banner.png", pkg: "tv.cloudwalker.market" },
-  { name: "Media Center", banner: "../assets/apps/media-banner.png", pkg: "com.cvte.tv.media" },
+  { name: "Prime Video", cover: "primevideo", pkg: "com.amazon.amazonvideo.livingroom" },
+  { name: "Netflix", cover: "netflix", pkg: "", note: "Not on this TV" },
+  { name: "YouTube", cover: "youtube", pkg: "com.google.android.youtube.tv" },
+  { name: "JioHotstar", cover: "jiohotstar", pkg: "in.startv.hotstar" },
+  { name: "Spotify", cover: "spotify", pkg: "com.spotify.tv.android" },
+  { name: "App Store", cover: "appstore", pkg: "tv.cloudwalker.market" },
+  { name: "Media Center", cover: "media", pkg: "com.cvte.tv.media" },
 ];
 
 // sourceId is the number CVTE's input switch takes (see CLAUDE.md, "Inputs").
@@ -352,11 +353,11 @@ for (const button of document.querySelectorAll("[data-key]")) {
 
 const appByName = (name) => APPS.find((a) => a.name === name);
 
-function bannerImg(src) {
+function coverImg(app) {
   const img = new Image();
   img.alt = "";
   img.decoding = "async";
-  img.src = src;
+  img.src = `../assets/apps/covers/${app.cover}.svg`;
   return img;
 }
 
@@ -371,7 +372,7 @@ function renderApps() {
       tile.setAttribute("aria-label", app.note ? `${app.name}, ${app.note.toLowerCase()}` : `Open ${app.name} on the TV`);
       const card = document.createElement("span");
       card.className = "app-card";
-      card.append(bannerImg(app.banner));
+      card.append(coverImg(app));
       const label = document.createElement("span");
       label.className = "app-name";
       label.textContent = app.name;
@@ -664,7 +665,7 @@ function renderDockList(focusName) {
       row.className = "dock-row";
       const thumb = document.createElement("span");
       thumb.className = "dock-thumb";
-      thumb.append(bannerImg(app.banner));
+      thumb.append(coverImg(app));
       const label = document.createElement("span");
       label.className = "dock-name";
       label.textContent = name;

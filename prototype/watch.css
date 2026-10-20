@@ -1,9 +1,9 @@
 /* Clock: Widget. The greeting, time, date and weather leave the big clock block for one small widget
-   in the top-right corner, drawn like Apple Watch complications: a calendar badge (the weekday in red,
+   in the top-left corner, drawn like Apple Watch complications: a calendar badge (the weekday in red,
    the day in white), a temperature gauge (an arc from today's low to its high with a dot at the
    current temperature, the number inside, the sky's glyph in the gap) and the time with the greeting
-   over it. The round buttons move to the top left, so the top band is one line: controls, now
-   playing, time and weather. The height it frees goes to the shelf. */
+   over it. The round buttons stay at the right, so the top band is one line: time and weather, now
+   playing, controls. The height it frees goes to the shelf. */
 
 .watch {
   display: none;
@@ -21,12 +21,6 @@
 
 .screen[data-clock="widget"] .top {
   align-items: center;
-}
-
-/* The Inputs menu hangs from the left edge now that its button leads the row. */
-.screen[data-clock="widget"] .inputs {
-  inset-inline-start: 0;
-  inset-inline-end: auto;
 }
 
 /* The height the clock block gave back goes to the art. */
