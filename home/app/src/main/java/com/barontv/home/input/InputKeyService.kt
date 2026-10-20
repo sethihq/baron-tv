@@ -40,6 +40,8 @@ class InputKeyService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        // Watch for the service being switched off again while this process lives.
+        ServiceGuard.start(this)
         music = OverlayMusic(this)
         val v = TvVolume(this, homeInFront = { front == packageName })
         volume = v

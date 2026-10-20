@@ -46,6 +46,8 @@ class HomeActivity : Activity(), HomeHost {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
+        // The Input key service (bridge, volume bar, music mode over apps) must stay on; see ServiceGuard.
+        com.barontv.home.input.ServiceGuard.start(this)
         // The layout's root paints the screen black, so the theme's black window behind it would only be
         // a second full-screen fill on every frame (the launch preview still uses the theme's).
         window.setBackgroundDrawable(null)

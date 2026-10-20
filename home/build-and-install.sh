@@ -38,6 +38,7 @@ printf '%s\n' \
   "rm -f /data/local/tmp/baronhome.apk" \
   "pm grant $PKG android.permission.ACCESS_FINE_LOCATION" \
   "pm grant $PKG android.permission.RECORD_AUDIO" \
+  "pm grant $PKG android.permission.WRITE_SECURE_SETTINGS" \
   "cmd notification allow_listener $PKG/$PKG.media.NowPlayingListener" \
   "cmd package compile -m speed -f $PKG" \
   "cmd package set-home-activity --user 0 $PKG/.HomeActivity" \
@@ -55,7 +56,10 @@ $TV "settings put secure location_providers_allowed +network; settings put secur
 # reinstall until it's enabled afresh (it would miss the notification events now playing needs).
 $TV "s=\$(settings get secure enabled_accessibility_services | tr ':' '\n' | grep -v -e '^$OLD/' -e '^$PKG/' -e '^null\$' | tr '\n' ':' | sed 's/:\$//'); settings put secure enabled_accessibility_services \"\${s:-null}\"; sleep 1; settings put secure enabled_accessibility_services \"\${s:+\$s:}$PKG/$PKG.input.InputKeyService\"; settings put secure accessibility_enabled 1; echo Input key: \$(settings get secure enabled_accessibility_services)"
 
-$TV "am start -W -n $PKG/.HomeActivity | grep -E '^(Status|TotalTime|Error)'"
+# QUIET=1 doesn't bring the home up (the firmware force-stops whatever app is in front when Home comes).
+if [ "${QUIET:-0}" != 1 ]; then
+  $TV "am start -W -n $PKG/.HomeActivity | grep -E '^(Status|TotalTime|Error)'"
+fi
 HOME_NOW=$($TV 'cmd package resolve-activity --brief -c android.intent.category.HOME -a android.intent.action.MAIN' | tail -n 1 | tr -d '\r')
 case "$HOME_NOW" in
   $PKG/*) echo "Home is now $HOME_NOW. Undo with: TV_HOST=$TV_HOST home/rollback.sh" ;;

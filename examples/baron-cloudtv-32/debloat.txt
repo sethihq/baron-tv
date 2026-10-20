@@ -52,3 +52,8 @@ com.mediatek.androidbox                 # Kindlink screen mirroring (WFD sink)
 tv.cloudwalker.apiservice               # CloudWalker ad-ID and deeplink service, starts at boot
 tv.cloudwalker.skin                     # Cloud TV launcher skin (About, Terms)
 tv.cloudwalker.apps                     # Cloud TV All Apps screen
+
+# Removed 2026-10-21 with the user's OK: CVTE's TV settings start this stock launcher by name when you
+# leave them, past the default Home, and it only shows an error since the debloat. The new home
+# (com.barontv.home) and the earlier launcher (com.gathin.tvhome) remain as Home apps.
+tv.cloudwalker.launcher.com

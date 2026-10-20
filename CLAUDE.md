@@ -477,6 +477,19 @@ slots, `core/Tokens.kt` colours converted from OKLCH).
     bridge for the phone, `input/RemoteBridge.kt` on port 5512 inside the accessibility service:
     `GET /wake` (a phone key was pressed: music mode's idle clock restarts, or it wakes), `GET /input`
     (opens CVTE's source panel), `GET /` ("Baron Home").
+- **Keeping the service on:** Android drops an accessibility service from the enabled list when its
+  package is force-stopped, and on 2026-10-21 it also dropped ours when a system app was removed, taking
+  the bridge, Input key, volume bar and music mode over apps with it (the phone said the new home wasn't
+  answering). `input/ServiceGuard.kt` now puts it back at once: when the home or the service starts, and
+  whenever the setting changes while the process lives (checked: set to null, back within a second).
+  It needs WRITE_SECURE_SETTINGS, a development permission the install script grants with `pm grant`.
+  `QUIET=1 home/build-and-install.sh` reinstalls without bringing the home up, so the app in front (and
+  its music) isn't force-stopped.
+- **The stock launcher is removed** (2026-10-21, with the user's OK): CVTE's TV settings (the Menu key)
+  start `tv.cloudwalker.launcher.com` by name when you leave them, past the default Home, and it only
+  showed an error screen since the debloat. `pm uninstall -k --user 0`, now at the end of
+  `examples/baron-cloudtv-32/debloat.txt`; back with `cmd package install-existing tv.cloudwalker.launcher.com`.
+  Still to check: where leaving TV settings lands now.
 - **Measured on the TV:** cold start about 0.8 s (0.65 to 1.2 s; 1.4 to 5 s only right after an install
   while the TV compiles), the same as the old launcher. Memory about 58 MB PSS (11 MB of it private).
   Moving focus round the screen: 557 frames, 1.3% janky, p50 6 ms, p90 9 ms. The screensaver runs at 60
